@@ -173,6 +173,7 @@ var inlineNodeNames  = /^(?:#text|A(?:BBR|CRONYM)?|B(?:R|D[IO])?|C(?:ITE|ODE)|D(
 
 var leafNodeNames = {
     BR: 1,
+    HR: 1,
     IMG: 1,
     INPUT: 1
 };
@@ -2275,7 +2276,7 @@ proto.setConfig = function ( config ) {
             blockquote: null,
             ul: null,
             ol: null,
-            li: null
+            li: null,
         }
     }, config );
 
@@ -2553,6 +2554,10 @@ proto.getSelectedText = function () {
         } else if ( node.nodeName === 'BR' ||
                 addedTextInBlock && !isInline( node ) ) {
             textContent += '\n';
+            addedTextInBlock = false;
+        } else if ( node.nodeName === 'HR' ||
+                addedTextInBlock && !isInline( node ) ) {
+            textContent += '\n\n\n';
             addedTextInBlock = false;
         }
         node = walker.nextNode();
@@ -2964,7 +2969,8 @@ proto._addFormat = function ( tag, attributes, range ) {
             function ( node ) {
                 return ( node.nodeType === TEXT_NODE ||
                         node.nodeName === 'BR' ||
-                        node.nodeName === 'IMG'
+                        node.nodeName === 'IMG' ||
+                        node.nodeName === 'HR'
                     ) && isNodeContainedInRange( range, node, true );
             },
             false
@@ -3281,11 +3287,23 @@ proto.modifyBlocks = function ( modify, range ) {
     this._updatePath( range, true );
 
     // 7. We're not still in an undo state
-    if ( !canObserveMutations ) {
+    if ( !canObserveMutations ) {   
         this._docWasChanged();
     }
 
     return this;
+};
+
+var createBlockQuote = function ( frag ) {
+    if (frag.querySelector('BLOCKQUOTE') == null) {
+        return this.createElement( 'BLOCKQUOTE',
+        this._config.tagAttributes.blockquote, [
+            frag
+        ]);
+    } else {
+        return
+    }
+    
 };
 
 var increaseBlockQuoteLevel = function ( frag ) {
@@ -3318,11 +3336,13 @@ var removeBlockQuote = function (/* frag */) {
     ]);
 };
 
-var makeList = function ( self, frag, type ) {
+var makeList = function ( self, frag, type, variant ) {
+    var tagAttributeType = variant != undefined ? variant : type.toLowerCase();
+
     var walker = getBlockWalker( frag ),
         node, tag, prev, newLi,
         tagAttributes = self._config.tagAttributes,
-        listAttrs = tagAttributes[ type.toLowerCase() ],
+        listAttrs = tagAttributes[ tagAttributeType ],
         listItemAttrs = tagAttributes.li;
 
     while ( node = walker.nextNode() ) {
@@ -3367,6 +3387,11 @@ var makeUnorderedList = function ( frag ) {
 
 var makeOrderedList = function ( frag ) {
     makeList( this, frag, 'OL' );
+    return frag;
+};
+
+var makeUnlabeledList = function ( frag ) {
+    makeList( this, frag, 'UL', 'noLabels' );
     return frag;
 };
 
@@ -3615,6 +3640,19 @@ proto.insertImage = function ( src, attributes ) {
     return img;
 };
 
+proto.insertPageBreak = function () {
+    var hr = this.createElement( 'HR' );
+    this.insertElement( hr );
+    return hr;
+};
+
+proto.removePageBreak = function () {
+    this.changeFormat( null, {
+        tag: 'HR'
+    }, this.getSelection(), true );
+    return this.focus();
+};
+
 var linkRegExp = /\b((?:(?:ht|f)tps?:\/\/|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,}\/)(?:[^\s()<>]+|\([^\s()<>]+\))+(?:\((?:[^\s()<>]+|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))|([\w\-.%+]+@(?:[\w\-]+\.)+[A-Z]{2,}\b)/i;
 
 var addLinks = function ( frag ) {
@@ -3749,6 +3787,13 @@ proto.underline = command( 'changeFormat', { tag: 'U' } );
 proto.strikethrough = command( 'changeFormat', { tag: 'S' } );
 proto.subscript = command( 'changeFormat', { tag: 'SUB' }, { tag: 'SUP' } );
 proto.superscript = command( 'changeFormat', { tag: 'SUP' }, { tag: 'SUB' } );
+
+// *****  SMW ********
+proto.h1 = command( 'changeFormat', { tag: 'H1' } );
+proto.h2 = command( 'changeFormat', { tag: 'H2' } );
+proto.h3 = command( 'changeFormat', { tag: 'H3' } );
+proto.h4 = command( 'changeFormat', { tag: 'H4' } );
+// ***********************
 
 proto.removeBold = command( 'changeFormat', null, { tag: 'B' } );
 proto.removeItalic = command( 'changeFormat', null, { tag: 'I' } );
@@ -3973,11 +4018,15 @@ proto.removeAllFormatting = function ( range ) {
     return this.focus();
 };
 
+proto.createBlockQuote = command( 'modifyBlocks', createBlockQuote );
+
 proto.increaseQuoteLevel = command( 'modifyBlocks', increaseBlockQuoteLevel );
 proto.decreaseQuoteLevel = command( 'modifyBlocks', decreaseBlockQuoteLevel );
 
 proto.makeUnorderedList = command( 'modifyBlocks', makeUnorderedList );
 proto.makeOrderedList = command( 'modifyBlocks', makeOrderedList );
+proto.makeUnlabeledList = command( 'modifyBlocks', makeUnlabeledList );
+
 proto.removeList = command( 'modifyBlocks', removeList );
 
 proto.increaseListLevel = command( 'modifyBlocks', increaseListLevel );

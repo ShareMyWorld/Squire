@@ -36,33 +36,30 @@
   <p>This is a really simple demo, with the most trivial of UI integrations</p>
   <p>
   <span id="bold">Bold</span>
+  
   <span id="removeBold">Unbold</span>
+  
+  <span id="h1">H1</span>
+  
   <span id="italic">Italic</span>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <span id="removeItalic">Unitalic</span>
-  <span id="underline">Underline</span>
-  <span id="removeUnderline">Deunderline</span>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <span id="removeAllFormatting">Remove formatting</span>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <span id="setFontSize" class="prompt">Font size</span>
-  <span id="setFontFace" class="prompt">Font face</span>
   </p>
   <p>
-  <span id="setTextColour" class="prompt">Text colour</span>
-  <span id="setHighlightColour" class="prompt">Text highlight</span>
   <span id="makeLink" class="prompt">Link</span>
   </p>
   <p>
-    <span id="increaseQuoteLevel">Quote</span>
-    <span id="decreaseQuoteLevel">Dequote</span>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <span id="createBlockQuote">Quote</span>
+    <span id="increaseQuoteLevel">Quote2</span>
     <span id="makeUnorderedList">List</span>
+    <span id="makeUnlabeledList">Unlabled</span>
     <span id="removeList">Unlist</span>
-    <span id="increaseListLevel">Increase list level</span>
-    <span id="decreaseListLevel">Decrease list level</span>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <span id="insertImage" class="prompt">Insert image</span>
+  <span id="insertPageBreak">Insert page break</span>
   <span id="setHTML" class="prompt">Set HTML</span>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <span id="undo">Undo</span>
@@ -136,7 +133,8 @@
         tagAttributes: {
             ul: {'class': 'UL'},
             ol: {'class': 'OL'},
-            li: {'class': 'listItem'}
+            li: {'class': 'listItem'},
+            noLabels: {'class': 'marked-no-list-labels'}
         }
     });
     // Add styles to frame
