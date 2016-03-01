@@ -108,6 +108,11 @@
     margin: 0;
     padding: 0 10px;
   }
+  .page-break {
+    height: 1px;
+    width: 100%;
+    background-color: #000;
+  }
 </script>
 <script type="text/javascript" src="build/squire-raw.js"></script>
 <script type="text/javascript" charset="utf-8">
@@ -134,7 +139,8 @@
             ul: {'class': 'UL'},
             ol: {'class': 'OL'},
             li: {'class': 'listItem'},
-            noLabels: {'class': 'marked-no-list-labels'}
+            noLabels: {'class': 'marked-no-list-labels'},
+            pageBreak: {'class': 'page-break'}
         }
     });
     // Add styles to frame

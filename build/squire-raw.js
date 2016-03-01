@@ -2969,8 +2969,7 @@ proto._addFormat = function ( tag, attributes, range ) {
             function ( node ) {
                 return ( node.nodeType === TEXT_NODE ||
                         node.nodeName === 'BR' ||
-                        node.nodeName === 'IMG' ||
-                        node.nodeName === 'HR'
+                        node.nodeName === 'IMG'
                     ) && isNodeContainedInRange( range, node, true );
             },
             false
@@ -3294,17 +3293,6 @@ proto.modifyBlocks = function ( modify, range ) {
     return this;
 };
 
-var createBlockQuote = function ( frag ) {
-    if (frag.querySelector('BLOCKQUOTE') == null) {
-        return this.createElement( 'BLOCKQUOTE',
-        this._config.tagAttributes.blockquote, [
-            frag
-        ]);
-    } else {
-        return
-    }
-    
-};
 
 var increaseBlockQuoteLevel = function ( frag ) {
     return this.createElement( 'BLOCKQUOTE',
@@ -3371,7 +3359,7 @@ var makeList = function ( self, frag, type, variant ) {
         } else {
             node = node.parentNode.parentNode;
             tag = node.nodeName;
-            if ( tag !== type && ( /^[OU]L$/.test( tag ) ) ) {
+            if ( (tag !== type || node.getAttribute('class') !== listAttrs.class) && ( /^[OU]L$/.test( tag ) ) ) {
                 replaceWith( node,
                     self.createElement( type, listAttrs, [ empty( node ) ] )
                 );
@@ -3387,11 +3375,6 @@ var makeUnorderedList = function ( frag ) {
 
 var makeOrderedList = function ( frag ) {
     makeList( this, frag, 'OL' );
-    return frag;
-};
-
-var makeUnlabeledList = function ( frag ) {
-    makeList( this, frag, 'UL', 'noLabels' );
     return frag;
 };
 
@@ -3640,17 +3623,13 @@ proto.insertImage = function ( src, attributes ) {
     return img;
 };
 
-proto.insertPageBreak = function () {
-    var hr = this.createElement( 'HR' );
+proto.insertPageBreak = function ( ) {
+    var tagAttributes = this._config.tagAttributes;
+    var pageBreakAttrs = tagAttributes[ 'pageBreak' ];
+
+    var hr = this.createElement( 'IMG', pageBreakAttrs );
     this.insertElement( hr );
     return hr;
-};
-
-proto.removePageBreak = function () {
-    this.changeFormat( null, {
-        tag: 'HR'
-    }, this.getSelection(), true );
-    return this.focus();
 };
 
 var linkRegExp = /\b((?:(?:ht|f)tps?:\/\/|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,}\/)(?:[^\s()<>]+|\([^\s()<>]+\))+(?:\((?:[^\s()<>]+|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))|([\w\-.%+]+@(?:[\w\-]+\.)+[A-Z]{2,}\b)/i;
@@ -3787,13 +3766,6 @@ proto.underline = command( 'changeFormat', { tag: 'U' } );
 proto.strikethrough = command( 'changeFormat', { tag: 'S' } );
 proto.subscript = command( 'changeFormat', { tag: 'SUB' }, { tag: 'SUP' } );
 proto.superscript = command( 'changeFormat', { tag: 'SUP' }, { tag: 'SUB' } );
-
-// *****  SMW ********
-proto.h1 = command( 'changeFormat', { tag: 'H1' } );
-proto.h2 = command( 'changeFormat', { tag: 'H2' } );
-proto.h3 = command( 'changeFormat', { tag: 'H3' } );
-proto.h4 = command( 'changeFormat', { tag: 'H4' } );
-// ***********************
 
 proto.removeBold = command( 'changeFormat', null, { tag: 'B' } );
 proto.removeItalic = command( 'changeFormat', null, { tag: 'I' } );
@@ -4018,19 +3990,90 @@ proto.removeAllFormatting = function ( range ) {
     return this.focus();
 };
 
-proto.createBlockQuote = command( 'modifyBlocks', createBlockQuote );
-
 proto.increaseQuoteLevel = command( 'modifyBlocks', increaseBlockQuoteLevel );
 proto.decreaseQuoteLevel = command( 'modifyBlocks', decreaseBlockQuoteLevel );
 
 proto.makeUnorderedList = command( 'modifyBlocks', makeUnorderedList );
 proto.makeOrderedList = command( 'modifyBlocks', makeOrderedList );
-proto.makeUnlabeledList = command( 'modifyBlocks', makeUnlabeledList );
 
 proto.removeList = command( 'modifyBlocks', removeList );
 
 proto.increaseListLevel = command( 'modifyBlocks', increaseListLevel );
 proto.decreaseListLevel = command( 'modifyBlocks', decreaseListLevel );
+
+//          _____                    _____                    _____          
+//         /\    \                  /\    \                  /\    \         
+//        /::\    \                /::\____\                /::\____\        
+//       /::::\    \              /::::|   |               /:::/    /        
+//      /::::::\    \            /:::::|   |              /:::/   _/___      
+//     /:::/\:::\    \          /::::::|   |             /:::/   /\    \     
+//    /:::/__\:::\    \        /:::/|::|   |            /:::/   /::\____\    
+//    \:::\   \:::\    \      /:::/ |::|   |           /:::/   /:::/    /    
+//  ___\:::\   \:::\    \    /:::/  |::|___|______    /:::/   /:::/   _/___  
+// /\   \:::\   \:::\    \  /:::/   |::::::::\    \  /:::/___/:::/   /\    \ 
+///::\   \:::\   \:::\____\/:::/    |:::::::::\____\|:::|   /:::/   /::\____\
+//\:::\   \:::\   \::/    /\::/    / ~~~~~/:::/    /|:::|__/:::/   /:::/    /
+// \:::\   \:::\   \/____/  \/____/      /:::/    /  \:::\/:::/   /:::/    / 
+//  \:::\   \:::\    \                  /:::/    /    \::::::/   /:::/    /  
+//   \:::\   \:::\____\                /:::/    /      \::::/___/:::/    /   
+//    \:::\  /:::/    /               /:::/    /        \:::\__/:::/    /    
+//     \:::\/:::/    /               /:::/    /          \::::::::/    /     
+//      \::::::/    /               /:::/    /            \::::::/    /      
+//       \::::/    /               /:::/    /              \::::/    /       
+//        \::/    /                \::/    /                \::/____/        
+//         \/____/                  \/____/                  ~~              
+                                                                        
+var createHeader = function ( level ) {
+    var tag = 'H' + level;
+    return function( frag ) { return createOnce( this, frag, tag ) };
+};
+
+var makeUnlabeledList = function ( frag ) {
+    makeList( this, frag, 'UL', 'noLabels' );
+    return frag;
+};
+
+var createBlockQuote = function ( frag ) {
+    return createOnce( this, frag, 'BLOCKQUOTE' );    
+};
+
+var createOnce = function ( self, frag, tag ) {
+    if (frag.querySelector(tag) == null) {
+        return self.createElement( tag,
+        self._config.tagAttributes.blockquote, [
+            frag
+        ]);
+    } else {
+        return frag;
+    }  
+}
+
+proto.h1 = command( 'modifyBlocks', createHeader(1) );
+proto.h2 = command( 'modifyBlocks', createHeader(1) );
+proto.h3 = command( 'modifyBlocks', createHeader(1) );
+proto.h4 = command( 'modifyBlocks', createHeader(1) );
+
+proto.makeUnlabeledList = command( 'modifyBlocks', makeUnlabeledList );
+
+proto.createBlockQuote = command( 'modifyBlocks', createBlockQuote );
+
+
+//Remove unwanted functionality
+delete proto.underline;;
+delete proto.strikethrough;
+delete proto.subscript;
+delete proto.superscript;
+
+delete proto.removeUnderline;
+delete proto.removeStrikethrough;
+delete proto.removeSubscript;
+delete proto.removeSuperscript;
+
+delete proto.increaseListLevel;
+delete proto.decreaseListLevel;
+
+delete proto.increaseQuoteLevel;
+delete proto.decreaseQuoteLevel;
 
 if ( typeof exports === 'object' ) {
     module.exports = Squire;
