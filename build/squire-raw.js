@@ -173,7 +173,6 @@ var inlineNodeNames  = /^(?:#text|A(?:BBR|CRONYM)?|B(?:R|D[IO])?|C(?:ITE|ODE)|D(
 
 var leafNodeNames = {
     BR: 1,
-    HR: 1,
     IMG: 1,
     INPUT: 1
 };
@@ -229,6 +228,10 @@ function isContainer ( node ) {
         !isInline( node ) && !isBlock( node );
 }
 
+function isHeader ( node ) {
+    return node.parentNode.nodeName[0].toUpperCase() === 'H';
+}
+
 function getBlockWalker ( node ) {
     var doc = node.ownerDocument,
         walker = new TreeWalker(
@@ -246,6 +249,14 @@ function getNextBlock ( node ) {
 function getNearest ( node, tag, attributes ) {
     do {
         if ( hasTagAttributes( node, tag, attributes ) ) {
+            return node;
+        }
+    } while ( node = node.parentNode );
+    return null;
+}
+function getNearestLike ( node, tagLike ) {
+    do {
+        if ( node.nodeName.match( '^'+tagLike ) ) {
             return node;
         }
     } while ( node = node.parentNode );
@@ -1295,7 +1306,7 @@ var afterDelete = function ( self, range ) {
 
 var keyHandlers = {
     enter: function ( self, event, range ) {
-        var block, parent, nodeAfterSplit;
+        var block, parent, nodeAfterSplit, header;
 
         // We handle this ourselves
         event.preventDefault();
@@ -1340,11 +1351,6 @@ var keyHandlers = {
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
                 return self.modifyBlocks( removeBlockQuote, range );
             }
-
-            // Break headers
-            else if ( getNearest( block, 'H1' ) ) {
-                return self.modifyBlocks( removeBlockQuote, range );
-            }
         }
 
         // Otherwise, split at cursor point.
@@ -1384,6 +1390,19 @@ var keyHandlers = {
                 child = next;
             }
 
+            if ( header = getNearestLike( nodeAfterSplit, 'H\\d$' ) ) {
+                detach( nodeAfterSplit );
+                //insert after
+                parent = header.parentNode;
+                if ( parent.lastchild === header ) {
+                    parent.parentNode.appendChild(nodeAfterSplit);
+                } else {
+                    parent.insertBefore( nodeAfterSplit, header.nextSibling );
+                }
+                break;
+
+            }
+
             // 'BR's essentially don't count; they're a browser hack.
             // If you try to select the contents of a 'BR', FF will not let
             // you type anything!
@@ -1391,6 +1410,8 @@ var keyHandlers = {
                     ( child.nodeType === TEXT_NODE && !isPresto ) ) {
                 break;
             }
+
+
             nodeAfterSplit = child;
         }
         range = self._createRange( nodeAfterSplit, 0 );
@@ -3367,6 +3388,7 @@ var makeList = function ( self, frag, type, variant ) {
         } else {
             node = node.parentNode.parentNode;
             tag = node.nodeName;
+            //TODO: change to hasTagAttributes
             if ( (tag !== type || node.getAttribute('class') !== listAttrs.class) && ( /^[OU]L$/.test( tag ) ) ) {
                 replaceWith( node,
                     self.createElement( type, listAttrs, [ empty( node ) ] )
@@ -4033,7 +4055,6 @@ proto.decreaseListLevel = command( 'modifyBlocks', decreaseListLevel );
                                                                         
 var createHeader = function ( level ) {
     var tag = 'H' + level;
-
     return function( frag ) { return createOrReplaceHeader( this, frag, tag ) };
 };
 
@@ -4055,46 +4076,50 @@ var createOnce = function ( self, frag, tag ) {
     } else {
         return frag;
     }  
-}
-
-var replaceHeader = function ( self, node, newLevel ) {
-    var tag = 'H' + level;
-    var listAttrs = self._config.tagAttributes[ tag ];
-    replaceWith( node, self.createElement( tag, listAttrs, [ frag ] ) );
-}
+};
 
 var createOrReplaceHeader = function ( self, frag, tag ) {
     var walker = getBlockWalker( frag ),
         node,
         tagAttributes = self._config.tagAttributes,
-        newListAttrs = tagAttributes[ tag ],
+        headerAttrs = tagAttributes[ tag ];
 
-    node = walker.nextNode();
-    if (node !== null) {
-        var parent = node.parentNode;
-        var nodeTag = parent.nodeName;
-        if ( nodeTag[0].toUpperCase() === 'H' ) {
-            if ( nodeTag !== tag ) {
+    
+    while ( node = walker.nextNode() ) {
+        if ( isHeader( node ) ) {
+            var parent = node.parentNode;
+            if ( parent.nodeName !== tag ) {
                 // Replace with new header level
-                var newTag =  self.createElement( tag, newListAttrs, [ node ] );
+                var newTag =  self.createElement( tag, headerAttrs, [ node ] );
                 replaceWith( parent, newTag );
-                return frag;
             } else {
                 // Remove header
-                return detach( node );
+                //return detach( node );
+                // do nothing
             }
         } else {
-            // Create new
-            return self.createElement( tag, newListAttrs, [ frag ] );
+            // Create new header
+            var header = self.createElement( tag, headerAttrs, [ node ] );
+            frag.appendChild(header);
         }
     }
-    
-}
+    return frag;
+};
+
+var removeHeader = function ( frag ) {
+    var walker = getBlockWalker( frag );
+    var node = walker.nextNode();
+    if ( node !== null && isHeader( node ) ) {
+        return detach( node );
+    };
+};
 
 proto.h1 = command( 'modifyBlocks', createHeader(1) );
 proto.h2 = command( 'modifyBlocks', createHeader(2) );
 proto.h3 = command( 'modifyBlocks', createHeader(3) );
 proto.h4 = command( 'modifyBlocks', createHeader(4) );
+
+proto.removeHeader = command( 'modifyBlocks', removeHeader );
 
 proto.makeUnlabeledList = command( 'modifyBlocks', makeUnlabeledList );
 

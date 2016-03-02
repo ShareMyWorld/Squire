@@ -1230,6 +1230,7 @@ var makeList = function ( self, frag, type, variant ) {
         } else {
             node = node.parentNode.parentNode;
             tag = node.nodeName;
+            //TODO: change to hasTagAttributes
             if ( (tag !== type || node.getAttribute('class') !== listAttrs.class) && ( /^[OU]L$/.test( tag ) ) ) {
                 replaceWith( node,
                     self.createElement( type, listAttrs, [ empty( node ) ] )
@@ -1923,30 +1924,32 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
     var walker = getBlockWalker( frag ),
         node,
         tagAttributes = self._config.tagAttributes,
-        newListAttrs = tagAttributes[ tag ],
+        headerAttrs = tagAttributes[ tag ];
 
-    node = walker.nextNode();
-    if (node !== null) {
+    
+    while ( node = walker.nextNode() ) {
         if ( isHeader( node ) ) {
             var parent = node.parentNode;
-            if ( nodeTag !== tag ) {
+            if ( parent.nodeName !== tag ) {
                 // Replace with new header level
-                var newTag =  self.createElement( tag, newListAttrs, [ node ] );
+                var newTag =  self.createElement( tag, headerAttrs, [ node ] );
                 replaceWith( parent, newTag );
-                return frag;
             } else {
                 // Remove header
-                return detach( node );
+                //return detach( node );
+                // do nothing
             }
         } else {
-            // Create new
-            return self.createElement( tag, newListAttrs, [ frag ] );
+            // Create new header
+            var header = self.createElement( tag, headerAttrs, [ node ] );
+            frag.appendChild(header);
         }
     }
+    return frag;
 };
 
 var removeHeader = function ( frag ) {
-    var walker = getBlockWalker( frag ),
+    var walker = getBlockWalker( frag );
     var node = walker.nextNode();
     if ( node !== null && isHeader( node ) ) {
         return detach( node );

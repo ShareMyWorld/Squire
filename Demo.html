@@ -69,6 +69,9 @@
     <span id="undo">Undo</span>
     <span id="redo">Redo</span>
   </p>
+  <p>
+    <span id="tomark">TO MARK</span>
+  </p>
 </header>
 <script type="text/template" id="editorStyles">
   html {
@@ -119,8 +122,11 @@
   }
 </script>
 <script type="text/javascript" src="build/squire-raw.js"></script>
+<script type="text/javascript" src="lib/to-markdown.js"></script>
+<script type="text/javascript" src="source/SmwConverters.js"></script>
 <script type="text/javascript" charset="utf-8">
   var editor;
+  var conv;
   var iframe = document.createElement( 'iframe' );
   iframe.addEventListener( 'load', function () {
     // Make sure we're in standards mode.
@@ -147,6 +153,7 @@
             pageBreak: {'class': 'page-break'}
         }
     });
+    conv = new SmwConverters();
     // Add styles to frame
     var style = doc.createElement( 'style' );
     style.type = 'text/css';
@@ -159,11 +166,29 @@
   document.addEventListener( 'click', function ( e ) {
     var id = e.target.id,
         value;
-    if ( id && editor && editor[ id ] ) {
-      if ( e.target.className === 'prompt' ) {
-        value = prompt( 'Value:' );
+    if ( id == 'tomark') {
+      var converter1 = {
+        filter: 'p',
+        replacement: function(content) {
+          return '\n\n' + content + '\n\n';
+        }
       }
-      editor[ id ]( value );
+      var converter2 = {
+        filter: ''
+      };
+      var html = editor.getHTML();
+      editor.setHTML(html);
+     
+      var frag = editor.getHTML();
+      console.log(frag);
+      console.log(toMarkdown(frag, {converters: conv.converters}));
+    }
+    if ( id && editor && editor[ id ] ) {
+        if ( e.target.className === 'prompt' ) {
+          value = prompt( 'Value:' );
+        }
+        editor[ id ]( value );  
+     
     }
   }, false );
 </script>

@@ -60,7 +60,7 @@ function isContainer ( node ) {
 }
 
 function isHeader ( node ) {
-    return node.nodeName[0].toUpperCase() === 'H';
+    return node.parentNode.nodeName[0].toUpperCase() === 'H';
 }
 
 function getBlockWalker ( node ) {
@@ -80,6 +80,14 @@ function getNextBlock ( node ) {
 function getNearest ( node, tag, attributes ) {
     do {
         if ( hasTagAttributes( node, tag, attributes ) ) {
+            return node;
+        }
+    } while ( node = node.parentNode );
+    return null;
+}
+function getNearestLike ( node, tagLike ) {
+    do {
+        if ( node.nodeName.match( '^'+tagLike ) ) {
             return node;
         }
     } while ( node = node.parentNode );

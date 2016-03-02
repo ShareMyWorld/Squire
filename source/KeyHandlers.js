@@ -145,7 +145,7 @@ var afterDelete = function ( self, range ) {
 
 var keyHandlers = {
     enter: function ( self, event, range ) {
-        var block, parent, nodeAfterSplit;
+        var block, parent, nodeAfterSplit, header;
 
         // We handle this ourselves
         event.preventDefault();
@@ -229,6 +229,19 @@ var keyHandlers = {
                 child = next;
             }
 
+            if ( header = getNearestLike( nodeAfterSplit, 'H\\d$' ) ) {
+                detach( nodeAfterSplit );
+                //insert after
+                parent = header.parentNode;
+                if ( parent.lastchild === header ) {
+                    parent.parentNode.appendChild(nodeAfterSplit);
+                } else {
+                    parent.insertBefore( nodeAfterSplit, header.nextSibling );
+                }
+                break;
+
+            }
+
             // 'BR's essentially don't count; they're a browser hack.
             // If you try to select the contents of a 'BR', FF will not let
             // you type anything!
@@ -236,6 +249,8 @@ var keyHandlers = {
                     ( child.nodeType === TEXT_NODE && !isPresto ) ) {
                 break;
             }
+
+
             nodeAfterSplit = child;
         }
         range = self._createRange( nodeAfterSplit, 0 );
