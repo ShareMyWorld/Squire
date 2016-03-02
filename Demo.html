@@ -176,12 +176,13 @@
       var converter2 = {
         filter: ''
       };
-      var html = editor.getHTML();
-      editor.setHTML(html);
+      //var html = editor.getHTML();
+      //editor.setHTML(html);
      
       var frag = editor.getHTML();
       console.log(frag);
-      console.log(toMarkdown(frag, {converters: conv.converters}));
+      var markdown = toMarkdown(frag, {converters: conv.converters});
+      console.log(markdown);
     }
     if ( id && editor && editor[ id ] ) {
         if ( e.target.className === 'prompt' ) {

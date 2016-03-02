@@ -3653,15 +3653,6 @@ proto.insertImage = function ( src, attributes ) {
     return img;
 };
 
-proto.insertPageBreak = function ( ) {
-    var tagAttributes = this._config.tagAttributes;
-    var pageBreakAttrs = tagAttributes[ 'pageBreak' ];
-
-    var hr = this.createElement( 'IMG', pageBreakAttrs );
-    this.insertElement( hr );
-    return hr;
-};
-
 var linkRegExp = /\b((?:(?:ht|f)tps?:\/\/|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,}\/)(?:[^\s()<>]+|\([^\s()<>]+\))+(?:\((?:[^\s()<>]+|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))|([\w\-.%+]+@(?:[\w\-]+\.)+[A-Z]{2,}\b)/i;
 
 var addLinks = function ( frag ) {
@@ -4112,6 +4103,15 @@ var removeHeader = function ( frag ) {
     if ( node !== null && isHeader( node ) ) {
         return detach( node );
     };
+};
+
+proto.insertPageBreak = function ( ) {
+    var tagAttributes = this._config.tagAttributes;
+    var pageBreakAttrs = tagAttributes[ 'pageBreak' ];
+
+    var hr = this.createElement( 'IMG', pageBreakAttrs );
+    this.insertElement( hr );
+    return hr;
 };
 
 proto.h1 = command( 'modifyBlocks', createHeader(1) );
