@@ -424,6 +424,9 @@ var keyHandlers = {
     }
 };
 
+// NOTE: Remove tab
+delete keyHandlers.tab; 
+
 // Firefox pre v29 incorrectly handles Cmd-left/Cmd-right on Mac:
 // it goes back/forward in history! Override to do the right
 // thing.

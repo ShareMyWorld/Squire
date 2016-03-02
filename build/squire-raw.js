@@ -1340,6 +1340,11 @@ var keyHandlers = {
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
                 return self.modifyBlocks( removeBlockQuote, range );
             }
+
+            // Break headers
+            else if ( getNearest( block, 'H1' ) ) {
+                return self.modifyBlocks( removeBlockQuote, range );
+            }
         }
 
         // Otherwise, split at cursor point.
@@ -1573,6 +1578,9 @@ var keyHandlers = {
         self._removeZWS();
     }
 };
+
+// NOTE: Remove tab
+delete keyHandlers.tab; 
 
 // Firefox pre v29 incorrectly handles Cmd-left/Cmd-right on Mac:
 // it goes back/forward in history! Override to do the right
@@ -4025,7 +4033,8 @@ proto.decreaseListLevel = command( 'modifyBlocks', decreaseListLevel );
                                                                         
 var createHeader = function ( level ) {
     var tag = 'H' + level;
-    return function( frag ) { return createOnce( this, frag, tag ) };
+
+    return function( frag ) { return createOrReplaceHeader( this, frag, tag ) };
 };
 
 var makeUnlabeledList = function ( frag ) {
@@ -4038,9 +4047,9 @@ var createBlockQuote = function ( frag ) {
 };
 
 var createOnce = function ( self, frag, tag ) {
-    if (frag.querySelector(tag) == null) {
+    if ( frag.querySelector(tag) === null ) {
         return self.createElement( tag,
-        self._config.tagAttributes.blockquote, [
+        self._config.tagAttributes[tag], [
             frag
         ]);
     } else {
@@ -4048,10 +4057,44 @@ var createOnce = function ( self, frag, tag ) {
     }  
 }
 
+var replaceHeader = function ( self, node, newLevel ) {
+    var tag = 'H' + level;
+    var listAttrs = self._config.tagAttributes[ tag ];
+    replaceWith( node, self.createElement( tag, listAttrs, [ frag ] ) );
+}
+
+var createOrReplaceHeader = function ( self, frag, tag ) {
+    var walker = getBlockWalker( frag ),
+        node,
+        tagAttributes = self._config.tagAttributes,
+        newListAttrs = tagAttributes[ tag ],
+
+    node = walker.nextNode();
+    if (node !== null) {
+        var parent = node.parentNode;
+        var nodeTag = parent.nodeName;
+        if ( nodeTag[0].toUpperCase() === 'H' ) {
+            if ( nodeTag !== tag ) {
+                // Replace with new header level
+                var newTag =  self.createElement( tag, newListAttrs, [ node ] );
+                replaceWith( parent, newTag );
+                return frag;
+            } else {
+                // Remove header
+                return detach( node );
+            }
+        } else {
+            // Create new
+            return self.createElement( tag, newListAttrs, [ frag ] );
+        }
+    }
+    
+}
+
 proto.h1 = command( 'modifyBlocks', createHeader(1) );
-proto.h2 = command( 'modifyBlocks', createHeader(1) );
-proto.h3 = command( 'modifyBlocks', createHeader(1) );
-proto.h4 = command( 'modifyBlocks', createHeader(1) );
+proto.h2 = command( 'modifyBlocks', createHeader(2) );
+proto.h3 = command( 'modifyBlocks', createHeader(3) );
+proto.h4 = command( 'modifyBlocks', createHeader(4) );
 
 proto.makeUnlabeledList = command( 'modifyBlocks', makeUnlabeledList );
 
