@@ -1896,7 +1896,6 @@ proto.decreaseListLevel = command( 'modifyBlocks', decreaseListLevel );
                                                                         
 var createHeader = function ( level ) {
     var tag = 'H' + level;
-
     return function( frag ) { return createOrReplaceHeader( this, frag, tag ) };
 };
 
@@ -1935,8 +1934,7 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
     node = walker.nextNode();
     if (node !== null) {
         var parent = node.parentNode;
-        var nodeTag = parent.nodeName;
-        if ( nodeTag[0].toUpperCase() === 'H' ) {
+        if ( isHeader( node ) ) {
             if ( nodeTag !== tag ) {
                 // Replace with new header level
                 var newTag =  self.createElement( tag, newListAttrs, [ node ] );

@@ -4,7 +4,6 @@ var inlineNodeNames  = /^(?:#text|A(?:BBR|CRONYM)?|B(?:R|D[IO])?|C(?:ITE|ODE)|D(
 
 var leafNodeNames = {
     BR: 1,
-    HR: 1,
     IMG: 1,
     INPUT: 1
 };
@@ -58,6 +57,10 @@ function isContainer ( node ) {
     var type = node.nodeType;
     return ( type === ELEMENT_NODE || type === DOCUMENT_FRAGMENT_NODE ) &&
         !isInline( node ) && !isBlock( node );
+}
+
+function isHeader ( node ) {
+    return node.nodeName[0].toUpperCase() === 'H';
 }
 
 function getBlockWalker ( node ) {
