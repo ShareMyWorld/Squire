@@ -1917,13 +1917,7 @@ var createOnce = function ( self, frag, tag ) {
     } else {
         return frag;
     }  
-}
-
-var replaceHeader = function ( self, node, newLevel ) {
-    var tag = 'H' + level;
-    var listAttrs = self._config.tagAttributes[ tag ];
-    replaceWith( node, self.createElement( tag, listAttrs, [ frag ] ) );
-}
+};
 
 var createOrReplaceHeader = function ( self, frag, tag ) {
     var walker = getBlockWalker( frag ),
@@ -1933,8 +1927,8 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
 
     node = walker.nextNode();
     if (node !== null) {
-        var parent = node.parentNode;
         if ( isHeader( node ) ) {
+            var parent = node.parentNode;
             if ( nodeTag !== tag ) {
                 // Replace with new header level
                 var newTag =  self.createElement( tag, newListAttrs, [ node ] );
@@ -1949,13 +1943,22 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
             return self.createElement( tag, newListAttrs, [ frag ] );
         }
     }
-    
-}
+};
+
+var removeHeader = function ( frag ) {
+    var walker = getBlockWalker( frag ),
+    var node = walker.nextNode();
+    if ( node !== null && isHeader( node ) ) {
+        return detach( node );
+    };
+};
 
 proto.h1 = command( 'modifyBlocks', createHeader(1) );
 proto.h2 = command( 'modifyBlocks', createHeader(2) );
 proto.h3 = command( 'modifyBlocks', createHeader(3) );
 proto.h4 = command( 'modifyBlocks', createHeader(4) );
+
+proto.removeHeader = command( 'modifyBlocks', removeHeader );
 
 proto.makeUnlabeledList = command( 'modifyBlocks', makeUnlabeledList );
 
