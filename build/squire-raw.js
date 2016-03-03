@@ -1351,8 +1351,6 @@ var keyHandlers = {
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
                 return self.modifyBlocks( removeBlockQuote, range );
             }
-        } else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
-            return self
         }
 
         // Otherwise, split at cursor point.

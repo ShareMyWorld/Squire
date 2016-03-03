@@ -11,7 +11,7 @@ proto.converters = [
 			var parent = node.parentNode;
 			// ignore header p
 		 	return node.nodeName === 'P' && 
-		 	 (parent.nodeName[0] !== 'H' && parent.nodeName !== 'BLOCKQUOTE');
+		 	 (parent.nodeName[0] !== 'H' && parent.nodeName !== 'LI');//&& parent.nodeName !== 'BLOCKQUOTE');
 		},
 		replacement: function(content) {
 			return '\n\n' + content + '\n\n';
@@ -32,15 +32,41 @@ proto.converters = [
 	{
 		filter: function (node) {
 			var parent = node.parentNode;
-		 	return node.nodeName === 'LI' && parent.nodeName && /marked-no-list-labels/i.test(parent.className);
+		 	return node.nodeName === 'LI' && parent.nodeName === 'UL' && parent.classList.contains('marked-no-list-labels');
 		},
 		replacement: function(content) {
-			return '- ' + content;
+			return '- ' + content.trim().replace(/\n/g, '\n  ');
 		}
 	},
 	{
 		filter: function (node) {
-		 	return node.nodeName === 'IMG' && /page-break/i.test(node.className);
+			var parent = node.parentNode;
+		 	return node.nodeName === 'LI' && parent.nodeName === 'UL' && !parent.classList.contains('marked-no-list-labels');
+		},
+		replacement: function(content) {
+			return '* ' + content.trim().replace(/\n/g, '\n  ');
+		}
+	},
+	{
+		filter: function (node) {
+		 	return node.nodeName === 'OL';
+		},
+		replacement: function(content) {
+			//To keep the numbered bullet we manually fitler li:s
+			var lis = content.split('\n');
+			var formatted = lis.map(function(li){
+				var trimmedLi = li.trim();
+				if (trimmedLi.match('^\\d+'))
+					return trimmedLi.replace(/\s+/, ' ');
+				else
+					return '  ' + trimmedLi;
+			});
+			return formatted.join('\n');
+		}
+	},
+	{
+		filter: function (node) {
+		 	return node.nodeName === 'IMG' && node.parentNode.classList.contains('page-break');
 		},
 		replacement: function(content) {
 			return '---';
@@ -53,7 +79,9 @@ proto.converters = [
 		}
 	},
 	{
-		filter: 'br',
+		filter: function (node){
+			return node.nodeName === 'BR' && node.parentNode.nodeName !== 'LI';
+		},
 		replacement: function(content) {
 			return '\n'; 
 		}

@@ -1954,10 +1954,10 @@ proto.insertPageBreak = function ( frag, other, things ) {
     var pageBreakAttrs = tagAttributes[ 'pageBreak' ];
     var pageBreak = this.createElement( 'IMG', pageBreakAttrs );
     
-        self._recordUndoState( range );
-        addLinks( range.startContainer );
-        self._removeZWS();
-        self._getRangeAndRemoveBookmark( range );
+    self._recordUndoState( range );
+    addLinks( range.startContainer );
+    self._removeZWS();
+    self._getRangeAndRemoveBookmark( range );
 
     var block = getStartBlockOfRange( range );
     var nodeAfterSplit = splitBlock( self, block, 
