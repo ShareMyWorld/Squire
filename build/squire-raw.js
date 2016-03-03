@@ -1351,6 +1351,13 @@ var keyHandlers = {
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
                 return self.modifyBlocks( removeBlockQuote, range );
             }
+        } else if ( parent = getNearest( block, 'BLOCKQUOTE' ) ) {
+            var br = self.createElement( 'BR' );
+            parent.appendChild( br );
+            range = self._createRange( br, 0 );
+        self.setSelection( range );
+        self._updatePath( range, true );
+            return;   
         }
 
         // Otherwise, split at cursor point.

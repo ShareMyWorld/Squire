@@ -190,6 +190,11 @@ var keyHandlers = {
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
                 return self.modifyBlocks( removeBlockQuote, range );
             }
+        } else if ( parent = getNearest( block, 'BLOCKQUOTE' ) ) {
+            var br = self.createElement( 'BR' );
+            parent.appendChild( br );
+            //TODO: move cursor!
+            return;   
         }
 
         // Otherwise, split at cursor point.
