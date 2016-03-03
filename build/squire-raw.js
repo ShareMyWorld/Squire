@@ -1351,6 +1351,8 @@ var keyHandlers = {
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
                 return self.modifyBlocks( removeBlockQuote, range );
             }
+        } else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
+            return self
         }
 
         // Otherwise, split at cursor point.
@@ -1390,6 +1392,7 @@ var keyHandlers = {
                 child = next;
             }
 
+            // SMW - Enter discontinous header
             if ( header = getNearestLike( nodeAfterSplit, 'H\\d$' ) ) {
                 detach( nodeAfterSplit );
                 //insert after
@@ -4075,7 +4078,6 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
         tagAttributes = self._config.tagAttributes,
         headerAttrs = tagAttributes[ tag ];
 
-    
     while ( node = walker.nextNode() ) {
         if ( isHeader( node ) ) {
             var parent = node.parentNode;
@@ -4105,14 +4107,30 @@ var removeHeader = function ( frag ) {
     };
 };
 
-proto.insertPageBreak = function ( ) {
+
+proto.insertPageBreak = function ( frag, other, things ) {
+    var range = this.getSelection();
+    var self = this;
     var tagAttributes = this._config.tagAttributes;
     var pageBreakAttrs = tagAttributes[ 'pageBreak' ];
+    var pageBreak = this.createElement( 'IMG', pageBreakAttrs );
+    
+        self._recordUndoState( range );
+        addLinks( range.startContainer );
+        self._removeZWS();
+        self._getRangeAndRemoveBookmark( range );
 
-    var hr = this.createElement( 'IMG', pageBreakAttrs );
-    this.insertElement( hr );
-    return hr;
+    var block = getStartBlockOfRange( range );
+    var nodeAfterSplit = splitBlock( self, block, 
+        range.startContainer, range.startOffset );
+    
+    var pageBreakBlock = self.createDefaultBlock( [ pageBreak ] );
+    nodeAfterSplit.parentNode.insertBefore( pageBreakBlock, nodeAfterSplit );
+    
+    return this;
 };
+
+//proto.insertPageBreak = command( 'modifyBlocks', insertPageBreak );
 
 proto.h1 = command( 'modifyBlocks', createHeader(1) );
 proto.h2 = command( 'modifyBlocks', createHeader(2) );

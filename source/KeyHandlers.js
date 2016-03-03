@@ -229,6 +229,7 @@ var keyHandlers = {
                 child = next;
             }
 
+            // SMW - Enter discontinous header
             if ( header = getNearestLike( nodeAfterSplit, 'H\\d$' ) ) {
                 detach( nodeAfterSplit );
                 //insert after
