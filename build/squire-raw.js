@@ -3782,15 +3782,11 @@ proto.addStyles = function ( styles ) {
     return this;
 };
 
-proto.bold = command( 'changeFormat', { tag: 'B' } );
-proto.italic = command( 'changeFormat', { tag: 'I' } );
 proto.underline = command( 'changeFormat', { tag: 'U' } );
 proto.strikethrough = command( 'changeFormat', { tag: 'S' } );
 proto.subscript = command( 'changeFormat', { tag: 'SUB' }, { tag: 'SUP' } );
 proto.superscript = command( 'changeFormat', { tag: 'SUP' }, { tag: 'SUB' } );
 
-proto.removeBold = command( 'changeFormat', null, { tag: 'B' } );
-proto.removeItalic = command( 'changeFormat', null, { tag: 'I' } );
 proto.removeUnderline = command( 'changeFormat', null, { tag: 'U' } );
 proto.removeStrikethrough = command( 'changeFormat', null, { tag: 'S' } );
 proto.removeSubscript = command( 'changeFormat', null, { tag: 'SUB' } );
@@ -4106,17 +4102,17 @@ var removeHeader = function ( frag ) {
 };
 
 
-proto.insertPageBreak = function ( frag, other, things ) {
+proto.insertPageBreak = function ( frag ) {
     var range = this.getSelection();
     var self = this;
     var tagAttributes = this._config.tagAttributes;
     var pageBreakAttrs = tagAttributes[ 'pageBreak' ];
     var pageBreak = this.createElement( 'IMG', pageBreakAttrs );
     
-        self._recordUndoState( range );
-        addLinks( range.startContainer );
-        self._removeZWS();
-        self._getRangeAndRemoveBookmark( range );
+    self._recordUndoState( range );
+    addLinks( range.startContainer );
+    self._removeZWS();
+    self._getRangeAndRemoveBookmark( range );
 
     var block = getStartBlockOfRange( range );
     var nodeAfterSplit = splitBlock( self, block, 
@@ -4128,7 +4124,39 @@ proto.insertPageBreak = function ( frag, other, things ) {
     return this;
 };
 
-//proto.insertPageBreak = command( 'modifyBlocks', insertPageBreak );
+
+proto.bold = function() { return changeFormatExpandToWord( this, { tag : 'B' }, null ); };
+proto.italic = function() { return changeFormatExpandToWord( this, { tag : 'I' }, null ); };
+proto.removeBold = function() { return changeFormatExpandToWord( this, null, { tag : 'B' } ); }; //command( 'changeFormat', null, { tag: 'B' } );
+proto.removeItalic = function() { return changeFormatExpandToWord( this, null, { tag : 'I' } ); }; //command( 'changeFormat', null, { tag: 'I' } );
+
+var changeFormatExpandToWord = function( self, add, remove ) {
+    var range = self.getSelection();
+    if ( range.collapsed ) {
+        _changeFormatToWord( self, add, remove, range )
+    } else {
+        self.changeFormat( add, remove, range );
+    }
+    
+    self.focus();
+    return self;
+}
+
+var _changeFormatToWord = function( self, add, remove, range ) {
+    var _startNode = range.startContainer;
+    var _startOffset = range.startOffset, _endOffset = range.endOffset;
+    
+    range.expand( "word" );
+    
+    self.changeFormat( add, remove, range );
+    
+    //Reset cursor
+    range.setStart(_startNode, _startOffset);
+    range.setEnd(_startNode, _endOffset);
+    range.collapse(true);
+    self.setSelection(range);
+        
+};
 
 proto.h1 = command( 'modifyBlocks', createHeader(1) );
 proto.h2 = command( 'modifyBlocks', createHeader(2) );
