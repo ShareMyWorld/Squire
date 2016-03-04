@@ -171,7 +171,10 @@
         value;
     if ( id == 'tomark') {
      
+      var html = editor.getHTML();
+      editor.setHTML(html);
       var frag = editor.getHTML();
+      console.log(html);
       console.log(frag);
       var markdown = toMarkdown(frag, {converters: conv.converters});
       console.log(markdown);

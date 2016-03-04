@@ -1966,17 +1966,17 @@ proto.insertPageBreak = function ( frag ) {
 };
 
 
-proto.bold = function() { return changeFormatExpandToWord( this, { tag : 'B' }, null ); };
-proto.italic = function() { return changeFormatExpandToWord( this, { tag : 'I' }, null ); };
+proto.bold = function() { return changeFormatExpandToWord( this, { tag : 'B' }, { tag : 'B' } ); };
+proto.italic = function() { return changeFormatExpandToWord( this, { tag : 'I' }, { tag : 'I' } ); };
 proto.removeBold = function() { return changeFormatExpandToWord( this, null, { tag : 'B' } ); }; //command( 'changeFormat', null, { tag: 'B' } );
 proto.removeItalic = function() { return changeFormatExpandToWord( this, null, { tag : 'I' } ); }; //command( 'changeFormat', null, { tag: 'I' } );
 
 var changeFormatExpandToWord = function( self, add, remove ) {
     var range = self.getSelection();
     var _startNode = range.startContainer, _endNode = range.endContainer;
+    var _startOffset = range.startOffset, _endOffset = range.endOffset;
     //Check if collapsed and not on an empty row
-    if ( range.collapsed && (_startNode.textContent !== '\u200b' && _endNode.textContent !== _startNode.textContent ) ) {
-        var _startOffset = range.startOffset, _endOffset = range.endOffset;
+    if ( range.collapsed && _startOffset < _startNode.textContent.length && _endOffset > _startNode.textContent.length ) {
         
         range.expand( "word" );
         
