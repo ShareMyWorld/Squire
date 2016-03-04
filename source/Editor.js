@@ -1973,8 +1973,20 @@ proto.removeItalic = function() { return changeFormatExpandToWord( this, null, {
 
 var changeFormatExpandToWord = function( self, add, remove ) {
     var range = self.getSelection();
-    if ( range.collapsed ) {
-        _changeFormatToWord( self, add, remove, range )
+    var _startNode = range.startContainer, _endNode = range.endContainer;
+    //Check if collapsed and not on an empty row
+    if ( range.collapsed && (_startNode.textContent !== '\u200b' && _endNode.textContent !== _startNode.textContent ) ) {
+        var _startOffset = range.startOffset, _endOffset = range.endOffset;
+        
+        range.expand( "word" );
+        
+        self.changeFormat( add, remove, range );
+        
+        //Reset cursor
+        range.setStart( _startNode, _startOffset );
+        range.setEnd( _startNode, _endOffset );
+        range.collapse( true );
+        self.setSelection( range );
     } else {
         self.changeFormat( add, remove, range );
     }
@@ -1984,18 +1996,6 @@ var changeFormatExpandToWord = function( self, add, remove ) {
 }
 
 var _changeFormatToWord = function( self, add, remove, range ) {
-    var _startNode = range.startContainer;
-    var _startOffset = range.startOffset, _endOffset = range.endOffset;
-    
-    range.expand( "word" );
-    
-    self.changeFormat( add, remove, range );
-    
-    //Reset cursor
-    range.setStart(_startNode, _startOffset);
-    range.setEnd(_startNode, _endOffset);
-    range.collapse(true);
-    self.setSelection(range);
         
 };
 

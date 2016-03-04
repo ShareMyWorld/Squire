@@ -71,8 +71,10 @@
   </p>
   <p>
     <span id="tomark">TO MARK</span>
+    <span id="generate">GENERATE HTML (VIA MARK)</span>
   </p>
 </header>
+<div id="marked"></div>
 <script type="text/template" id="editorStyles">
   html {
     height: 100%;
@@ -123,6 +125,7 @@
 </script>
 <script type="text/javascript" src="build/squire-raw.js"></script>
 <script type="text/javascript" src="lib/to-markdown.js"></script>
+<script type="text/javascript" src="lib/marked.js"></script>
 <script type="text/javascript" src="source/SmwConverters.js"></script>
 <script type="text/javascript" charset="utf-8">
   var editor;
@@ -167,23 +170,20 @@
     var id = e.target.id,
         value;
     if ( id == 'tomark') {
-      var converter1 = {
-        filter: 'p',
-        replacement: function(content) {
-          return '\n\n' + content + '\n\n';
-        }
-      }
-      var converter2 = {
-        filter: ''
-      };
-      //var html = editor.getHTML();
-      //editor.setHTML(html);
      
       var frag = editor.getHTML();
       console.log(frag);
       var markdown = toMarkdown(frag, {converters: conv.converters});
       console.log(markdown);
+    } 
+    if ( id == 'generate') {
+      var frag = editor.getHTML();
+      var markdown = toMarkdown(frag, {converters: conv.converters});
+      
+      var html = marked(markdown);
+      document.getElementById('marked').innerHTML = html;
     }
+
     if ( id && editor && editor[ id ] ) {
         if ( e.target.className === 'prompt' ) {
           value = prompt( 'Value:' );

@@ -1306,7 +1306,7 @@ var afterDelete = function ( self, range ) {
 
 var keyHandlers = {
     enter: function ( self, event, range ) {
-        var block, parent, nodeAfterSplit, header;
+        var block, parent, nodeAfterSplit, header, blockquote;
 
         // We handle this ourselves
         event.preventDefault();
@@ -1342,6 +1342,7 @@ var keyHandlers = {
             block = parent;
         }
 
+//|| block.getElementsByTagName( 'BR' ).length > 1 
         if ( !block.textContent ) {
             // Break list
             if ( getNearest( block, 'UL' ) || getNearest( block, 'OL' ) ) {
@@ -1351,14 +1352,20 @@ var keyHandlers = {
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
                 return self.modifyBlocks( removeBlockQuote, range );
             }
-        } else if ( parent = getNearest( block, 'BLOCKQUOTE' ) ) {
+        } /*else if ( getNearest( block, 'BLOCKQUOTE' ) && block && block.lastChild.nodeName !== 'BR' ) {
+            parent = range.startContainer.parentNode;
+            if ( parent.lastChild.nodeType === TEXT_NODE ) {
+                // Add another br
+                parent.appendChild( self.createElement( 'BR' ) );
+            }
             var br = self.createElement( 'BR' );
-            parent.appendChild( br );
+            parent.appendChild(br);
+            //Focus on last br
             range = self._createRange( br, 0 );
-        self.setSelection( range );
-        self._updatePath( range, true );
+            self.setSelection( range );
+            self._updatePath( range, true );
             return;   
-        }
+        }*/
 
         // Otherwise, split at cursor point.
         nodeAfterSplit = splitBlock( self, block,
@@ -1403,13 +1410,26 @@ var keyHandlers = {
                 //insert after
                 parent = header.parentNode;
                 if ( parent.lastchild === header ) {
-                    parent.parentNode.appendChild(nodeAfterSplit);
+                    parent.parentNode.appendChild( nodeAfterSplit );
                 } else {
                     parent.insertBefore( nodeAfterSplit, header.nextSibling );
                 }
+                //break;
+
+            }    
+            // SMW - Break empty blockqoute line (enter only creates brs not new blockquote tag)        
+            /*if ( ( blockquote = getNearest( nodeAfterSplit, 'BLOCKQUOTE' ) ) && block && block.lastChild.nodeName === 'BR' ) {
+                detach( nodeAfterSplit );
+                //insert after
+                parent = blockquote.parentNode;
+                if ( parent.lastchild === blockquote ) {
+                    parent.parentNode.appendChild( nodeAfterSplit );
+                } else {
+                    parent.insertBefore( nodeAfterSplit, blockquote.nextSibling );
+                }
                 break;
 
-            }
+            }*/
 
             // 'BR's essentially don't count; they're a browser hack.
             // If you try to select the contents of a 'BR', FF will not let
@@ -4139,8 +4159,20 @@ proto.removeItalic = function() { return changeFormatExpandToWord( this, null, {
 
 var changeFormatExpandToWord = function( self, add, remove ) {
     var range = self.getSelection();
-    if ( range.collapsed ) {
-        _changeFormatToWord( self, add, remove, range )
+    var _startNode = range.startContainer, _endNode = range.endContainer;
+    //Check if collapsed and not on an empty row
+    if ( range.collapsed && (_startNode.textContent !== '\u200b' && _endNode.textContent !== _startNode.textContent ) ) {
+        var _startOffset = range.startOffset, _endOffset = range.endOffset;
+        
+        range.expand( "word" );
+        
+        self.changeFormat( add, remove, range );
+        
+        //Reset cursor
+        range.setStart( _startNode, _startOffset );
+        range.setEnd( _startNode, _endOffset );
+        range.collapse( true );
+        self.setSelection( range );
     } else {
         self.changeFormat( add, remove, range );
     }
@@ -4150,18 +4182,6 @@ var changeFormatExpandToWord = function( self, add, remove ) {
 }
 
 var _changeFormatToWord = function( self, add, remove, range ) {
-    var _startNode = range.startContainer;
-    var _startOffset = range.startOffset, _endOffset = range.endOffset;
-    
-    range.expand( "word" );
-    
-    self.changeFormat( add, remove, range );
-    
-    //Reset cursor
-    range.setStart(_startNode, _startOffset);
-    range.setEnd(_startNode, _endOffset);
-    range.collapse(true);
-    self.setSelection(range);
         
 };
 

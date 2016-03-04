@@ -11,7 +11,7 @@ proto.converters = [
 			var parent = node.parentNode;
 			// ignore header p
 		 	return node.nodeName === 'P' && 
-		 	 (parent.nodeName[0] !== 'H' && parent.nodeName !== 'LI');//&& parent.nodeName !== 'BLOCKQUOTE');
+		 	 (parent.nodeName[0] !== 'H' && parent.nodeName !== 'LI' && parent.nodeName !== 'BLOCKQUOTE');
 		},
 		replacement: function(content) {
 			return '\n\n' + content + '\n\n';
@@ -61,12 +61,12 @@ proto.converters = [
 				else
 					return '  ' + trimmedLi;
 			});
-			return formatted.join('\n');
+			return formatted.join('\n') + '\n';
 		}
 	},
 	{
 		filter: function (node) {
-		 	return node.nodeName === 'IMG' && node.parentNode.classList.contains('page-break');
+		 	return node.nodeName === 'IMG' && node.classList.contains('page-break');
 		},
 		replacement: function(content) {
 			return '---';
