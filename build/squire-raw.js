@@ -1342,7 +1342,6 @@ var keyHandlers = {
             block = parent;
         }
 
-//|| block.getElementsByTagName( 'BR' ).length > 1 
         if ( !block.textContent ) {
             // Break list
             if ( getNearest( block, 'UL' ) || getNearest( block, 'OL' ) ) {
@@ -1352,20 +1351,7 @@ var keyHandlers = {
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
                 return self.modifyBlocks( removeBlockQuote, range );
             }
-        } /*else if ( getNearest( block, 'BLOCKQUOTE' ) && block && block.lastChild.nodeName !== 'BR' ) {
-            parent = range.startContainer.parentNode;
-            if ( parent.lastChild.nodeType === TEXT_NODE ) {
-                // Add another br
-                parent.appendChild( self.createElement( 'BR' ) );
-            }
-            var br = self.createElement( 'BR' );
-            parent.appendChild(br);
-            //Focus on last br
-            range = self._createRange( br, 0 );
-            self.setSelection( range );
-            self._updatePath( range, true );
-            return;   
-        }*/
+        } 
 
         // Otherwise, split at cursor point.
         nodeAfterSplit = splitBlock( self, block,
@@ -1417,20 +1403,7 @@ var keyHandlers = {
                 //break;
 
             }    
-            // SMW - Break empty blockqoute line (enter only creates brs not new blockquote tag)        
-            /*if ( ( blockquote = getNearest( nodeAfterSplit, 'BLOCKQUOTE' ) ) && block && block.lastChild.nodeName === 'BR' ) {
-                detach( nodeAfterSplit );
-                //insert after
-                parent = blockquote.parentNode;
-                if ( parent.lastchild === blockquote ) {
-                    parent.parentNode.appendChild( nodeAfterSplit );
-                } else {
-                    parent.insertBefore( nodeAfterSplit, blockquote.nextSibling );
-                }
-                break;
-
-            }*/
-
+           
             // 'BR's essentially don't count; they're a browser hack.
             // If you try to select the contents of a 'BR', FF will not let
             // you type anything!
@@ -4157,12 +4130,31 @@ proto.italic = function() { return changeFormatExpandToWord( this, { tag : 'I' }
 proto.removeBold = function() { return changeFormatExpandToWord( this, null, { tag : 'B' } ); }; //command( 'changeFormat', null, { tag: 'B' } );
 proto.removeItalic = function() { return changeFormatExpandToWord( this, null, { tag : 'I' } ); }; //command( 'changeFormat', null, { tag: 'I' } );
 
-var changeFormatExpandToWord = function( self, add, remove ) {
+proto.toggleBold = function() {
+    var tag = 'B';
+    return toggleInlineTag( this, tag );
+};
+
+proto.toggleItalic = function() {
+    var tag = 'I';
+    return toggleInlineTag( this, tag );
+};
+
+var toggleInlineTag = function( self, tag ) {
     var range = self.getSelection();
+    if ( self.hasFormat( tag, null, range ) ) {
+        return changeFormatExpandToWord( self, null, { tag: tag }, range );
+    } else {
+        return changeFormatExpandToWord( self, { tag: tag }, null, range );
+    }
+};
+
+var changeFormatExpandToWord = function( self, add, remove, range ) {
+    if ( !range ) { range = self.getSelection(); }
     var _startNode = range.startContainer, _endNode = range.endContainer;
     var _startOffset = range.startOffset, _endOffset = range.endOffset;
     //Check if collapsed and not on an empty row
-    if ( range.collapsed && _startOffset < _startNode.textContent.length && _endOffset > _startNode.textContent.length ) {
+    if ( range.collapsed && _startOffset < _startNode.textContent.length && _endOffset < _startNode.textContent.length ) {
         
         range.expand( "word" );
         

@@ -1971,12 +1971,31 @@ proto.italic = function() { return changeFormatExpandToWord( this, { tag : 'I' }
 proto.removeBold = function() { return changeFormatExpandToWord( this, null, { tag : 'B' } ); }; //command( 'changeFormat', null, { tag: 'B' } );
 proto.removeItalic = function() { return changeFormatExpandToWord( this, null, { tag : 'I' } ); }; //command( 'changeFormat', null, { tag: 'I' } );
 
-var changeFormatExpandToWord = function( self, add, remove ) {
+proto.toggleBold = function() {
+    var tag = 'B';
+    return toggleInlineTag( this, tag );
+};
+
+proto.toggleItalic = function() {
+    var tag = 'I';
+    return toggleInlineTag( this, tag );
+};
+
+var toggleInlineTag = function( self, tag ) {
     var range = self.getSelection();
+    if ( self.hasFormat( tag, null, range ) ) {
+        return changeFormatExpandToWord( self, null, { tag: tag }, range );
+    } else {
+        return changeFormatExpandToWord( self, { tag: tag }, null, range );
+    }
+};
+
+var changeFormatExpandToWord = function( self, add, remove, range ) {
+    if ( !range ) { range = self.getSelection(); }
     var _startNode = range.startContainer, _endNode = range.endContainer;
     var _startOffset = range.startOffset, _endOffset = range.endOffset;
     //Check if collapsed and not on an empty row
-    if ( range.collapsed && _startOffset < _startNode.textContent.length && _endOffset > _startNode.textContent.length ) {
+    if ( range.collapsed && _startOffset < _startNode.textContent.length && _endOffset < _startNode.textContent.length ) {
         
         range.expand( "word" );
         

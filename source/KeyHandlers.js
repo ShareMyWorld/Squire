@@ -181,7 +181,6 @@ var keyHandlers = {
             block = parent;
         }
 
-//|| block.getElementsByTagName( 'BR' ).length > 1 
         if ( !block.textContent ) {
             // Break list
             if ( getNearest( block, 'UL' ) || getNearest( block, 'OL' ) ) {
@@ -191,20 +190,7 @@ var keyHandlers = {
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
                 return self.modifyBlocks( removeBlockQuote, range );
             }
-        } /*else if ( getNearest( block, 'BLOCKQUOTE' ) && block && block.lastChild.nodeName !== 'BR' ) {
-            parent = range.startContainer.parentNode;
-            if ( parent.lastChild.nodeType === TEXT_NODE ) {
-                // Add another br
-                parent.appendChild( self.createElement( 'BR' ) );
-            }
-            var br = self.createElement( 'BR' );
-            parent.appendChild(br);
-            //Focus on last br
-            range = self._createRange( br, 0 );
-            self.setSelection( range );
-            self._updatePath( range, true );
-            return;   
-        }*/
+        } 
 
         // Otherwise, split at cursor point.
         nodeAfterSplit = splitBlock( self, block,
@@ -256,20 +242,7 @@ var keyHandlers = {
                 //break;
 
             }    
-            // SMW - Break empty blockqoute line (enter only creates brs not new blockquote tag)        
-            /*if ( ( blockquote = getNearest( nodeAfterSplit, 'BLOCKQUOTE' ) ) && block && block.lastChild.nodeName === 'BR' ) {
-                detach( nodeAfterSplit );
-                //insert after
-                parent = blockquote.parentNode;
-                if ( parent.lastchild === blockquote ) {
-                    parent.parentNode.appendChild( nodeAfterSplit );
-                } else {
-                    parent.insertBefore( nodeAfterSplit, blockquote.nextSibling );
-                }
-                break;
-
-            }*/
-
+           
             // 'BR's essentially don't count; they're a browser hack.
             // If you try to select the contents of a 'BR', FF will not let
             // you type anything!
