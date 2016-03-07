@@ -40,11 +40,15 @@
 
   <span id="toggleBold">ToggleBold</span>
   <span id="toggleItalic">ToggleItalic</span>
+
+  <span id="hasBold">hasBold</span>
   
   <span id="h1">H1</span>
   <span id="h2">H2</span>
   <span id="h3">H3</span>
   <span id="h4">H4</span>
+  <span id="removeHeader">removeHeader</span> 
+  <span id="hasH1">HasH1</span>
   
   <span id="italic">Italic</span>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -146,6 +150,10 @@
     if ( editor ) {
         return;
     }
+
+    var smwTagTypes = [ { 'type' : 'inline', 'tags' : ['B', 'I'] }];
+    var allowedChildren = { 'inline' : ['inline'] };
+    
     // Create Squire instance
     editor = new Squire( doc, {
         blockTag: 'p',
@@ -156,7 +164,9 @@
             li: {'class': 'listItem'},
             noLabels: {'class': 'marked-no-list-labels'},
             pageBreak: {'class': 'page-break'}
-        }
+        },
+        smwTagTypes: smwTagTypes,
+        allowedChildrenTypes: allowedChildren
     });
     conv = new SmwConverters();
     // Add styles to frame

@@ -4040,7 +4040,7 @@ proto.decreaseListLevel = command( 'modifyBlocks', decreaseListLevel );
 //       \::::/    /               /:::/    /              \::::/    /       
 //        \::/    /                \::/    /                \::/____/        
 //         \/____/                  \/____/                  ~~              
-                                                                        
+
 var createHeader = function ( level ) {
     var tag = 'H' + level;
     return function( frag ) { return createOrReplaceHeader( this, frag, tag ) };
@@ -4125,22 +4125,22 @@ proto.insertPageBreak = function ( frag ) {
 };
 
 
-proto.bold = function() { return changeFormatExpandToWord( this, { tag : 'B' }, { tag : 'B' } ); };
-proto.italic = function() { return changeFormatExpandToWord( this, { tag : 'I' }, { tag : 'I' } ); };
-proto.removeBold = function() { return changeFormatExpandToWord( this, null, { tag : 'B' } ); }; //command( 'changeFormat', null, { tag: 'B' } );
-proto.removeItalic = function() { return changeFormatExpandToWord( this, null, { tag : 'I' } ); }; //command( 'changeFormat', null, { tag: 'I' } );
+proto.bold = function () { return changeFormatExpandToWord( this, { tag : 'B' }, { tag : 'B' } ); };
+proto.italic = function () { return changeFormatExpandToWord( this, { tag : 'I' }, { tag : 'I' } ); };
+proto.removeBold = function () { return changeFormatExpandToWord( this, null, { tag : 'B' } ); }; //command( 'changeFormat', null, { tag: 'B' } );
+proto.removeItalic = function () { return changeFormatExpandToWord( this, null, { tag : 'I' } ); }; //command( 'changeFormat', null, { tag: 'I' } );
 
-proto.toggleBold = function() {
+proto.toggleBold = function () {
     var tag = 'B';
     return toggleInlineTag( this, tag );
 };
 
-proto.toggleItalic = function() {
+proto.toggleItalic = function () {
     var tag = 'I';
     return toggleInlineTag( this, tag );
 };
 
-var toggleInlineTag = function( self, tag ) {
+var toggleInlineTag = function ( self, tag ) {
     var range = self.getSelection();
     if ( self.hasFormat( tag, null, range ) ) {
         return changeFormatExpandToWord( self, null, { tag: tag }, range );
@@ -4149,7 +4149,7 @@ var toggleInlineTag = function( self, tag ) {
     }
 };
 
-var changeFormatExpandToWord = function( self, add, remove, range ) {
+var changeFormatExpandToWord = function ( self, add, remove, range ) {
     if ( !range ) { range = self.getSelection(); }
     var _startNode = range.startContainer, _endNode = range.endContainer;
     var _startOffset = range.startOffset, _endOffset = range.endOffset;
@@ -4171,16 +4171,31 @@ var changeFormatExpandToWord = function( self, add, remove, range ) {
     
     self.focus();
     return self;
-}
+};
 
-var _changeFormatToWord = function( self, add, remove, range ) {
-        
+proto.isAllowedInTest = function(tag1, tag2){console.log(isAllowedIn(this, tag1, tag2))};
+
+var isAllowedIn = function ( self, tag, containerTag ) {
+    var config = self._config;
+    var smwTagTypes = config.smwTagTypes;
+    var smwTagType = getSmwTagType( smwTagTypes, tag );
+    var containerSmwTagType = getSmwTagType( smwTagTypes, containerTag );
+    //TODO: allow every tag if no config ???
+    var allowedContainterSmwTagTypes = config.allowedChildrenTypes[ containerSmwTagType ] || [];
+    return allowedContainterSmwTagTypes && allowedContainterSmwTagTypes.indexOf( smwTagType ) >= 0;
+};
+
+var getSmwTagType = function ( smwTagTypes, tag ) {
+    return smwTagTypes.reduce(function ( resultType, typeObj ) { 
+        return typeObj.tags.indexOf( tag ) >= 0 ? typeObj.type : null;
+    }, null);
 };
 
 proto.h1 = command( 'modifyBlocks', createHeader(1) );
 proto.h2 = command( 'modifyBlocks', createHeader(2) );
 proto.h3 = command( 'modifyBlocks', createHeader(3) );
 proto.h4 = command( 'modifyBlocks', createHeader(4) );
+
 
 proto.removeHeader = command( 'modifyBlocks', removeHeader );
 
