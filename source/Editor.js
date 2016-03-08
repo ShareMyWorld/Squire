@@ -55,6 +55,7 @@ function Squire ( doc, config ) {
 
     this.addEventListener( 'keyup', this._updatePathOnEvent );
     this.addEventListener( 'mouseup', this._updatePathOnEvent );
+    this.addEventListener( 'undoStateChange', this._updateUndoState );
 
     win.addEventListener( 'focus', this, false );
     win.addEventListener( 'blur', this, false );
@@ -64,6 +65,9 @@ function Squire ( doc, config ) {
     this._undoStackLength = 0;
     this._isInUndoState = false;
     this._ignoreChange = false;
+
+    this._canUndo = false;
+    this._canRedo = false;
 
     if ( canObserveMutations ) {
         mutation = new MutationObserver( this._docWasChanged.bind( this ) );
@@ -92,6 +96,21 @@ function Squire ( doc, config ) {
 
     // Override default properties
     this.setConfig( config );
+
+    //SMW
+    this._allowedContent = createAllowedContentMap( config.allowedContentForMarkedTypes );
+    this._translateToSmw = {
+        'B' : 'strong',
+        'I' : 'em',
+        'BLOCKQUOTE' : 'blockquote',//{ '' : 'blockquote', 'aside' : 'aside' }, 
+        'H1' : 'heading',
+        'H2' : 'heading',
+        'H3' : 'heading',
+        'H4' : 'heading',
+        'UL' : 'list',
+        'OL' : 'list',
+        'A' : 'link'
+    };
 
     // Fix IE<10's buggy implementation of Text#splitText.
     // If the split is at the end of the node, it doesn't insert the newly split
@@ -502,6 +521,11 @@ proto._updatePath = function ( range, force ) {
 
 proto._updatePathOnEvent = function () {
     this._updatePath( this.getSelection() );
+};
+
+proto._updateUndoState = function ( obj ) {
+    this._canUndo = obj.canUndo;
+    this._canRedo = obj.canRedo;
 };
 
 // --- Focus ---
@@ -1182,6 +1206,8 @@ var decreaseBlockQuoteLevel = function ( frag ) {
     return frag;
 };
 
+
+
 var removeBlockQuote = function (/* frag */) {
     return this.createDefaultBlock([
         this.createElement( 'INPUT', {
@@ -1488,10 +1514,24 @@ proto.insertElement = function ( el, range ) {
 };
 
 proto.insertImage = function ( src, attributes ) {
+    var self = this;
+    
+    var range = self.getSelection();
+    self._recordUndoState( range );
+    self._getRangeAndRemoveBookmark( range );
+
     var img = this.createElement( 'IMG', mergeObjects({
         src: src
     }, attributes ));
     this.insertElement( img );
+    self._docWasChanged();
+
+    var imgRange = self._doc.createRange();
+    imgRange.selectNode( img );
+    imgRange.collapse( false );
+    self._recordUndoState( imgRange );
+    self._getRangeAndRemoveBookmark( imgRange );
+
     return img;
 };
 
@@ -1882,6 +1922,21 @@ proto.decreaseListLevel = command( 'modifyBlocks', decreaseListLevel );
 //        \::/    /                \::/    /                \::/____/        
 //         \/____/                  \/____/                  ~~              
 
+// Config
+
+
+
+// Functions
+
+var createAllowedContentMap = function ( allowedObj ) {
+    return Object.keys(allowedObj).reduce( function( acc, key ) {
+        allowedObj[key].forEach( function( tag ){ acc[tag] = key });
+        return acc;
+    }, {});
+}
+
+
+
 var createHeader = function ( level ) {
     var tag = 'H' + level;
     return function( frag ) { return createOrReplaceHeader( this, frag, tag ) };
@@ -1893,13 +1948,20 @@ var makeUnlabeledList = function ( frag ) {
 };
 
 var createBlockQuote = function ( frag ) {
-    return createOnce( this, frag, 'BLOCKQUOTE' );    
+    return createOnce( this, frag, 'BLOCKQUOTE', 'blockquote' );    
 };
 
-var createOnce = function ( self, frag, tag ) {
-    if ( frag.querySelector(tag) === null ) {
+var createAside = function ( frag ) {
+    return createOnce( this, frag, 'BLOCKQUOTE', 'aside' );
+};
+
+var createOnce = function ( self, frag, tag, attributeKey ) {
+    var attributeKey = attributeKey != undefined ? attributeKey : tag;
+    var attributes = self._config.tagAttributes[attributeKey]
+    var tags = frag.querySelector(tag+'.'+attributes.class);
+    if ( tags === null ) {
         return self.createElement( tag,
-        self._config.tagAttributes[tag], [
+        attributes, [
             frag
         ]);
     } else {
@@ -1921,8 +1983,6 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
                 var newTag =  self.createElement( tag, headerAttrs, [ node ] );
                 replaceWith( parent, newTag );
             } else {
-                // Remove header
-                //return detach( node );
                 // do nothing
             }
         } else {
@@ -1942,27 +2002,54 @@ var removeHeader = function ( frag ) {
     };
 };
 
+var removeAllBlockquotes = function ( frag ) {
+    var blockquotes = frag.querySelectorAll( 'blockquote' );
+    var attributes = this._config.tagAttributes.blockquote;
+    removeAllBlockquotesHelper( blockquotes, attributes);
+    return frag;
+};
 
-proto.insertPageBreak = function ( frag ) {
-    var range = this.getSelection();
+var removeAllAsides = function ( frag ) {
+    var blockquotes = frag.querySelectorAll( 'blockquote' );
+    var attributes = this._config.tagAttributes.aside;
+    removeAllBlockquotesHelper( blockquotes, attributes);
+    return frag;
+};
+
+
+var removeAllBlockquotesHelper = function( blockquotes, attributes ) {
+    //Side effect (modifies frag)
+    Array.prototype.filter.call( blockquotes, function ( el ) {
+        return !getNearest( el.parentNode, 'BLOCKQUOTE', attributes );
+    }).forEach( function ( el ) {
+        replaceWith( el, empty( el ) );
+    });
+};  
+
+proto.removeBlockquotes = command( 'modifyBlocks', removeAllBlockquotes );
+proto.removeAsides = command( 'modifyBlocks', removeAllAsides );
+
+proto.insertPageBreak = function ( ) {
     var self = this;
+
+    var range = self.getSelection();
     var tagAttributes = this._config.tagAttributes;
     var pageBreakAttrs = tagAttributes[ 'pageBreak' ];
     var pageBreak = this.createElement( 'IMG', pageBreakAttrs );
-    
     self._recordUndoState( range );
-    addLinks( range.startContainer );
-    self._removeZWS();
     self._getRangeAndRemoveBookmark( range );
 
-    var block = getStartBlockOfRange( range );
-    var nodeAfterSplit = splitBlock( self, block, 
-        range.startContainer, range.startOffset );
-    
     var pageBreakBlock = self.createDefaultBlock( [ pageBreak ] );
-    nodeAfterSplit.parentNode.insertBefore( pageBreakBlock, nodeAfterSplit );
-    
-    return this;
+    self.insertElement(pageBreakBlock);
+    self._docWasChanged();
+    var pageBreakRange = self._doc.createRange();
+    pageBreakRange.selectNode( pageBreak );
+    pageBreakRange.collapse( false );
+    // Text written after page break does not trigger undo state change, we need to add the page break to undo stack manually
+    self._recordUndoState( pageBreakRange );
+    self._getRangeAndRemoveBookmark( pageBreakRange );
+
+    return self;
 };
 
 
@@ -1971,15 +2058,6 @@ proto.italic = function () { return changeFormatExpandToWord( this, { tag : 'I' 
 proto.removeBold = function () { return changeFormatExpandToWord( this, null, { tag : 'B' } ); }; //command( 'changeFormat', null, { tag: 'B' } );
 proto.removeItalic = function () { return changeFormatExpandToWord( this, null, { tag : 'I' } ); }; //command( 'changeFormat', null, { tag: 'I' } );
 
-proto.toggleBold = function () {
-    var tag = 'B';
-    return toggleInlineTag( this, tag );
-};
-
-proto.toggleItalic = function () {
-    var tag = 'I';
-    return toggleInlineTag( this, tag );
-};
 
 var toggleInlineTag = function ( self, tag ) {
     var range = self.getSelection();
@@ -1989,6 +2067,18 @@ var toggleInlineTag = function ( self, tag ) {
         return changeFormatExpandToWord( self, { tag: tag }, null, range );
     }
 };
+
+var toggleTag = function( self, tag, attributes, addCallback, removeCallback ) {
+    var range = self.getSelection();
+    var attrs = attributes != undefined ? attributes : null;
+    if ( self.hasFormat( tag, attrs, range ) ) {
+        return removeCallback();
+    } else {
+        return addCallback();
+    }
+};
+
+
 
 var changeFormatExpandToWord = function ( self, add, remove, range ) {
     if ( !range ) { range = self.getSelection(); }
@@ -2014,16 +2104,30 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
     return self;
 };
 
-proto.isAllowedInTest = function(tag1, tag2){console.log(isAllowedIn(this, tag1, tag2))};
+proto.isAllowedIn = function ( htmlTag, containerSmwTag ) {
+    //Translate
+    var smwTag = translateTag( this, htmlTag );
+
+    //Check
+    return isAllowedIn( this, smwTag, containerSmwTag )
+}
+
+var isSmwInline = function ( self, tag ) {
+    return self._config.inlineMarkedTypes.indexOf( tag ) > -1;
+};
+
 
 var isAllowedIn = function ( self, tag, containerTag ) {
-    var config = self._config;
-    var smwTagTypes = config.smwTagTypes;
-    var smwTagType = getSmwTagType( smwTagTypes, tag );
-    var containerSmwTagType = getSmwTagType( smwTagTypes, containerTag );
-    //TODO: allow every tag if no config ???
-    var allowedContainterSmwTagTypes = config.allowedChildrenTypes[ containerSmwTagType ] || [];
-    return allowedContainterSmwTagTypes && allowedContainterSmwTagTypes.indexOf( smwTagType ) >= 0;
+
+    var allowedClass = self._allowedContent[ containerTag ];
+    if ( allowedClass === 'none' ) {
+        return false;
+    } else if ( allowedClass === 'inline' ) {
+        return isSmwInline( self, tag );
+    } else {
+        return true;
+    }
+    
 };
 
 var getSmwTagType = function ( smwTagTypes, tag ) {
@@ -2031,6 +2135,11 @@ var getSmwTagType = function ( smwTagTypes, tag ) {
         return typeObj.tags.indexOf( tag ) >= 0 ? typeObj.type : null;
     }, null);
 };
+
+var translateTag = function ( self, smwTag ) {
+    //TODO: if objects
+    return self._translateToSmw[ smwTag ];
+}
 
 proto.h1 = command( 'modifyBlocks', createHeader(1) );
 proto.h2 = command( 'modifyBlocks', createHeader(2) );
@@ -2043,7 +2152,56 @@ proto.removeHeader = command( 'modifyBlocks', removeHeader );
 proto.makeUnlabeledList = command( 'modifyBlocks', makeUnlabeledList );
 
 proto.createBlockQuote = command( 'modifyBlocks', createBlockQuote );
+proto.createAside = command( 'modifyBlocks', createAside );
 
+
+//  ================ API specifics  ===========================
+proto.toggleStrong = function () {
+    var tag = 'B';
+    return toggleInlineTag( this, tag );
+};
+
+proto.toggleEm = function () {
+    var tag = 'I';
+    return toggleInlineTag( this, tag );
+};
+
+proto.toggleHr = function () {
+    //Only adds 
+    this.insertPageBreak();
+};
+
+proto.toggleBlockquote = function () {
+    var self = this;
+    var blockqouteAttributes = self._config.tagAttributes.blockquote;
+    var addCallback = function(){ return self.createBlockQuote(); };
+    var removeCallback = function(){ return self.removeBlockquotes(); };
+    return toggleTag( self, 'BLOCKQUOTE', blockqouteAttributes, addCallback, removeCallback );
+};
+
+proto.toggleAside = function () {
+    var self = this;
+    var asideAttrbutes = self._config.tagAttributes.aside;
+    var addCallback = function(){ return self.createAside(); };
+    var removeCallback = function(){ return self.removeAsides(); };
+    return toggleTag( self, 'BLOCKQUOTE', asideAttrbutes, addCallback, removeCallback );
+};
+
+proto.setHeading = function ( level ) {
+    if ( level === 0 ){
+        this.modifyBlocks( removeHeader );
+    } else {
+        return this.modifyBlocks( createHeader(level) );
+    }
+};
+
+proto.canUndo = function () {
+    return this._canUndo;
+};
+
+proto.canRedo = function () {
+    return this._canRedo;
+};
 
 //Remove unwanted functionality
 delete proto.underline;;

@@ -48,7 +48,7 @@
   <span id="h3">H3</span>
   <span id="h4">H4</span>
   <span id="removeHeader">removeHeader</span> 
-  <span id="hasH1">HasH1</span>
+  <span id="insertBR">insertBR</span>
   
   <span id="italic">Italic</span>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -61,7 +61,8 @@
   <span id="makeLink" class="prompt">Link</span>
   </p>
   <p>
-    <span id="createBlockQuote">Quote</span>
+    <span id="toggleBlockquote">Quote</span>
+    <span id="toggleAside">Aside</span>
     <span id="makeUnorderedList">List</span>
     <span id="makeOrderedList">OrderedList</span>
 
@@ -150,10 +151,18 @@
     if ( editor ) {
         return;
     }
-
-    var smwTagTypes = [ { 'type' : 'inline', 'tags' : ['B', 'I'] }];
-    var allowedChildren = { 'inline' : ['inline'] };
     
+    var allowedContentForMarkedTypes = {
+            inline: ['blockquote',  'em', 'heading', 'list', 'strong'],
+            all: ['aside'],
+            none: [ 'br', 'hr', 'link', 'smwWidget']
+        };
+
+        /**
+         * List of marked types that are 'inline'
+         * Other marked types are considered as 'block'
+         */
+    var inlineMarkedTypes = ['em', 'strong', 'link', 'br'];
     // Create Squire instance
     editor = new Squire( doc, {
         blockTag: 'p',
@@ -162,11 +171,13 @@
             ul: {'class': 'UL'},
             ol: {'class': 'OL'},
             li: {'class': 'listItem'},
+            blockquote: {'class': 'BQ'},
             noLabels: {'class': 'marked-no-list-labels'},
-            pageBreak: {'class': 'page-break'}
+            pageBreak: {'class': 'page-break'},
+            aside: {'class' : 'aside'}
         },
-        smwTagTypes: smwTagTypes,
-        allowedChildrenTypes: allowedChildren
+        allowedContentForMarkedTypes: allowedContentForMarkedTypes,
+        inlineMarkedTypes: inlineMarkedTypes
     });
     conv = new SmwConverters();
     // Add styles to frame
