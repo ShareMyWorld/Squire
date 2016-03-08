@@ -1,0 +1,268 @@
+ function MarkedEditorController($scope, $attrs) {
+
+        var delegate, markdown, contentMode, toolbarCtrl;
+        var ctrl = this;
+
+        ctrl.getContentMode = getContentMode;
+        ctrl.getImages = getImages;
+        ctrl.setDelegate = setDelegate;
+        ctrl.setToolbarController = setToolbarController;
+        // Delegate methods
+        ctrl.addLinebreak = addLinebreak;
+        ctrl.canUndo = canUndo;
+        ctrl.canRedo = canRedo;
+        ctrl.getFormattingInfoFromCurrentSelection = getFormattingInfoFromCurrentSelection;
+        ctrl.getMarkdown = getMarkdown;
+        ctrl.redo = redo;
+        ctrl.setListFormatting = setListFormatting;
+        ctrl.setHeading = setHeading;
+        ctrl.setWidget = setWidget;
+        ctrl.toggleAside = toggleAside;
+        ctrl.toggleBlockquote = toggleBlockquote;
+        ctrl.toggleEm = toggleEm;
+        ctrl.toggleStrong = toggleStrong;
+        ctrl.toggleHr = toggleHr;
+        ctrl.undo = undo;
+
+        activate();
+        function activate() {
+            if ($attrs.contentMode === 'inline') {
+                contentMode = 'inline';
+            } else if ($attrs.contentMode === 'noWidgets') {
+                contentMode = 'noWidgets';
+            } else {
+                contentMode = 'full';
+            }
+            $scope.$on('$destroy', function() {
+                if (delegate) {
+                    delegate.deactivate();
+                    delegate = null;
+                }
+                toolbarCtrl = null;
+            });
+
+            ctrl.onControllerReady(ctrl);
+        }
+
+        /**
+         * Gets the current content mode.
+         * The content mode will never change during the editing session
+         *
+         * @returns {String} One of 'full', 'inline', 'noWidgets'
+         */
+        function getContentMode() {
+            return contentMode;
+        }
+
+        /**
+         * Return the image objects that can be used in this editing session
+         *
+         * @returns {Array} List of smw.media.mediareference objects
+         */
+        function getImages() {
+            return ctrl.images;
+        }
+
+        /**
+         * Deactivates current editor delegate and replace it with another.
+         *
+         * @param {Object} newDelegate - An angular controller implementing the delegate methods.
+         */
+        function setDelegate(newDelegate) {
+            if (delegate) {
+                markdown = delegate.getMarkdown();
+                delegate.deactivate();
+            }
+            delegate = newDelegate;
+            delegate.activate(markdown, ctrl);
+        }
+
+        function setToolbarController(toolbarController) {
+            toolbarCtrl = toolbarController;
+        }
+
+        // DELEGATE METHODS ////////////////////////////////////////////////////
+        
+        /**
+         * Adds a soft line break at the current cursor position
+         */
+        function addLinebreak() {
+            if (delegate) {
+                return delegate.addLinebreak();
+            }
+        }
+
+        /**
+         * If the editor currently can perform undo actions
+         * 
+         * @returns {boolean}
+         */
+        function canUndo() {
+            if (delegate) {
+                return delegate.canUndo();
+            }
+            return false;
+        }
+
+        /**
+         * If the editor currently can perform redo actions
+         *
+         * @returns {boolean}
+         */
+        function canRedo() {
+            if (delegate) {
+                return delegate.canRedo();
+            }
+            return false;
+        }
+
+        /**
+         * @typedef {Object} MarkedEditor~FormattingInfoMap
+         * Describes the returned object from getEnabledFormattingFromCurrentSelection()
+         * Each value in this object contains at least the boolean 'enabled'.
+         * Some properties contains additional information, defined in the property list below.
+         *
+         * If the current selection spans over several instances of the same type, e.g. several 'smwWidget'
+         * the implementation may return that no formatting is enabled for that type.
+         *
+         * @property {MarkedEditor~FormattingInfo} aside
+         * @property {MarkedEditor~FormattingInfo} blockquote
+         * @property {MarkedEditor~FormattingInfo} em
+         * @property {MarkedEditor~FormattingInfo} heading - Also contains number 'depth' describing the heading level depth.
+         * @property {MarkedEditor~FormattingInfo} hr
+         * @property {MarkedEditor~FormattingInfo} link
+         * @property {MarkedEditor~FormattingInfo} list - Also contains the string 'listType' which can be one of: 'ordered', 'bullet', 'noLabels'
+         * @property {MarkedEditor~FormattingInfo} strong
+         * @property {MarkedEditor~FormattingInfo} smwWidget - Also contains 'widgetType', 'widgetLabel' and 'widgetOptions'
+         */
+        /**
+         * @typedef {Object} MarkedEditor~FormattingInfo
+         * Additional properties may also exist depending on markdown type
+         *
+         * @property {boolean} allowed - If a formatting action can be performed. i.e, added, removed, toggled or set.
+         * @property {boolean} enabled - If the formatting is enabled in the current selection
+         */
+
+        /**
+         * Retrieves all formatting that is currently enabled within the current selection.
+         * This method will return an object
+         *
+         * @returns {MarkedEditor~FormattingInfoMap}
+         */
+        function getFormattingInfoFromCurrentSelection() {
+            if (delegate) {
+                return delegate.getFormattingInfoFromCurrentSelection();
+            }
+        }
+
+        /**
+         * Returns the current content of the edited area as markdown
+         *
+         * @returns {String}
+         */
+        function getMarkdown() {
+            if (delegate) {
+                markdown = delegate.getMarkdown();
+            }
+            return markdown;
+        }
+
+        /**
+         * Redo user action, going forward in action history
+         */
+        function redo() {
+            if (delegate) {
+                delegate.redo();
+            }
+        }
+
+        /**
+         * Sets list formatting for the current selection.
+         * If null or undefined is passed, list formatting is removed if any is currently set
+         *
+         * @param {String} listType - One of  'ordered', 'bullet', 'noLabels' or null/undefined
+         */
+        function setListFormatting(listType) {
+            if (delegate) {
+                delegate.setListFormatting(listType);
+            }
+        }
+
+        /**
+         * Sets heading formatting for the current selected line.
+         *
+         * @param {Number} depth - An integer between 1 to 4 to set the heading depth. 0 to remove heading formatting.
+         */
+        function setHeading(depth) {
+            if (delegate) {
+                delegate.setHeading(depth);
+            }
+        }
+
+        /**
+         * Inserts or replaces a widget in the current selection
+         *
+         * @param {string} widgetType
+         * @param {string} label
+         * @param {Object} widgetOptions
+         */
+        function setWidget(widgetType, label, widgetOptions) {
+            if (delegate) {
+                delegate.setWidget(widgetType, label, widgetOptions);
+            }
+        }
+
+        /**
+         * Toggles aside on the current selection
+         */
+        function toggleAside() {
+            if (delegate) {
+                delegate.toggleAside();
+            }
+        }
+
+        /**
+         * Toggles blockquote on the current selection
+         */
+        function toggleBlockquote() {
+            if (delegate) {
+                delegate.toggleBlockquote();
+            }
+        }
+
+        /**
+         * Toggle em formatting (italic) on the current selection
+         */
+        function toggleEm() {
+            if (delegate) {
+                delegate.toggleEm();
+            }
+        }
+
+        /**
+         * Toggle page break on the current selection
+         */
+        function toggleHr() {
+            if (delegate) {
+                delegate.toggleHr();
+            }
+        }
+
+        /**
+         * Toggle strong formatting (bold) on the current selection
+         */
+        function toggleStrong() {
+            if (delegate) {
+                delegate.toggleStrong();
+            }
+        }
+
+
+        /**
+         * Undo user action, going backward in the action history.
+         */
+        function undo() {
+            if (delegate) {
+                delegate.undo();
+            }
+        }
