@@ -4368,11 +4368,12 @@ proto.setListFormatting = function ( listType ) {
         this.modifyBlocks( removeList );
     } else if ( listType === 'ordered' ) {
         this.modifyBlocks( makeOrderedList );
-    } else if ( listType === 'bullet' ) {
+    } else if ( listType === 'bulleted' ) {
         this.modifyBlocks( makeUnorderedList );
     } else if ( listType === 'noLabels' ) {
         this.modifyBlocks( makeUnlabeledList );
     }
+    this.focus();
 };
 
 proto.getFormattingInfoFromCurrentSelection = function () {
@@ -4396,8 +4397,8 @@ proto.getFormattingInfoFromCurrentSelection = function () {
 
     return translatedTags.reduce(function( infos, smwTag ) {
         infos[smwTag] = translatedActiveFormats.reduce( function( info, activeFormat ) {
-            info.allowed = info.allowed && isAllowedIn( self, smwTag, activeFormat );
             info.enabled = info.enabled || activeFormat === smwTag;
+            info.allowed = (info.allowed && isAllowedIn( self, smwTag, activeFormat )) || info.enabled;
             return info;
         }, {'allowed': true, 'enabled': false});
         return infos;
