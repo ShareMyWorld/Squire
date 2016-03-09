@@ -2132,9 +2132,13 @@ var getSmwTagType = function ( smwTagTypes, tag ) {
     }, null);
 };
 
-var translateTag = function ( self, smwTag ) {
+var translateTags = function( self, tags ) {
+    return tags.map( function( tag ) { return translateTag( self, tag ) });
+};
+
+var translateTag = function ( self, tag ) {
     //TODO: if objects
-    return self._translateToSmw[ smwTag ];
+    return self._translateToSmw[ tag ];
 }
 
 proto.h1 = command( 'modifyBlocks', createHeader(1) );
@@ -2199,11 +2203,23 @@ proto.canRedo = function () {
     return this._canRedo;
 };
 
-proto.getMarkdown = function() {
+proto.getMarkdown = function () {
     var _html = this.getHTML();
     this.setHTML(_html);
     var html = this.getHTML();
     return toMarkdown( html, this._smwConverters );
+};
+
+proto.setListFormatting = function ( listType ) {
+    if ( !listType ) {
+        this.modifyBlocks( removeList );
+    } else if ( listType === 'ordered' ) {
+        this.modifyBlocks( makeOrderedList );
+    } else if ( listType === 'bullet' ) {
+        this.modifyBlocks( makeUnorderedList );
+    } else if ( listType === 'noLabels' ) {
+        this.modifyBlocks( makeUnlabeledList );
+    }
 };
 
 proto.getFormattingInfoFromCurrentSelection = function () {
@@ -2236,9 +2252,7 @@ proto.getFormattingInfoFromCurrentSelection = function () {
 
 };
 
-var translateTags = function( self, tags ) {
-    return tags.map( function( tag ) { return translateTag( self, tag ) });
-};
+
 //Remove unwanted functionality
 delete proto.underline;;
 delete proto.strikethrough;
