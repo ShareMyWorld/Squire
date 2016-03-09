@@ -2272,7 +2272,6 @@ function Squire ( doc, config ) {
         'A' : 'link'
     };
     this._validTags = Object.keys( this._translateToSmw );
-    this._smwConverters = new SmwConverters();
 
     // Fix IE<10's buggy implementation of Text#splitText.
     // If the split is at the end of the node, it doesn't insert the newly split
