@@ -111,6 +111,8 @@ function Squire ( doc, config ) {
         'OL' : 'list',
         'A' : 'link'
     };
+    this._validTags = Object.keys( this._translateToSmw );
+    this._smwConverters = new SmwConverters();
 
     // Fix IE<10's buggy implementation of Text#splitText.
     // If the split is at the end of the node, it doesn't insert the newly split
@@ -2041,7 +2043,9 @@ proto.insertPageBreak = function ( ) {
 
     var pageBreakBlock = self.createDefaultBlock( [ pageBreak ] );
     self.insertElement(pageBreakBlock);
+    // To allow undo recording we need to tell the editor that we've changed the doc
     self._docWasChanged();
+    // Select the new page break
     var pageBreakRange = self._doc.createRange();
     pageBreakRange.selectNode( pageBreak );
     pageBreakRange.collapse( false );
@@ -2104,19 +2108,11 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
     return self;
 };
 
-proto.isAllowedIn = function ( htmlTag, containerSmwTag ) {
-    //Translate
-    var smwTag = translateTag( this, htmlTag );
-
-    //Check
-    return isAllowedIn( this, smwTag, containerSmwTag )
-}
-
 var isSmwInline = function ( self, tag ) {
     return self._config.inlineMarkedTypes.indexOf( tag ) > -1;
 };
 
-
+// Tags must be in SMW form
 var isAllowedIn = function ( self, tag, containerTag ) {
 
     var allowedClass = self._allowedContent[ containerTag ];
@@ -2124,7 +2120,7 @@ var isAllowedIn = function ( self, tag, containerTag ) {
         return false;
     } else if ( allowedClass === 'inline' ) {
         return isSmwInline( self, tag );
-    } else {
+    } else if ( allowedClass === 'all' ) {
         return true;
     }
     
@@ -2203,6 +2199,46 @@ proto.canRedo = function () {
     return this._canRedo;
 };
 
+proto.getMarkdown = function() {
+    var _html = this.getHTML();
+    this.setHTML(_html);
+    var html = this.getHTML();
+    return toMarkdown( html, this._smwConverters );
+};
+
+proto.getFormattingInfoFromCurrentSelection = function () {
+    var self = this;
+    //List of all tags
+    //TODO: pair with attributes
+    var tags = self._validTags;
+    var selection = self.getSelection();
+    var activeFormats = tags.reduce(function( formatsAcc, tag ) {
+        var attributes = self._config.tagAttributes[ tag ];
+        if ( self.hasFormat( tag, attributes, selection ) ) {
+            // TODO: attributes must be included
+            formatsAcc.push( tag );
+        }
+        return formatsAcc;
+    }, []);
+    //Translate tags
+    var translatedTags = translateTags( self, tags );
+    //Translate formats
+    var translatedActiveFormats = translateTags( self, activeFormats );
+
+    return translatedTags.reduce(function( infos, smwTag ) {
+        infos[smwTag] = translatedActiveFormats.reduce( function( info, activeFormat ) {
+            info.allowed = info.allowed && isAllowedIn( self, smwTag, activeFormat );
+            info.enabled = info.enabled || activeFormat === smwTag;
+            return info;
+        }, {'allowed': true, 'enabled': false});
+        return infos;
+    }, {});
+
+};
+
+var translateTags = function( self, tags ) {
+    return tags.map( function( tag ) { return translateTag( self, tag ) });
+};
 //Remove unwanted functionality
 delete proto.underline;;
 delete proto.strikethrough;
