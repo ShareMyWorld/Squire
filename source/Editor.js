@@ -2203,12 +2203,6 @@ proto.canRedo = function () {
     return this._canRedo;
 };
 
-proto.getMarkdown = function () {
-    var _html = this.getHTML();
-    this.setHTML(_html);
-    var html = this.getHTML();
-    return toMarkdown( html, this._smwConverters );
-};
 
 proto.setListFormatting = function ( listType ) {
     if ( !listType ) {

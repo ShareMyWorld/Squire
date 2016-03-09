@@ -39,6 +39,7 @@ var onPaste = function ( event ) {
             if ( type === 'text/html' ) {
                 /*jshint loopfunc: true */
                 item.getAsString( function ( html ) {
+                    //TODO: get textcontent
                     self.insertHTML( html, true );
                 });
                 /*jshint loopfunc: false */
