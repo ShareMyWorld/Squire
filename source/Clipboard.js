@@ -39,7 +39,11 @@ var onPaste = function ( event ) {
             if ( type === 'text/html' ) {
                 /*jshint loopfunc: true */
                 item.getAsString( function ( html ) {
-                    self.insertHTML( html, true );
+                    //TODO: filter unsupported tags
+                    var temp = document.createElement("div");
+                    temp.innerHTML = html;
+                    var sanitized = temp.textContent || temp.innerText;
+                    self.insertHTML( sanitized, true );
                 });
                 /*jshint loopfunc: false */
                 return;

@@ -2035,7 +2035,11 @@ var onPaste = function ( event ) {
             if ( type === 'text/html' ) {
                 /*jshint loopfunc: true */
                 item.getAsString( function ( html ) {
-                    self.insertHTML( html, true );
+                    //TODO: filter unsupported tags
+                    var temp = document.createElement("div");
+                    temp.innerHTML = html;
+                    var sanitized = temp.textContent || temp.innerText;
+                    self.insertHTML( sanitized, true );
                 });
                 /*jshint loopfunc: false */
                 return;
@@ -4314,7 +4318,7 @@ proto.createBlockQuote = command( 'modifyBlocks', createBlockQuote );
 proto.createAside = command( 'modifyBlocks', createAside );
 
 
-// API specifics 
+//  ================ API specifics  ===========================
 proto.toggleStrong = function () {
     var tag = 'B';
     return toggleInlineTag( this, tag );
@@ -4352,6 +4356,14 @@ proto.setHeading = function ( level ) {
     } else {
         return this.modifyBlocks( createHeader(level) );
     }
+};
+
+proto.canUndo = function () {
+    return this._canUndo;
+};
+
+proto.canRedo = function () {
+    return this._canRedo;
 };
 
 //Remove unwanted functionality
