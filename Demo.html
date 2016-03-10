@@ -38,8 +38,8 @@
   <span id="bold">Bold</span>
   <span id="removeBold">Unbold</span>
 
-  <span id="toggleBold">ToggleBold</span>
-  <span id="toggleItalic">ToggleItalic</span>
+  <span id="toggleStrong">ToggleBold</span>
+  <span id="toggleEm">ToggleItalic</span>
 
   <span id="hasBold">hasBold</span>
   
@@ -205,7 +205,19 @@
     if ( id == 'generate') {
       var frag = editor.getHTML();
       var markdown = toMarkdown(frag, {converters: conv.converters});
-      
+      marked.setOptions({
+                gfm: true,
+                pedantic: false,
+                sanitize: true,
+                highlight: null,
+                links: true,
+                blockquotes: true,
+                asides: true,
+                code: false,
+                fences: false,
+                tables: false,
+                smartypants: true
+            });
       var html = marked(markdown);
       document.getElementById('marked').innerHTML = html;
     }

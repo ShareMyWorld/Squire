@@ -99,18 +99,10 @@ function Squire ( doc, config ) {
 
     //SMW
     this._allowedContent = createAllowedContentMap( config.allowedContentForMarkedTypes );
-    this._translateToSmw = {
-        'B' : 'strong',
-        'I' : 'em',
-        'BLOCKQUOTE' : 'blockquote',//{ '' : 'blockquote', 'aside' : 'aside' }, 
-        'H1' : 'heading',
-        'H2' : 'heading',
-        'H3' : 'heading',
-        'H4' : 'heading',
-        'UL' : 'list',
-        'OL' : 'list',
-        'A' : 'link'
-    };
+    
+    this._translateToSmw = createTranslationMap( config.tagAttributes );
+
+    this._validTags = Object.keys( this._translateToSmw );
 
     // Fix IE<10's buggy implementation of Text#splitText.
     // If the split is at the end of the node, it doesn't insert the newly split
@@ -1935,6 +1927,27 @@ var createAllowedContentMap = function ( allowedObj ) {
     }, {});
 }
 
+var createTranslationMap = function ( ta ) {
+    var blockquote = 'BLOCKQUOTE.' + ta.blockquote.class;
+    var aside = 'BLOCKQUOTE.' + ta.aside.class;
+    var bulleted = 'UL.' + ta.ul.class;
+    var noLabels = 'UL.' + ta.noLabels.class;
+    var translations = {
+        'B' : 'strong',
+        'I' : 'em',
+        'H1' : 'heading',
+        'H2' : 'heading',
+        'H3' : 'heading',
+        'H4' : 'heading',
+        'OL' : 'list',
+        'A' : 'link'
+    };
+    translations[blockquote] = 'blockquote';
+    translations[aside] = 'aside';
+    translations[bulleted] = 'list';
+    translations[noLabels] = 'list';
+    return translations;
+};
 
 
 var createHeader = function ( level ) {
@@ -1995,32 +2008,33 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
 };
 
 var removeHeader = function ( frag ) {
-    var walker = getBlockWalker( frag );
-    var node = walker.nextNode();
-    if ( node !== null && isHeader( node ) ) {
-        return detach( node );
-    };
+    var headers = frag.querySelectorAll( 'h1, h2, h3, h4' );
+    for (var i = 0; i < headers.length; i++ ) {
+        var el = headers[i];
+        // Modifies frag;
+        replaceWith( el, empty( el ) );
+    }
+    return frag;
 };
 
 var removeAllBlockquotes = function ( frag ) {
     var blockquotes = frag.querySelectorAll( 'blockquote' );
     var attributes = this._config.tagAttributes.blockquote;
-    removeAllBlockquotesHelper( blockquotes, attributes);
+    removeAllBlockquotesHelper( blockquotes, attributes.class);
     return frag;
 };
 
 var removeAllAsides = function ( frag ) {
     var blockquotes = frag.querySelectorAll( 'blockquote' );
     var attributes = this._config.tagAttributes.aside;
-    removeAllBlockquotesHelper( blockquotes, attributes);
+    removeAllBlockquotesHelper( blockquotes, attributes.class );
     return frag;
 };
 
-
-var removeAllBlockquotesHelper = function( blockquotes, attributes ) {
+var removeAllBlockquotesHelper = function( blockquotes, blockquoteClass ) {
     //Side effect (modifies frag)
-    Array.prototype.filter.call( blockquotes, function ( el ) {
-        return !getNearest( el.parentNode, 'BLOCKQUOTE', attributes );
+    Array.prototype.filter.call( blockquotes, function ( blockquote ) {
+        return blockquote.className === blockquoteClass;
     }).forEach( function ( el ) {
         replaceWith( el, empty( el ) );
     });
@@ -2041,7 +2055,9 @@ proto.insertPageBreak = function ( ) {
 
     var pageBreakBlock = self.createDefaultBlock( [ pageBreak ] );
     self.insertElement(pageBreakBlock);
+    // To allow undo recording we need to tell the editor that we've changed the doc
     self._docWasChanged();
+    // Select the new page break
     var pageBreakRange = self._doc.createRange();
     pageBreakRange.selectNode( pageBreak );
     pageBreakRange.collapse( false );
@@ -2104,19 +2120,11 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
     return self;
 };
 
-proto.isAllowedIn = function ( htmlTag, containerSmwTag ) {
-    //Translate
-    var smwTag = translateTag( this, htmlTag );
-
-    //Check
-    return isAllowedIn( this, smwTag, containerSmwTag )
-}
-
 var isSmwInline = function ( self, tag ) {
     return self._config.inlineMarkedTypes.indexOf( tag ) > -1;
 };
 
-
+// Tags must be in SMW form
 var isAllowedIn = function ( self, tag, containerTag ) {
 
     var allowedClass = self._allowedContent[ containerTag ];
@@ -2124,7 +2132,7 @@ var isAllowedIn = function ( self, tag, containerTag ) {
         return false;
     } else if ( allowedClass === 'inline' ) {
         return isSmwInline( self, tag );
-    } else {
+    } else if ( allowedClass === 'all' ) {
         return true;
     }
     
@@ -2136,9 +2144,18 @@ var getSmwTagType = function ( smwTagTypes, tag ) {
     }, null);
 };
 
-var translateTag = function ( self, smwTag ) {
-    //TODO: if objects
-    return self._translateToSmw[ smwTag ];
+var translateTags = function( self, tags ) {
+    return tags.map( function( tag ) { return translateTag( self, tag ) });
+};
+
+var translateTag = function ( self, tag, attributes ) {
+    switch( tag ) {
+        case 'UL':
+        case 'BLOCKQUOTE':
+            tag = tag + '.' + attributes.class;
+            break;
+    }
+    return self._translateToSmw[ tag ];
 }
 
 proto.h1 = command( 'modifyBlocks', createHeader(1) );
@@ -2201,6 +2218,96 @@ proto.canUndo = function () {
 
 proto.canRedo = function () {
     return this._canRedo;
+};
+
+
+proto.setListFormatting = function ( listType ) {
+    if ( !listType ) {
+        this.modifyBlocks( removeList );
+    } else if ( listType === 'ordered' ) {
+        this.modifyBlocks( makeOrderedList );
+    } else if ( listType === 'bulleted' ) {
+        this.modifyBlocks( makeUnorderedList );
+    } else if ( listType === 'noLabels' ) {
+        this.modifyBlocks( makeUnlabeledList );
+    }
+    this.focus();
+};
+
+var getListType = function ( self, list ) {
+    switch ( list ) {
+        case 'UL.' + self._config.tagAttributes.noLabels.class:
+            return 'noLabels';
+            break;
+        case 'UL.' + self._config.tagAttributes.ul.class:
+            return 'bulleted'
+            break;
+        case 'OL':
+            return 'ordered';
+            break;
+    };
+
+};
+
+proto.getFormattingInfoFromCurrentSelection = function () {
+    var self = this;
+    //List of all tags
+    //TODO: pair with attributes
+    var tags = self._validTags;
+    var selection = self.getSelection();
+    var activeFormats = tags.reduce(function( formatsAcc, _tag ) {
+        var [tag, tagClass] = _tag.split('.');
+
+        var attributes = tagClass === undefined ? self._config.tagAttributes[ tag ] : {'class': tagClass};
+        if ( self.hasFormat( tag, attributes, selection ) ) {
+            // TODO: attributes must be included
+            formatsAcc.push( _tag );
+        }
+        return formatsAcc;
+    }, []);
+
+    var tagInformations = tags.reduce(function( infos, tag ) {
+        infos[ tag ] = activeFormats.reduce( function( info, activeFormat ) {
+            var smwTag = translateTag( self, tag );
+            var smwActiveFormat = translateTag( self, activeFormat );
+            info.enabled = info.enabled || activeFormat === tag;
+            info.allowed = (info.allowed && isAllowedIn( self, smwTag, smwActiveFormat )) || info.enabled;
+            return info;
+        }, {'allowed': true, 'enabled': false});
+        return infos;
+    }, {});
+
+    return translateAndAggregateTagInfo( self, tags, tagInformations );
+
+};
+
+var translateAndAggregateTagInfo = function ( self, tags, tagInfos ) {
+    return tags.reduce( function ( acc, tag ) {
+        var info = tagInfos[ tag ];
+        var smwTag = translateTag( self, tag );
+        var previousEntry = acc[ smwTag ];
+        var isEnabledOrNoPreviousEnabled = info.enabled || !previousEntry || (previousEntry && !previousEntry.enabled);
+        switch ( smwTag ) {
+            case 'list':
+                if ( isEnabledOrNoPreviousEnabled ) {
+                    var listType = getListType( self, tag );
+                    info.listType = listType;
+                } else {
+                    info = previousEntry;
+                }
+                break;
+            case 'heading':
+                if ( isEnabledOrNoPreviousEnabled ) {
+                    var level = tag[1];
+                    info.depth = level;
+                } else {
+                    info = previousEntry;
+                }
+                break;
+        }
+        acc[ smwTag ] = info;
+        return acc; 
+    }, {});
 };
 
 //Remove unwanted functionality
