@@ -4156,32 +4156,33 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
 };
 
 var removeHeader = function ( frag ) {
-    var walker = getBlockWalker( frag );
-    var node = walker.nextNode();
-    if ( node !== null && isHeader( node ) ) {
-        return detach( node );
-    };
+    var headers = frag.querySelectorAll( 'h1, h2, h3, h4' );
+    for (var i = 0; i < headers.length; i++ ) {
+        var el = headers[i];
+        // Modifies frag;
+        replaceWith( el, empty( el ) );
+    }
+    return frag;
 };
 
 var removeAllBlockquotes = function ( frag ) {
     var blockquotes = frag.querySelectorAll( 'blockquote' );
     var attributes = this._config.tagAttributes.blockquote;
-    removeAllBlockquotesHelper( blockquotes, attributes);
+    removeAllBlockquotesHelper( blockquotes, attributes.class);
     return frag;
 };
 
 var removeAllAsides = function ( frag ) {
     var blockquotes = frag.querySelectorAll( 'blockquote' );
     var attributes = this._config.tagAttributes.aside;
-    removeAllBlockquotesHelper( blockquotes, attributes);
+    removeAllBlockquotesHelper( blockquotes, attributes.class );
     return frag;
 };
 
-
-var removeAllBlockquotesHelper = function( blockquotes, attributes ) {
+var removeAllBlockquotesHelper = function( blockquotes, blockquoteClass ) {
     //Side effect (modifies frag)
-    Array.prototype.filter.call( blockquotes, function ( el ) {
-        return !getNearest( el.parentNode, 'BLOCKQUOTE', attributes );
+    Array.prototype.filter.call( blockquotes, function ( blockquote ) {
+        return blockquote.className === blockquoteClass;
     }).forEach( function ( el ) {
         replaceWith( el, empty( el ) );
     });
