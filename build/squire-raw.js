@@ -2259,18 +2259,9 @@ function Squire ( doc, config ) {
 
     //SMW
     this._allowedContent = createAllowedContentMap( config.allowedContentForMarkedTypes );
-    this._translateToSmw = {
-        'B' : 'strong',
-        'I' : 'em',
-        'BLOCKQUOTE' : 'blockquote',//{ '' : 'blockquote', 'aside' : 'aside' }, 
-        'H1' : 'heading',
-        'H2' : 'heading',
-        'H3' : 'heading',
-        'H4' : 'heading',
-        'UL' : 'list',
-        'OL' : 'list',
-        'A' : 'link'
-    };
+    
+    this._translateToSmw = createTranslationMap( config.tagAttributes );
+
     this._validTags = Object.keys( this._translateToSmw );
 
     // Fix IE<10's buggy implementation of Text#splitText.
@@ -4096,6 +4087,27 @@ var createAllowedContentMap = function ( allowedObj ) {
     }, {});
 }
 
+var createTranslationMap = function ( ta ) {
+    var blockquote = 'BLOCKQUOTE.' + ta.blockquote.class;
+    var aside = 'BLOCKQUOTE.' + ta.aside.class;
+    var bulleted = 'UL.' + ta.ul.class;
+    var noLabels = 'UL.' + ta.noLabels.class;
+    var translations = {
+        'B' : 'strong',
+        'I' : 'em',
+        'H1' : 'heading',
+        'H2' : 'heading',
+        'H3' : 'heading',
+        'H4' : 'heading',
+        'OL' : 'list',
+        'A' : 'link'
+    };
+    translations[blockquote] = 'blockquote';
+    translations[aside] = 'aside';
+    translations[bulleted] = 'list';
+    translations[noLabels] = 'list';
+    return translations;
+};
 
 
 var createHeader = function ( level ) {
@@ -4296,8 +4308,13 @@ var translateTags = function( self, tags ) {
     return tags.map( function( tag ) { return translateTag( self, tag ) });
 };
 
-var translateTag = function ( self, tag ) {
-    //TODO: if objects
+var translateTag = function ( self, tag, attributes ) {
+    switch( tag ) {
+        case 'UL':
+        case 'BLOCKQUOTE':
+            tag = tag + '.' + attributes.class;
+            break;
+    }
     return self._translateToSmw[ tag ];
 }
 
@@ -4377,36 +4394,81 @@ proto.setListFormatting = function ( listType ) {
     this.focus();
 };
 
+var getListType = function ( self, list ) {
+    switch ( list ) {
+        case 'UL.' + self._config.tagAttributes.noLabels.class:
+            return 'noLabels';
+            break;
+        case 'UL.' + self._config.tagAttributes.ul.class:
+            return 'bulleted'
+            break;
+        case 'OL':
+            return 'ordered';
+            break;
+    };
+
+};
+
 proto.getFormattingInfoFromCurrentSelection = function () {
     var self = this;
     //List of all tags
     //TODO: pair with attributes
     var tags = self._validTags;
     var selection = self.getSelection();
-    var activeFormats = tags.reduce(function( formatsAcc, tag ) {
-        var attributes = self._config.tagAttributes[ tag ];
+    var activeFormats = tags.reduce(function( formatsAcc, _tag ) {
+        var [tag, tagClass] = _tag.split('.');
+
+        var attributes = tagClass === undefined ? self._config.tagAttributes[ tag ] : {'class': tagClass};
         if ( self.hasFormat( tag, attributes, selection ) ) {
             // TODO: attributes must be included
-            formatsAcc.push( tag );
+            formatsAcc.push( _tag );
         }
         return formatsAcc;
     }, []);
-    //Translate tags
-    var translatedTags = translateTags( self, tags );
-    //Translate formats
-    var translatedActiveFormats = translateTags( self, activeFormats );
 
-    return translatedTags.reduce(function( infos, smwTag ) {
-        infos[smwTag] = translatedActiveFormats.reduce( function( info, activeFormat ) {
-            info.enabled = info.enabled || activeFormat === smwTag;
-            info.allowed = (info.allowed && isAllowedIn( self, smwTag, activeFormat )) || info.enabled;
+    var tagInformations = tags.reduce(function( infos, tag ) {
+        infos[ tag ] = activeFormats.reduce( function( info, activeFormat ) {
+            var smwTag = translateTag( self, tag );
+            var smwActiveFormat = translateTag( self, activeFormat );
+            info.enabled = info.enabled || activeFormat === tag;
+            info.allowed = (info.allowed && isAllowedIn( self, smwTag, smwActiveFormat )) || info.enabled;
             return info;
         }, {'allowed': true, 'enabled': false});
         return infos;
     }, {});
 
+    return translateAndAggregateTagInfo( self, tags, tagInformations );
+
 };
 
+var translateAndAggregateTagInfo = function ( self, tags, tagInfos ) {
+    return tags.reduce( function ( acc, tag ) {
+        var info = tagInfos[ tag ];
+        var smwTag = translateTag( self, tag );
+        var previousEntry = acc[ smwTag ];
+        var isEnabledOrNoPreviousEnabled = info.enabled || !previousEntry || (previousEntry && !previousEntry.enabled);
+        switch ( smwTag ) {
+            case 'list':
+                if ( isEnabledOrNoPreviousEnabled ) {
+                    var listType = getListType( self, tag );
+                    info.listType = listType;
+                } else {
+                    info = previousEntry;
+                }
+                break;
+            case 'heading':
+                if ( isEnabledOrNoPreviousEnabled ) {
+                    var level = tag[1];
+                    info.depth = level;
+                } else {
+                    info = previousEntry;
+                }
+                break;
+        }
+        acc[ smwTag ] = info;
+        return acc; 
+    }, {});
+};
 
 //Remove unwanted functionality
 delete proto.underline;;
