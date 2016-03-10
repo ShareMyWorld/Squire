@@ -1816,7 +1816,7 @@ var stylesRewriters = {
 
 var allowedBlock = /^(?:A(?:DDRESS|RTICLE|SIDE|UDIO)|BLOCKQUOTE|CAPTION|D(?:[DLT]|IV)|F(?:IGURE|IGCAPTION|OOTER)|H[1-6]|HEADER|L(?:ABEL|EGEND|I)|O(?:L|UTPUT)|P(?:RE)?|SECTION|T(?:ABLE|BODY|D|FOOT|H|HEAD|R)|UL)$/;
 
-var blacklist = /^(?:HEAD|META|STYLE|SPAN)/;
+var blacklist = /^(?:HEAD|META|STYLE)/;
 
 var walker = new TreeWalker( null, SHOW_TEXT|SHOW_ELEMENT, function () {
     return true;
@@ -2035,7 +2035,6 @@ var onPaste = function ( event ) {
             if ( type === 'text/html' ) {
                 /*jshint loopfunc: true */
                 item.getAsString( function ( html ) {
-                    //TODO: filter unsupported tags
                     var temp = document.createElement("div");
                     temp.innerHTML = html;
                     var sanitized = temp.textContent || temp.innerText;
@@ -4419,8 +4418,9 @@ proto.getFormattingInfoFromCurrentSelection = function () {
     var tags = self._validTags;
     var selection = self.getSelection();
     var activeFormats = tags.reduce(function( formatsAcc, _tag ) {
-        var [tag, tagClass] = _tag.split('.');
-
+        
+        var split =  _tag.split('.');
+        var tag = split[0], tagClass = split[1];
         var attributes = tagClass === undefined ? self._config.tagAttributes[ tag ] : {'class': tagClass};
         if ( self.hasFormat( tag, attributes, selection ) ) {
             // TODO: attributes must be included

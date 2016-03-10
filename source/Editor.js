@@ -2256,8 +2256,9 @@ proto.getFormattingInfoFromCurrentSelection = function () {
     var tags = self._validTags;
     var selection = self.getSelection();
     var activeFormats = tags.reduce(function( formatsAcc, _tag ) {
-        var [tag, tagClass] = _tag.split('.');
-
+        
+        var split =  _tag.split('.');
+        var tag = split[0], tagClass = split[1];
         var attributes = tagClass === undefined ? self._config.tagAttributes[ tag ] : {'class': tagClass};
         if ( self.hasFormat( tag, attributes, selection ) ) {
             // TODO: attributes must be included

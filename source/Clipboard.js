@@ -39,7 +39,6 @@ var onPaste = function ( event ) {
             if ( type === 'text/html' ) {
                 /*jshint loopfunc: true */
                 item.getAsString( function ( html ) {
-                    //TODO: filter unsupported tags
                     var temp = document.createElement("div");
                     temp.innerHTML = html;
                     var sanitized = temp.textContent || temp.innerText;

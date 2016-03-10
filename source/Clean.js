@@ -165,7 +165,7 @@ var stylesRewriters = {
 
 var allowedBlock = /^(?:A(?:DDRESS|RTICLE|SIDE|UDIO)|BLOCKQUOTE|CAPTION|D(?:[DLT]|IV)|F(?:IGURE|IGCAPTION|OOTER)|H[1-6]|HEADER|L(?:ABEL|EGEND|I)|O(?:L|UTPUT)|P(?:RE)?|SECTION|T(?:ABLE|BODY|D|FOOT|H|HEAD|R)|UL)$/;
 
-var blacklist = /^(?:HEAD|META|STYLE|SPAN)/;
+var blacklist = /^(?:HEAD|META|STYLE)/;
 
 var walker = new TreeWalker( null, SHOW_TEXT|SHOW_ELEMENT, function () {
     return true;
