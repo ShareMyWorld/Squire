@@ -104,11 +104,6 @@ var stylesRewriters = {
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
     STRIKE: replaceWithTag( 'S' ),
-    SUP: replaceWithTag( 'SPAN' ),
-    TABLE: replaceWithTag( 'SPAN' ),
-    TR: replaceWithTag( 'SPAN' ),
-    TBODY: replaceWithTag( 'SPAN' ),
-    TH: replaceWithTag( 'SPAN' ),
     FONT: function ( node, parent ) {
         var face = node.face,
             size = node.size,
