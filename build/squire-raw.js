@@ -1723,7 +1723,7 @@ var replaceWithTag = function ( tag ) {
 
 var stylesRewriters = {
     SPAN: function ( span, parent ) {
-        var style = span.style,
+        /*var style = span.style,
             doc = span.ownerDocument,
             attr, converter, css, newTreeBottom, newTreeTop, el;
         span.style = '';
@@ -1746,10 +1746,11 @@ var stylesRewriters = {
         if ( newTreeTop ) {
             newTreeBottom.appendChild( empty( span ) );
             parent.replaceChild( newTreeTop, span );
-        }
-
-
-        return newTreeBottom || span;
+        } */
+        var text = doc.createTextNode( span.textContent );
+        parent.replaceChild( text, span );
+        return text;
+        //return newTreeBottom || span;
     },
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
@@ -1822,6 +1823,8 @@ var stylesRewriters = {
 };
 
 var allowedBlock = /^(?:A(?:DDRESS|RTICLE|SIDE|UDIO)|BLOCKQUOTE|CAPTION|D(?:[DLT]|IV)|F(?:IGURE|IGCAPTION|OOTER)|H[1-6]|HEADER|L(?:ABEL|EGEND|I)|O(?:L|UTPUT)|P(?:RE)?|SECTION|T(?:ABLE|BODY|D|FOOT|H|HEAD|R)|UL)$/;
+var smwAllowedBlock = /^(BLOCKQUOTE|H[1-6]|LI|UL|OL)$/;
+
 
 var blacklist = /^(?:HEAD|META|STYLE)/;
 
@@ -1858,12 +1861,14 @@ var cleanTree = function cleanTree ( node ) {
             childLength = child.childNodes.length;
             if ( rewriter ) {
                 child = rewriter( child, node );
+                if ( child.nodeType === TEXT_NODE )
+                    childLength = undefined;
             } else if ( blacklist.test( nodeName ) ) {
                 node.removeChild( child );
                 i -= 1;
                 l -= 1;
                 continue;
-            } else if ( !allowedBlock.test( nodeName ) && !isInline( child ) ) {
+            } else if ( !smwAllowedBlock.test( nodeName ) && !isInline( child ) ) {
                 i -= 1;
                 l += childLength - 1;
                 node.replaceChild( empty( child ), child );
