@@ -1726,6 +1726,7 @@ var stylesRewriters = {
         var style = span.style,
             doc = span.ownerDocument,
             attr, converter, css, newTreeBottom, newTreeTop, el;
+        span.style = '';
 
         for ( attr in spanToSemantic ) {
             converter = spanToSemantic[ attr ];
@@ -1747,11 +1748,17 @@ var stylesRewriters = {
             parent.replaceChild( newTreeTop, span );
         }
 
+
         return newTreeBottom || span;
     },
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
     STRIKE: replaceWithTag( 'S' ),
+    SUP: replaceWithTag( 'SPAN' ),
+    TABLE: replaceWithTag( 'SPAN' ),
+    TR: replaceWithTag( 'SPAN' ),
+    TBODY: replaceWithTag( 'SPAN' ),
+    TH: replaceWithTag( 'SPAN' ),
     FONT: function ( node, parent ) {
         var face = node.face,
             size = node.size,
@@ -1846,6 +1853,8 @@ var cleanTree = function cleanTree ( node ) {
         nodeType = child.nodeType;
         rewriter = stylesRewriters[ nodeName ];
         if ( nodeType === ELEMENT_NODE ) {
+            //SMW - remove style
+            child.style = '';
             childLength = child.childNodes.length;
             if ( rewriter ) {
                 child = rewriter( child, node );
@@ -2035,10 +2044,10 @@ var onPaste = function ( event ) {
             if ( type === 'text/html' ) {
                 /*jshint loopfunc: true */
                 item.getAsString( function ( html ) {
-                    var temp = document.createElement("div");
-                    temp.innerHTML = html;
-                    var sanitized = temp.textContent || temp.innerText;
-                    self.insertHTML( sanitized, true );
+                    //var temp = document.createElement("div");
+                    //temp.innerHTML = html;
+                    //var sanitized = temp.textContent || temp.innerText;
+                    self.insertHTML( html, true );
                 });
                 /*jshint loopfunc: false */
                 return;

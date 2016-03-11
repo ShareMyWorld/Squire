@@ -24,6 +24,18 @@ proto.converters = [
         }
 	},
 	{
+		filter: 'span',
+		replacement: function(content) {
+          return content;
+        }
+	},
+	{
+		filter: 'div',
+		replacement: function(content) {
+          return content;
+        }
+	},
+	{
 		filter: 'i',
 		replacement: function(content) {
           return '//' + content + '//';
