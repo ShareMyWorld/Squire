@@ -170,6 +170,7 @@ TreeWalker.prototype.previousPONode = function () {
 };
 
 var inlineNodeNames  = /^(?:#text|A(?:BBR|CRONYM)?|B(?:R|D[IO])?|C(?:ITE|ODE)|D(?:ATA|EL|FN)|EM|FONT|HR|I(?:MG|NPUT|NS)?|KBD|Q|R(?:P|T|UBY)|S(?:AMP|MALL|PAN|TR(?:IKE|ONG)|U[BP])?|U|VAR|WBR)$/;
+var smwInlineNodeNames = /^(?:#text|A|BR|B|I|STRONG|EM)$/;
 
 var leafNodeNames = {
     BR: 1,
@@ -215,7 +216,7 @@ function isLeaf ( node ) {
         !!leafNodeNames[ node.nodeName ];
 }
 function isInline ( node ) {
-    return inlineNodeNames.test( node.nodeName );
+    return smwInlineNodeNames.test( node.nodeName );
 }
 function isBlock ( node ) {
     var type = node.nodeType;
@@ -1755,6 +1756,13 @@ var stylesRewriters = {
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
     STRIKE: replaceWithTag( 'S' ),
+    A: function ( node, parent ) {
+        var text = node.textContent.replace(/[\[\]]/gim, function(i) {
+           return '&#'+i.charCodeAt(0)+';';
+        });
+        node.innerHTML = text;
+        return node;
+    },
     FONT: function ( node, parent ) {
         var face = node.face,
             size = node.size,

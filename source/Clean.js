@@ -104,6 +104,13 @@ var stylesRewriters = {
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
     STRIKE: replaceWithTag( 'S' ),
+    A: function ( node, parent ) {
+        var text = node.textContent.replace(/[\[\]]/gim, function(i) {
+           return '&#'+i.charCodeAt(0)+';';
+        });
+        node.innerHTML = text;
+        return node;
+    },
     FONT: function ( node, parent ) {
         var face = node.face,
             size = node.size,
