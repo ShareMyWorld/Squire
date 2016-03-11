@@ -2103,15 +2103,14 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
         
         //Reset cursor
         range.setStart( _startNode, _startOffset );
-        range.setEnd( _startNode, _endOffset );
+        range.setEnd( _startNode, _startOffset );
         range.collapse( true );
         self.setSelection( range );
     } else {
         self.changeFormat( add, remove, range );
     }
     
-    self.focus();
-    return self;
+    return self.focus();
 };
 
 var isSmwInline = function ( self, tag ) {
