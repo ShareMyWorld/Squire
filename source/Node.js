@@ -1,7 +1,7 @@
 /*jshint strict:false, undef:false, unused:false */
 
 var inlineNodeNames  = /^(?:#text|A(?:BBR|CRONYM)?|B(?:R|D[IO])?|C(?:ITE|ODE)|D(?:ATA|EL|FN)|EM|FONT|HR|I(?:MG|NPUT|NS)?|KBD|Q|R(?:P|T|UBY)|S(?:AMP|MALL|PAN|TR(?:IKE|ONG)|U[BP])?|U|VAR|WBR)$/;
-var smwInlineNodeNames = /^(?:#text|A|BR|B|I|STRONG|EM)$/;
+var smwInlineNodeNames = /^(?:#text|A|BR|B|I|STRONG|EM|INPUT)$/;
 
 var leafNodeNames = {
     BR: 1,
@@ -445,8 +445,8 @@ function mergeContainers ( node ) {
         isListItem = ( node.nodeName === 'LI' ),
         needsFix, block;
 
-    // Do not merge LIs, unless it only contains a UL
-    if ( isListItem && ( !first || !/^[OU]L$/.test( first.nodeName ) ) ) {
+    // Do not merge LIs, unless it only contains a UL ... and don't merge headers
+    if ( isListItem && ( !first || !/^[OU]L$/.test( first.nodeName ) ) || node.nodeName[0] === 'H') {
         return;
     }
 

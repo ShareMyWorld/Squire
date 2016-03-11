@@ -170,7 +170,7 @@ TreeWalker.prototype.previousPONode = function () {
 };
 
 var inlineNodeNames  = /^(?:#text|A(?:BBR|CRONYM)?|B(?:R|D[IO])?|C(?:ITE|ODE)|D(?:ATA|EL|FN)|EM|FONT|HR|I(?:MG|NPUT|NS)?|KBD|Q|R(?:P|T|UBY)|S(?:AMP|MALL|PAN|TR(?:IKE|ONG)|U[BP])?|U|VAR|WBR)$/;
-var smwInlineNodeNames = /^(?:#text|A|BR|B|I|STRONG|EM)$/;
+var smwInlineNodeNames = /^(?:#text|A|BR|B|I|STRONG|EM|INPUT)$/;
 
 var leafNodeNames = {
     BR: 1,
@@ -614,8 +614,8 @@ function mergeContainers ( node ) {
         isListItem = ( node.nodeName === 'LI' ),
         needsFix, block;
 
-    // Do not merge LIs, unless it only contains a UL
-    if ( isListItem && ( !first || !/^[OU]L$/.test( first.nodeName ) ) ) {
+    // Do not merge LIs, unless it only contains a UL ... and don't merge headers
+    if ( isListItem && ( !first || !/^[OU]L$/.test( first.nodeName ) ) || node.nodeName[0] === 'H') {
         return;
     }
 
@@ -4162,28 +4162,22 @@ var createOnce = function ( self, frag, tag, attributeKey ) {
 };
 
 var createOrReplaceHeader = function ( self, frag, tag ) {
-    var walker = getBlockWalker( frag ),
-        node,
+    var header, headers,
         tagAttributes = self._config.tagAttributes,
         headerAttrs = tagAttributes[ tag ];
 
-    while ( node = walker.nextNode() ) {
-        if ( isHeader( node ) ) {
-            var parent = node.parentNode;
-            if ( parent.nodeName !== tag ) {
-                // Replace with new header level
-                var newTag =  self.createElement( tag, headerAttrs, [ node ] );
-                replaceWith( parent, newTag );
-            } else {
-                // do nothing
-            }
-        } else {
-            // Create new header
-            var header = self.createElement( tag, headerAttrs, [ node ] );
-            frag.appendChild(header);
+    headers = frag.querySelectorAll( 'h1, h2, h3, h4' );
+    if ( headers.length === 0 ) {
+        return self.createElement( tag, headerAttrs, [ frag ] );
+    } else {
+        for ( var i = 0; i < headers.length; i++ ) {
+            header = headers[i];
+            var newHeader =  self.createElement( tag, headerAttrs, header.childNodes );
+            replaceWith( header, newHeader ); 
         }
+        return frag;
     }
-    return frag;
+    
 };
 
 var removeHeader = function ( frag ) {
@@ -4385,10 +4379,11 @@ proto.toggleAside = function () {
 
 proto.setHeading = function ( level ) {
     if ( level === 0 ){
-        this.modifyBlocks( removeHeader );
+        return this.modifyBlocks( removeHeader );
     } else {
         return this.modifyBlocks( createHeader(level) );
     }
+    //return this.focus();
 };
 
 proto.canUndo = function () {
@@ -4410,7 +4405,7 @@ proto.setListFormatting = function ( listType ) {
     } else if ( listType === 'noLabels' ) {
         this.modifyBlocks( makeUnlabeledList );
     }
-    this.focus();
+    return this.focus();
 };
 
 var getListType = function ( self, list ) {
