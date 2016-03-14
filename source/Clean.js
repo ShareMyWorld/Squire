@@ -104,6 +104,14 @@ var stylesRewriters = {
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
     STRIKE: replaceWithTag( 'S' ),
+    IMG: function ( img, parent ) {
+        //TODO: this class is defined in config, plx get from there
+        if ( img.className === 'page-break' ) {
+            return img;
+        } else {
+            return false;
+        }
+    },
     A: function ( node, parent ) {
         var text = node.textContent.replace(/[\[\]]/gim, function(i) {
            return '&#'+i.charCodeAt(0)+';';
@@ -211,9 +219,19 @@ var cleanTree = function cleanTree ( node ) {
             child.style = '';
             childLength = child.childNodes.length;
             if ( rewriter ) {
-                child = rewriter( child, node );
-                if ( child.nodeType === TEXT_NODE )
-                    childLength = undefined;
+                var _child = rewriter( child, node );
+                if ( _child ) {
+                    child = _child;
+                    if ( child.nodeType === TEXT_NODE )
+                        childLength = undefined;    
+                } else {
+                    //Rewriter wants us to remove the child
+                    i -= 1;
+                    l -= 1;
+                    node.removeChild( child );
+                    continue;
+                }
+                
             } else if ( blacklist.test( nodeName ) ) {
                 node.removeChild( child );
                 i -= 1;

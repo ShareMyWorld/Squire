@@ -68,7 +68,7 @@ proto.converters = [
 			var lis = content.split('\n');
 			var formatted = lis.map(function(li){
 				var trimmedLi = li.trim();
-				if (trimmedLi.match('^\d+'))
+				if (trimmedLi.match('^\\d+'))
 					return trimmedLi.replace(/\s+/, ' ');
 				else
 					return '  ' + trimmedLi;

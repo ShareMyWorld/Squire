@@ -725,7 +725,7 @@ var insertNodeInRange = function ( range, node ) {
     range.setEnd( endContainer, endOffset );
 };
 
-var extractContentsOfRange = function ( range, common ) {
+var extractContentsOfRange = function ( range, common, parentPattern ) {
     var startContainer = range.startContainer,
         startOffset = range.startOffset,
         endContainer = range.endContainer,
@@ -739,8 +739,8 @@ var extractContentsOfRange = function ( range, common ) {
         common = common.parentNode;
     }
 
-    var endNode = split( endContainer, endOffset, common ),
-        startNode = split( startContainer, startOffset, common ),
+    var endNode = parentPattern != undefined && new RegExp( parentPattern ).test( endContainer.nodeName ) ? endContainer : split( endContainer, endOffset, common ),
+        startNode = parentPattern != undefined && new RegExp( parentPattern ).test( startContainer.nodeName ) ? startContainer : split( startContainer, startOffset, common ),
         frag = common.ownerDocument.createDocumentFragment(),
         next, before, after;
 
@@ -776,6 +776,7 @@ var extractContentsOfRange = function ( range, common ) {
 
     return frag;
 };
+
 
 var deleteContentsOfRange = function ( range ) {
     // Move boundaries up as much as possible to reduce need to split.
@@ -1443,8 +1444,14 @@ var keyHandlers = {
                     detach( previous );
                     return;
                 }
+                if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
+                    detach( previous.parentNode );
+                    return;
+                }
+                
                 // Otherwise merge.
                 mergeWithBlock( previous, current, range );
+                
                 // If deleted line between containers, merge newly adjacent
                 // containers.
                 current = previous.parentNode;
@@ -1502,6 +1509,7 @@ var keyHandlers = {
                     detach( next );
                     return;
                 }
+
                 // Otherwise merge.
                 mergeWithBlock( current, next, range );
                 // If deleted line between containers, merge newly adjacent
@@ -1756,6 +1764,14 @@ var stylesRewriters = {
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
     STRIKE: replaceWithTag( 'S' ),
+    IMG: function ( img, parent ) {
+        //TODO: this class is defined in config, plx get from there
+        if ( img.className === 'page-break' ) {
+            return img;
+        } else {
+            return false;
+        }
+    },
     A: function ( node, parent ) {
         var text = node.textContent.replace(/[\[\]]/gim, function(i) {
            return '&#'+i.charCodeAt(0)+';';
@@ -1863,9 +1879,19 @@ var cleanTree = function cleanTree ( node ) {
             child.style = '';
             childLength = child.childNodes.length;
             if ( rewriter ) {
-                child = rewriter( child, node );
-                if ( child.nodeType === TEXT_NODE )
-                    childLength = undefined;
+                var _child = rewriter( child, node );
+                if ( _child ) {
+                    child = _child;
+                    if ( child.nodeType === TEXT_NODE )
+                        childLength = undefined;    
+                } else {
+                    //Rewriter wants us to remove the child
+                    i -= 1;
+                    l -= 1;
+                    node.removeChild( child );
+                    continue;
+                }
+                
             } else if ( blacklist.test( nodeName ) ) {
                 node.removeChild( child );
                 i -= 1;
@@ -3316,7 +3342,7 @@ proto.forEachBlock = function ( fn, mutates, range ) {
     return this;
 };
 
-proto.modifyBlocks = function ( modify, range ) {
+proto.modifyBlocks = function ( modify, range, extractPattern ) {
     if ( !range && !( range = this.getSelection() ) ) {
         return this;
     }
@@ -3335,7 +3361,7 @@ proto.modifyBlocks = function ( modify, range ) {
     var body = this._body,
         frag;
     moveRangeBoundariesUpTree( range, body );
-    frag = extractContentsOfRange( range, body );
+    frag = extractContentsOfRange( range, body, extractPattern );
 
     // 4. Modify tree of fragment and reinsert.
     insertNodeInRange( range, modify.call( this, frag ) );
@@ -4111,6 +4137,7 @@ var createTranslationMap = function ( ta ) {
     var aside = 'BLOCKQUOTE.' + ta.aside.class;
     var bulleted = 'UL.' + ta.ul.class;
     var noLabels = 'UL.' + ta.noLabels.class;
+    var hr = 'IMG.' + ta.pageBreak.class;
     var translations = {
         'B' : 'strong',
         'I' : 'em',
@@ -4125,6 +4152,7 @@ var createTranslationMap = function ( ta ) {
     translations[aside] = 'aside';
     translations[bulleted] = 'list';
     translations[noLabels] = 'list';
+    translations[hr] = 'hr';
     return translations;
 };
 
@@ -4223,11 +4251,20 @@ proto.insertPageBreak = function ( ) {
     var tagAttributes = this._config.tagAttributes;
     var pageBreakAttrs = tagAttributes[ 'pageBreak' ];
     var pageBreak = this.createElement( 'IMG', pageBreakAttrs );
+
     self._recordUndoState( range );
     self._getRangeAndRemoveBookmark( range );
 
-    var pageBreakBlock = self.createDefaultBlock( [ pageBreak ] );
-    self.insertElement(pageBreakBlock);
+    if (range.collapsed && isDefaultBlockElement( self, range.startContainer ) ) {
+        insertNodeInRange( range, pageBreak );
+        var defaultBlock = self.createDefaultBlock( [ ] );
+        pageBreak.parentNode.parentNode.appendChild( defaultBlock );
+
+    } else {
+        self.insertElement( self.createDefaultBlock( [ pageBreak ] ) );
+        
+    } 
+    
     // To allow undo recording we need to tell the editor that we've changed the doc
     self._docWasChanged();
     // Select the new page break
@@ -4238,9 +4275,19 @@ proto.insertPageBreak = function ( ) {
     self._recordUndoState( pageBreakRange );
     self._getRangeAndRemoveBookmark( pageBreakRange );
 
+    range.setStart( pageBreakRange.endContainer.nextSibling, 0);
+    self.focus();
+    self.setSelection( range );
+    self._updatePath( range );
+
     return self;
 };
 
+var isDefaultBlockElement = function ( self, node ) {
+    var isDefaultNode = node.nodeName === self._config.blockTag && node.className === self._config.blockAttributes.class;
+    var containsOnlyBr = node.children && node.children.length === 1 && node.children[0].nodeName === 'BR';
+    return isDefaultNode && containsOnlyBr;
+};
 
 proto.bold = function () { return changeFormatExpandToWord( this, { tag : 'B' }, { tag : 'B' } ); };
 proto.italic = function () { return changeFormatExpandToWord( this, { tag : 'I' }, { tag : 'I' } ); };
@@ -4395,14 +4442,16 @@ proto.canRedo = function () {
 
 
 proto.setListFormatting = function ( listType ) {
+    var range = this.getSelection();
+    var pattern = "[OU]L";
     if ( !listType ) {
-        this.modifyBlocks( removeList );
+        this.modifyBlocks( removeList, range, pattern );
     } else if ( listType === 'ordered' ) {
-        this.modifyBlocks( makeOrderedList );
+        this.modifyBlocks( makeOrderedList, range, pattern );
     } else if ( listType === 'bulleted' ) {
-        this.modifyBlocks( makeUnorderedList );
+        this.modifyBlocks( makeUnorderedList, range, pattern );
     } else if ( listType === 'noLabels' ) {
-        this.modifyBlocks( makeUnlabeledList );
+        this.modifyBlocks( makeUnlabeledList, range, pattern );
     }
     return this.focus();
 };
@@ -4425,7 +4474,6 @@ var getListType = function ( self, list ) {
 proto.getFormattingInfoFromCurrentSelection = function () {
     var self = this;
     //List of all tags
-    //TODO: pair with attributes
     var tags = self._validTags;
     var selection = self.getSelection();
     var activeFormats = tags.reduce(function( formatsAcc, _tag ) {
@@ -4434,7 +4482,6 @@ proto.getFormattingInfoFromCurrentSelection = function () {
         var tag = split[0], tagClass = split[1];
         var attributes = tagClass === undefined ? self._config.tagAttributes[ tag ] : {'class': tagClass};
         if ( self.hasFormat( tag, attributes, selection ) ) {
-            // TODO: attributes must be included
             formatsAcc.push( _tag );
         }
         return formatsAcc;
@@ -4496,7 +4543,7 @@ delete proto.removeSubscript;
 delete proto.removeSuperscript;
 
 delete proto.increaseListLevel;
-delete proto.decreaseListLevel;
+//delete proto.decreaseListLevel;
 
 delete proto.increaseQuoteLevel;
 delete proto.decreaseQuoteLevel;

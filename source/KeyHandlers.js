@@ -281,8 +281,14 @@ var keyHandlers = {
                     detach( previous );
                     return;
                 }
+                if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
+                    detach( previous.parentNode );
+                    return;
+                }
+                
                 // Otherwise merge.
                 mergeWithBlock( previous, current, range );
+                
                 // If deleted line between containers, merge newly adjacent
                 // containers.
                 current = previous.parentNode;
@@ -340,6 +346,7 @@ var keyHandlers = {
                     detach( next );
                     return;
                 }
+
                 // Otherwise merge.
                 mergeWithBlock( current, next, range );
                 // If deleted line between containers, merge newly adjacent

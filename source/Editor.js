@@ -1137,7 +1137,7 @@ proto.forEachBlock = function ( fn, mutates, range ) {
     return this;
 };
 
-proto.modifyBlocks = function ( modify, range ) {
+proto.modifyBlocks = function ( modify, range, extractPattern ) {
     if ( !range && !( range = this.getSelection() ) ) {
         return this;
     }
@@ -1156,7 +1156,7 @@ proto.modifyBlocks = function ( modify, range ) {
     var body = this._body,
         frag;
     moveRangeBoundariesUpTree( range, body );
-    frag = extractContentsOfRange( range, body );
+    frag = extractContentsOfRange( range, body, extractPattern );
 
     // 4. Modify tree of fragment and reinsert.
     insertNodeInRange( range, modify.call( this, frag ) );
@@ -1932,6 +1932,7 @@ var createTranslationMap = function ( ta ) {
     var aside = 'BLOCKQUOTE.' + ta.aside.class;
     var bulleted = 'UL.' + ta.ul.class;
     var noLabels = 'UL.' + ta.noLabels.class;
+    var hr = 'IMG.' + ta.pageBreak.class;
     var translations = {
         'B' : 'strong',
         'I' : 'em',
@@ -1946,6 +1947,7 @@ var createTranslationMap = function ( ta ) {
     translations[aside] = 'aside';
     translations[bulleted] = 'list';
     translations[noLabels] = 'list';
+    translations[hr] = 'hr';
     return translations;
 };
 
@@ -2044,11 +2046,20 @@ proto.insertPageBreak = function ( ) {
     var tagAttributes = this._config.tagAttributes;
     var pageBreakAttrs = tagAttributes[ 'pageBreak' ];
     var pageBreak = this.createElement( 'IMG', pageBreakAttrs );
+
     self._recordUndoState( range );
     self._getRangeAndRemoveBookmark( range );
 
-    var pageBreakBlock = self.createDefaultBlock( [ pageBreak ] );
-    self.insertElement(pageBreakBlock);
+    if (range.collapsed && isDefaultBlockElement( self, range.startContainer ) ) {
+        insertNodeInRange( range, pageBreak );
+        var defaultBlock = self.createDefaultBlock( [ ] );
+        pageBreak.parentNode.parentNode.appendChild( defaultBlock );
+
+    } else {
+        self.insertElement( self.createDefaultBlock( [ pageBreak ] ) );
+        
+    } 
+    
     // To allow undo recording we need to tell the editor that we've changed the doc
     self._docWasChanged();
     // Select the new page break
@@ -2059,9 +2070,19 @@ proto.insertPageBreak = function ( ) {
     self._recordUndoState( pageBreakRange );
     self._getRangeAndRemoveBookmark( pageBreakRange );
 
+    range.setStart( pageBreakRange.endContainer.nextSibling, 0);
+    self.focus();
+    self.setSelection( range );
+    self._updatePath( range );
+
     return self;
 };
 
+var isDefaultBlockElement = function ( self, node ) {
+    var isDefaultNode = node.nodeName === self._config.blockTag && node.className === self._config.blockAttributes.class;
+    var containsOnlyBr = node.children && node.children.length === 1 && node.children[0].nodeName === 'BR';
+    return isDefaultNode && containsOnlyBr;
+};
 
 proto.bold = function () { return changeFormatExpandToWord( this, { tag : 'B' }, { tag : 'B' } ); };
 proto.italic = function () { return changeFormatExpandToWord( this, { tag : 'I' }, { tag : 'I' } ); };
@@ -2216,14 +2237,16 @@ proto.canRedo = function () {
 
 
 proto.setListFormatting = function ( listType ) {
+    var range = this.getSelection();
+    var pattern = "[OU]L";
     if ( !listType ) {
-        this.modifyBlocks( removeList );
+        this.modifyBlocks( removeList, range, pattern );
     } else if ( listType === 'ordered' ) {
-        this.modifyBlocks( makeOrderedList );
+        this.modifyBlocks( makeOrderedList, range, pattern );
     } else if ( listType === 'bulleted' ) {
-        this.modifyBlocks( makeUnorderedList );
+        this.modifyBlocks( makeUnorderedList, range, pattern );
     } else if ( listType === 'noLabels' ) {
-        this.modifyBlocks( makeUnlabeledList );
+        this.modifyBlocks( makeUnlabeledList, range, pattern );
     }
     return this.focus();
 };
@@ -2246,7 +2269,6 @@ var getListType = function ( self, list ) {
 proto.getFormattingInfoFromCurrentSelection = function () {
     var self = this;
     //List of all tags
-    //TODO: pair with attributes
     var tags = self._validTags;
     var selection = self.getSelection();
     var activeFormats = tags.reduce(function( formatsAcc, _tag ) {
@@ -2255,7 +2277,6 @@ proto.getFormattingInfoFromCurrentSelection = function () {
         var tag = split[0], tagClass = split[1];
         var attributes = tagClass === undefined ? self._config.tagAttributes[ tag ] : {'class': tagClass};
         if ( self.hasFormat( tag, attributes, selection ) ) {
-            // TODO: attributes must be included
             formatsAcc.push( _tag );
         }
         return formatsAcc;
@@ -2317,7 +2338,7 @@ delete proto.removeSubscript;
 delete proto.removeSuperscript;
 
 delete proto.increaseListLevel;
-delete proto.decreaseListLevel;
+//delete proto.decreaseListLevel;
 
 delete proto.increaseQuoteLevel;
 delete proto.decreaseQuoteLevel;

@@ -80,7 +80,7 @@ var insertNodeInRange = function ( range, node ) {
     range.setEnd( endContainer, endOffset );
 };
 
-var extractContentsOfRange = function ( range, common ) {
+var extractContentsOfRange = function ( range, common, parentPattern ) {
     var startContainer = range.startContainer,
         startOffset = range.startOffset,
         endContainer = range.endContainer,
@@ -94,8 +94,8 @@ var extractContentsOfRange = function ( range, common ) {
         common = common.parentNode;
     }
 
-    var endNode = split( endContainer, endOffset, common ),
-        startNode = split( startContainer, startOffset, common ),
+    var endNode = parentPattern != undefined && new RegExp( parentPattern ).test( endContainer.nodeName ) ? endContainer : split( endContainer, endOffset, common ),
+        startNode = parentPattern != undefined && new RegExp( parentPattern ).test( startContainer.nodeName ) ? startContainer : split( startContainer, startOffset, common ),
         frag = common.ownerDocument.createDocumentFragment(),
         next, before, after;
 
@@ -131,6 +131,7 @@ var extractContentsOfRange = function ( range, common ) {
 
     return frag;
 };
+
 
 var deleteContentsOfRange = function ( range ) {
     // Move boundaries up as much as possible to reduce need to split.
