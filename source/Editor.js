@@ -1963,11 +1963,26 @@ var makeUnlabeledList = function ( frag ) {
 };
 
 var createBlockQuote = function ( frag ) {
-    return createOnce( this, frag, 'BLOCKQUOTE', 'blockquote' );    
+    var textFrag = document.createDocumentFragment();
+    var currentNode;
+    
+    // Unwrap p contents
+    
+    for(var pTagIndex = 0; pTagIndex < frag.childNodes.length; pTagIndex++){
+        
+        currentNode = frag.childNodes[pTagIndex];
+        
+        for(var childIndex = 0; childIndex < currentNode.childNodes.length; childIndex++){
+            textFrag.appendChild(currentNode.childNodes[childIndex].cloneNode(true));
+        }
+        
+    }
+    
+    return createOnce( this, textFrag, 'BLOCKQUOTE', 'blockquote' );    
 };
 
 var createAside = function ( frag ) {
-    return createOnce( this, frag, 'BLOCKQUOTE', 'aside' );
+    return createOnce( this, frag, 'ASIDE', 'aside' );
 };
 
 var createOnce = function ( self, frag, tag, attributeKey ) {
@@ -2014,16 +2029,32 @@ var removeHeader = function ( frag ) {
 };
 
 var removeAllBlockquotes = function ( frag ) {
+    var docFragment = document.createDocumentFragment();
+    var paraWrapper = document.createElement('p');    
     var blockquotes = frag.querySelectorAll( 'blockquote' );
     var attributes = this._config.tagAttributes.blockquote;
+
+    
     removeAllBlockquotesHelper( blockquotes, attributes.class);
-    return frag;
+    
+    // Unwrap blockqoute contents
+    
+    for(var i = 0; i < frag.childNodes.length; i++){        
+        paraWrapper.appendChild(frag.childNodes[i].cloneNode(true));
+    }    
+    
+    // And wrap the result in a paragraph
+    docFragment.appendChild(paraWrapper);
+    
+    frag = null;
+    
+    return docFragment;
 };
 
 var removeAllAsides = function ( frag ) {
-    var blockquotes = frag.querySelectorAll( 'blockquote' );
+    var asides = frag.querySelectorAll( 'aside' );
     var attributes = this._config.tagAttributes.aside;
-    removeAllBlockquotesHelper( blockquotes, attributes.class );
+    removeAllAsidesHelper( asides, attributes.class );
     return frag;
 };
 
@@ -2035,6 +2066,15 @@ var removeAllBlockquotesHelper = function( blockquotes, blockquoteClass ) {
         replaceWith( el, empty( el ) );
     });
 };  
+
+var removeAllAsidesHelper = function( asides, asidesClass ) {
+    //Side effect (modifies frag)
+    Array.prototype.filter.call( asides, function ( aside ) {
+        return aside.className === asidesClass;
+    }).forEach( function ( el ) {
+        replaceWith( el, empty( el ) );
+    });
+};
 
 proto.removeBlockquotes = command( 'modifyBlocks', removeAllBlockquotes );
 proto.removeAsides = command( 'modifyBlocks', removeAllAsides );
