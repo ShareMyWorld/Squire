@@ -4363,17 +4363,7 @@ var getSmwTagType = function ( smwTagTypes, tag ) {
     }, null);
 };
 
-var translateTags = function( self, tags ) {
-    return tags.map( function( tag ) { return translateTag( self, tag ) });
-};
-
-var translateTag = function ( self, tag, attributes ) {
-    switch( tag ) {
-        case 'UL':
-        case 'BLOCKQUOTE':
-            tag = tag + '.' + attributes.class;
-            break;
-    }
+var translateTag = function ( self, tag ) {
     return self._translateToSmw[ tag ];
 }
 
@@ -4466,7 +4456,7 @@ var getListType = function ( self, list ) {
         case 'UL.' + self._config.tagAttributes.noLabels.class:
             return 'noLabels';
             break;
-        case 'UL.' + self._config.tagAttributes.ul.class:
+        case 'UL':
             return 'bulleted'
             break;
         case 'OL':
