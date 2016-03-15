@@ -4390,6 +4390,10 @@ proto.makeUnlabeledList = command( 'modifyBlocks', makeUnlabeledList );
 proto.createBlockQuote = command( 'modifyBlocks', createBlockQuote );
 proto.createAside = command( 'modifyBlocks', createAside );
 
+proto.addDefaultBlock = function () {
+    this._body.appendChild( this.createDefaultBlock( [ ] ) );
+    return this.focus();
+};
 
 //  ================ API specifics  ===========================
 proto.toggleStrong = function () {
