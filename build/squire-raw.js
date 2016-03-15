@@ -4133,9 +4133,9 @@ var createAllowedContentMap = function ( allowedObj ) {
 }
 
 var createTranslationMap = function ( ta ) {
-    var blockquote = 'BLOCKQUOTE.' + ta.blockquote.class;
+    var blockquote = ta.blockquote != undefined ? 'BLOCKQUOTE.' + ta.blockquote.class : 'BLOCKQUOTE';
     var aside = 'BLOCKQUOTE.' + ta.aside.class;
-    var bulleted = 'UL.' + ta.ul.class;
+    var bulleted = ta.ul != undefined ? 'UL.' + ta.ul.class : 'UL';
     var noLabels = 'UL.' + ta.noLabels.class;
     var hr = 'IMG.' + ta.pageBreak.class;
     var translations = {
@@ -4392,6 +4392,7 @@ proto.createAside = command( 'modifyBlocks', createAside );
 
 proto.addDefaultBlock = function () {
     this._body.appendChild( this.createDefaultBlock( [ ] ) );
+    //TODO: range på nya default
     return this.focus();
 };
 
