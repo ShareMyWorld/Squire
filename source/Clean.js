@@ -101,6 +101,7 @@ var stylesRewriters = {
         return text;
         //return newTreeBottom || span;
     },
+    P: function ( node, _parent ) { return node; },
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
     STRIKE: replaceWithTag( 'S' ),
