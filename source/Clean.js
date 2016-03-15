@@ -101,7 +101,6 @@ var stylesRewriters = {
         return text;
         //return newTreeBottom || span;
     },
-    P: function ( node, _parent ) { return node; },
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
     STRIKE: replaceWithTag( 'S' ),
@@ -183,7 +182,7 @@ var stylesRewriters = {
 };
 
 var allowedBlock = /^(?:A(?:DDRESS|RTICLE|SIDE|UDIO)|BLOCKQUOTE|CAPTION|D(?:[DLT]|IV)|F(?:IGURE|IGCAPTION|OOTER)|H[1-6]|HEADER|L(?:ABEL|EGEND|I)|O(?:L|UTPUT)|P(?:RE)?|SECTION|T(?:ABLE|BODY|D|FOOT|H|HEAD|R)|UL)$/;
-var smwAllowedBlock = /^(BLOCKQUOTE|H[1-6]|LI|UL|OL)$/;
+var smwAllowedBlock = /^(BLOCKQUOTE|H[1-6]|LI|UL|OL|P)$/;
 
 
 var blacklist = /^(?:HEAD|META|STYLE)/;
