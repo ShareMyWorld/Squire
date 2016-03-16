@@ -7,6 +7,21 @@ var proto = SmwConverters.prototype;
 
 proto.converters = [
 	{
+		filter: function (node){
+			return node.nodeName === 'BR' && node.parentNode.nodeName !== 'LI' && node.parentNode.nodeName !== 'BLOCKQUOTE';
+		},
+		replacement: function(content) {
+			return '\n'; 
+		}
+	},
+	{
+		filter: 'br',
+		replacement: function(content) {
+			return ''; 
+		}
+	},
+
+	{
 		filter: function (node) {
 			var parent = node.parentNode;
 			// ignore header p
@@ -85,19 +100,18 @@ proto.converters = [
 		}
 	},
 	{
-		filter: 'blockquote',
+		filter: function (node) {
+			return node.nodeName === 'BLOCKQUOTE' && node.classList.contains('aside')
+		},
 		replacement: function(content) {
-			return '""' + content + '""'; 
+			return '(( ' + content + ' ))\n'; 
 		}
 	},
 	{
-		filter: function (node){
-			return node.nodeName === 'BR' && node.parentNode.nodeName !== 'LI';
-		},
+		filter: 'blockquote',
 		replacement: function(content) {
-			return '\n'; 
+			return '""' + content + '""\n'; 
 		}
 	}
-
 
 ];

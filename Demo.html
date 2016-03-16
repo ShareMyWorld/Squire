@@ -218,8 +218,8 @@
                 tables: false,
                 smartypants: true
             });
+      console.log(markdown);
       var html = marked(markdown);
-      editor.setHTML(html);
       document.getElementById('marked').innerHTML = html;
     }
 
