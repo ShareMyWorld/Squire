@@ -1842,7 +1842,7 @@ var stylesRewriters = {
 };
 
 var allowedBlock = /^(?:A(?:DDRESS|RTICLE|SIDE|UDIO)|BLOCKQUOTE|CAPTION|D(?:[DLT]|IV)|F(?:IGURE|IGCAPTION|OOTER)|H[1-6]|HEADER|L(?:ABEL|EGEND|I)|O(?:L|UTPUT)|P(?:RE)?|SECTION|T(?:ABLE|BODY|D|FOOT|H|HEAD|R)|UL)$/;
-var smwAllowedBlock = /^(BLOCKQUOTE|H[1-6]|LI|UL|OL|P)$/;
+var smwAllowedBlock = /^(BLOCKQUOTE|H[1-6]|LI|UL|OL|P|ASIDE)$/;
 
 
 var blacklist = /^(?:HEAD|META|STYLE)/;
@@ -4455,7 +4455,7 @@ proto.toggleAside = function () {
     var asideAttrbutes = self._config.tagAttributes.aside;
     var addCallback = function(){ return self.createAside(); };
     var removeCallback = function(){ return self.removeAsides(); };
-    return toggleTag( self, 'BLOCKQUOTE', asideAttrbutes, addCallback, removeCallback );
+    return toggleTag( self, 'ASIDE', asideAttrbutes, addCallback, removeCallback );
 };
 
 proto.setHeading = function ( level ) {

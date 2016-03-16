@@ -2250,7 +2250,7 @@ proto.toggleAside = function () {
     var asideAttrbutes = self._config.tagAttributes.aside;
     var addCallback = function(){ return self.createAside(); };
     var removeCallback = function(){ return self.removeAsides(); };
-    return toggleTag( self, 'BLOCKQUOTE', asideAttrbutes, addCallback, removeCallback );
+    return toggleTag( self, 'ASIDE', asideAttrbutes, addCallback, removeCallback );
 };
 
 proto.setHeading = function ( level ) {
