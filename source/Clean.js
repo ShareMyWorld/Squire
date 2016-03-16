@@ -109,7 +109,7 @@ var stylesRewriters = {
         if ( img.className === 'page-break' ) {
             return img;
         } else {
-            return false;
+            return img;
         }
     },
     A: function ( node, parent ) {
