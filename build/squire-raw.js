@@ -4135,6 +4135,7 @@ var createAllowedContentMap = function ( allowedObj ) {
 var createTranslationMap = function ( ta ) {
     var blockquote = ta.blockquote != undefined ? 'BLOCKQUOTE.' + ta.blockquote.class : 'BLOCKQUOTE';
     var aside = 'BLOCKQUOTE.' + ta.aside.class;
+    //var aside = 'ASIDE';
     var bulleted = ta.ul != undefined ? 'UL.' + ta.ul.class : 'UL';
     var noLabels = 'UL.' + ta.noLabels.class;
     var hr = 'IMG.' + ta.pageBreak.class;
@@ -4187,7 +4188,7 @@ var createBlockQuote = function ( frag ) {
 };
 
 var createAside = function ( frag ) {
-    return createOnce( this, frag, 'ASIDE', 'aside' );
+    return createOnce( this, frag, 'BLOCKQUOTE', 'aside' );
 };
 
 var createOnce = function ( self, frag, tag, attributeKey ) {
@@ -4257,9 +4258,9 @@ var removeAllBlockquotes = function ( frag ) {
 };
 
 var removeAllAsides = function ( frag ) {
-    var asides = frag.querySelectorAll( 'aside' );
+    var asides = frag.querySelectorAll( 'blockquotes' );
     var attributes = this._config.tagAttributes.aside;
-    removeAllAsidesHelper( asides, attributes.class );
+    removeAllBlockHelper( asides, attributes.class );
     return frag;
 };
 
@@ -4455,7 +4456,7 @@ proto.toggleAside = function () {
     var asideAttrbutes = self._config.tagAttributes.aside;
     var addCallback = function(){ return self.createAside(); };
     var removeCallback = function(){ return self.removeAsides(); };
-    return toggleTag( self, 'ASIDE', asideAttrbutes, addCallback, removeCallback );
+    return toggleTag( self, 'BLOCKQUOTE', asideAttrbutes, addCallback, removeCallback );
 };
 
 proto.setHeading = function ( level ) {
