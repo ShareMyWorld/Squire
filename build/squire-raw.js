@@ -4306,7 +4306,7 @@ proto.insertPageBreak = function ( ) {
         
     } 
     
-    pageBreak.parentNode.setAttribute('class', 'page-break-container');    
+    pageBreak.parentNode.setAttribute('contenteditable', 'false');
     // To allow undo recording we need to tell the editor that we've changed the doc
     self._docWasChanged();
     // Select the new page break
