@@ -174,7 +174,7 @@ proto.createElement = function ( tag, props, children ) {
     return createElement( this._doc, tag, props, children );
 };
 
-proto.createDefaultBlock = function ( children ) {
+proto.createDefaultBlock = function ( children, node ) {
     var config = this._config;
     return fixCursor(
         this.createElement( config.blockTag, config.blockAttributes, children )
@@ -1083,11 +1083,12 @@ var splitBlock = function ( self, block, node, offset ) {
     var splitTag = tagAfterSplit[ block.nodeName ],
         splitProperties = null,
         nodeAfterSplit = split( node, offset, block.parentNode ),
-        config = self._config;
+        config = self._config,
+        blockParent = block.parentNode;
 
     if ( !splitTag ) {
         splitTag = config.blockTag;
-        splitProperties = config.blockAttributes;
+        splitProperties = config.blockAttributes;    
     }
 
     // Make sure the new node is the correct type.
