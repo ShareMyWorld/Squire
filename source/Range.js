@@ -99,6 +99,10 @@ var extractContentsOfRange = function ( range, common, parentPattern ) {
         frag = common.ownerDocument.createDocumentFragment(),
         next, before, after;
 
+    if ( startNode === endNode && parentPattern != undefined && new RegExp( parentPattern ).test( startNode.nodeName ) ) {
+        frag.appendChild(startNode);
+        return frag;
+    }
     // End node will be null if at end of child nodes list.
     while ( startNode !== endNode ) {
         next = startNode.nextSibling;
