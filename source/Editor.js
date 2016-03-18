@@ -2081,7 +2081,6 @@ proto.removeAsides = function ( ) {
     return this.focus();
 };
 
-
 proto.insertPageBreak = function ( ) {
     var self = this;
 
@@ -2099,8 +2098,9 @@ proto.insertPageBreak = function ( ) {
         pageBreak.parentNode.parentNode.appendChild( defaultBlock );
 
     } else {
-        self.insertElement( self.createDefaultBlock( [ pageBreak ] ) );
-        
+        var parent = range.startContainer.parentNode;
+        var block = self.createDefaultBlock( [ pageBreak ] );
+        parent.parentNode.insertBefore( block, parent );
     } 
     
     pageBreak.parentNode.setAttribute('contenteditable', 'false');
