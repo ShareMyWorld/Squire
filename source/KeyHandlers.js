@@ -483,7 +483,7 @@ if ( !isMac ) {
     };
 }
 
-keyHandlers[ ctrlKey + 'b' ] = mapKeyToFormat( 'B' );
+/*keyHandlers[ ctrlKey + 'b' ] = mapKeyToFormat( 'B' );
 keyHandlers[ ctrlKey + 'i' ] = mapKeyToFormat( 'I' );
 keyHandlers[ ctrlKey + 'u' ] = mapKeyToFormat( 'U' );
 keyHandlers[ ctrlKey + 'shift-7' ] = mapKeyToFormat( 'S' );
@@ -495,4 +495,4 @@ keyHandlers[ ctrlKey + '[' ] = mapKeyTo( 'decreaseQuoteLevel' );
 keyHandlers[ ctrlKey + ']' ] = mapKeyTo( 'increaseQuoteLevel' );
 keyHandlers[ ctrlKey + 'y' ] = mapKeyTo( 'redo' );
 keyHandlers[ ctrlKey + 'z' ] = mapKeyTo( 'undo' );
-keyHandlers[ ctrlKey + 'shift-z' ] = mapKeyTo( 'redo' );
+keyHandlers[ ctrlKey + 'shift-z' ] = mapKeyTo( 'redo' );*/

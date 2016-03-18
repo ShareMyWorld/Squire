@@ -1646,7 +1646,7 @@ if ( !isMac ) {
     };
 }
 
-keyHandlers[ ctrlKey + 'b' ] = mapKeyToFormat( 'B' );
+/*keyHandlers[ ctrlKey + 'b' ] = mapKeyToFormat( 'B' );
 keyHandlers[ ctrlKey + 'i' ] = mapKeyToFormat( 'I' );
 keyHandlers[ ctrlKey + 'u' ] = mapKeyToFormat( 'U' );
 keyHandlers[ ctrlKey + 'shift-7' ] = mapKeyToFormat( 'S' );
@@ -1658,7 +1658,7 @@ keyHandlers[ ctrlKey + '[' ] = mapKeyTo( 'decreaseQuoteLevel' );
 keyHandlers[ ctrlKey + ']' ] = mapKeyTo( 'increaseQuoteLevel' );
 keyHandlers[ ctrlKey + 'y' ] = mapKeyTo( 'redo' );
 keyHandlers[ ctrlKey + 'z' ] = mapKeyTo( 'undo' );
-keyHandlers[ ctrlKey + 'shift-z' ] = mapKeyTo( 'redo' );
+keyHandlers[ ctrlKey + 'shift-z' ] = mapKeyTo( 'redo' );*/
 
 var fontSizes = {
     1: 10,
@@ -4184,7 +4184,7 @@ var createBlockQuote = function ( frag ) {
         
     }
     
-    return createOnce( this, textFrag, 'BLOCKQUOTE', 'blockquote' );    
+    return createOnce( this, frag, 'BLOCKQUOTE', 'blockquote' );    
 };
 
 var createAside = function ( frag ) {
@@ -4258,9 +4258,9 @@ var removeAllBlockquotes = function ( frag ) {
 };
 
 var removeAllAsides = function ( frag ) {
-    var asides = frag.querySelectorAll( 'blockquotes' );
+    var asides = frag.querySelectorAll( 'blockquote' );
     var attributes = this._config.tagAttributes.aside;
-    removeAllBlockHelper( asides, attributes.class );
+    removeAllBlockquotesHelper( asides, attributes.class );
     return frag;
 };
 
@@ -4273,17 +4273,19 @@ var removeAllBlockquotesHelper = function( blockquotes, blockquoteClass ) {
     });
 };  
 
-var removeAllAsidesHelper = function( asides, asidesClass ) {
-    //Side effect (modifies frag)
-    Array.prototype.filter.call( asides, function ( aside ) {
-        return aside.className === asidesClass;
-    }).forEach( function ( el ) {
-        replaceWith( el, empty( el ) );
-    });
+proto.removeBlockquotes = function ( ) {
+    var range = this.getSelection();
+    var pattern = 'BLOCKQUOTE';
+    this.modifyBlocks( removeAllBlockquotes, range, pattern );
+    return this.focus();
+};
+proto.removeAsides = function ( ) {
+    var range = this.getSelection();
+    var pattern = 'BLOCKQUOTE';
+    this.modifyBlocks( removeAllAsides, range, pattern );
+    return this.focus();
 };
 
-proto.removeBlockquotes = command( 'modifyBlocks', removeAllBlockquotes );
-proto.removeAsides = command( 'modifyBlocks', removeAllAsides );
 
 proto.insertPageBreak = function ( ) {
     var self = this;
@@ -4454,10 +4456,10 @@ proto.toggleBlockquote = function () {
 
 proto.toggleAside = function () {
     var self = this;
-    var asideAttrbutes = self._config.tagAttributes.aside;
+    var asideAttributes = self._config.tagAttributes.aside;
     var addCallback = function(){ return self.createAside(); };
     var removeCallback = function(){ return self.removeAsides(); };
-    return toggleTag( self, 'BLOCKQUOTE', asideAttrbutes, addCallback, removeCallback );
+    return toggleTag( self, 'BLOCKQUOTE', asideAttributes, addCallback, removeCallback );
 };
 
 proto.setHeading = function ( level ) {
