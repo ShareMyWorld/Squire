@@ -2090,23 +2090,24 @@ proto.insertPageBreak = function ( ) {
     var pageBreakAttrs = tagAttributes[ 'pageBreak' ];
     var pageBreak = this.createElement( 'IMG', pageBreakAttrs );
 
+    var block = self.createDefaultBlock( [ pageBreak ] );
+
     self._recordUndoState( range );
     self._getRangeAndRemoveBookmark( range );
 
-    if (range.collapsed && isDefaultBlockElement( self, range.startContainer ) ) {
-        insertNodeInRange( range, pageBreak );
-        var defaultBlock = self.createDefaultBlock( [ ] );
-        pageBreak.parentNode.parentNode.appendChild( defaultBlock );
-
+    if ( range.collapsed ) {
+        var endP = getNearest( range.endContainer, 'P' ); //range.endContainer.parentNode;
+        endP.parentNode.insertBefore( block, endP.nextSibling );
+        endP.parentNode.insertBefore( self.createDefaultBlock( [ ] ), block.nextSibling );
     } else {
+        //Insert before
         var parent = range.startContainer.parentNode;
-        var block = self.createDefaultBlock( [ pageBreak ] );
         parent.parentNode.insertBefore( block, parent );
     } 
     
-    pageBreak.parentNode.setAttribute('contenteditable', 'false');
+    block.setAttribute('contenteditable', 'false');
     // To allow undo recording we need to tell the editor that we've changed the doc
-    self._docWasChanged();
+    /*self._docWasChanged();
     // Select the new page break
     var pageBreakRange = self._doc.createRange();
     pageBreakRange.selectNode( pageBreak );
@@ -2114,8 +2115,8 @@ proto.insertPageBreak = function ( ) {
     // Text written after page break does not trigger undo state change, we need to add the page break to undo stack manually
     self._recordUndoState( pageBreakRange );
     self._getRangeAndRemoveBookmark( pageBreakRange );
-
-    range.setStart( pageBreakRange.endContainer.nextSibling, 0);
+*/
+    range.setStart( block.nextSibling, 0);
     self.focus();
     self.setSelection( range );
     self._updatePath( range );

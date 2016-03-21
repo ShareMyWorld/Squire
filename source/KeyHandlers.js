@@ -276,15 +276,17 @@ var keyHandlers = {
                 previous = current && getPreviousBlock( current );
             // Must not be at the very beginning of the text area.
             if ( previous ) {
+                if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
+                    detach( previous.parentNode );
+                    return;
+                }
+
                 // If not editable, just delete whole block.
                 if ( !previous.isContentEditable ) {
                     detach( previous );
                     return;
                 }
-                if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
-                    detach( previous.parentNode );
-                    return;
-                }
+                
                 
                 // Otherwise merge.
                 mergeWithBlock( previous, current, range );
