@@ -2091,6 +2091,7 @@ proto.insertPageBreak = function ( ) {
     var pageBreak = this.createElement( 'IMG', pageBreakAttrs );
 
     var block = self.createDefaultBlock( [ pageBreak ] );
+    block.setAttribute( 'class', pageBreakAttrs + '-container' );
 
     self._recordUndoState( range );
     self._getRangeAndRemoveBookmark( range );
@@ -2155,8 +2156,6 @@ var toggleTag = function( self, tag, attributes, addCallback, removeCallback ) {
     }
 };
 
-
-
 var changeFormatExpandToWord = function ( self, add, remove, range ) {
     if ( !range ) { range = self.getSelection(); }
     var _startNode = range.startContainer, _endNode = range.endContainer;
@@ -2186,7 +2185,6 @@ var isSmwInline = function ( self, tag ) {
 
 // Tags must be in SMW form
 var isAllowedIn = function ( self, tag, containerTag ) {
-
     var allowedClass = self._allowedContent[ containerTag ];
     if ( allowedClass === 'none' ) {
         return false;
@@ -2195,7 +2193,6 @@ var isAllowedIn = function ( self, tag, containerTag ) {
     } else if ( allowedClass === 'all' ) {
         return true;
     }
-    
 };
 
 var getSmwTagType = function ( smwTagTypes, tag ) {
@@ -2328,7 +2325,10 @@ proto.getFormattingInfoFromCurrentSelection = function () {
             var smwTag = translateTag( self, tag );
             var smwActiveFormat = translateTag( self, activeFormat );
             info.enabled = info.enabled || activeFormat === tag;
-            info.allowed = (info.allowed && isAllowedIn( self, smwTag, smwActiveFormat )) || info.enabled;
+            info.allowed = 
+                (info.allowed && 
+                 ( isAllowedIn( self, smwTag, smwActiveFormat ) || isAllowedIn( self, smwActiveFormat, smwTag ) )
+                ) || info.enabled;
             return info;
         }, {'allowed': true, 'enabled': false});
         return infos;
