@@ -1454,6 +1454,10 @@ var keyHandlers = {
                     return;
                 }
                 
+                if ( current.parentNode.nodeName !== 'BLOCKQUOTE' && previous.parentNode.nodeName === 'BLOCKQUOTE' ) {
+                    //ignore
+                    return;
+                }
                 
                 // Otherwise merge.
                 mergeWithBlock( previous, current, range );
@@ -1515,6 +1519,12 @@ var keyHandlers = {
                     detach( next );
                     return;
                 }
+
+                if ( current.parentNode.nodeName === 'BLOCKQUOTE' && next.parentNode.nodeName !== 'BLOCKQUOTE' ) {
+                    //ignore
+                    return;
+                }
+                
 
                 // Otherwise merge.
                 mergeWithBlock( current, next, range );
