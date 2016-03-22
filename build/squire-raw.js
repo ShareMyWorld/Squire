@@ -4312,7 +4312,7 @@ proto.insertPageBreak = function ( ) {
     var pageBreak = this.createElement( 'IMG', pageBreakAttrs );
 
     var block = self.createDefaultBlock( [ pageBreak ] );
-    block.setAttribute( 'class', pageBreakAttrs + '-container' );
+    block.setAttribute( 'class', pageBreakAttrs.class + '-container' );
 
     self._recordUndoState( range );
     self._getRangeAndRemoveBookmark( range );
@@ -4440,8 +4440,10 @@ proto.createBlockQuote = command( 'modifyBlocks', createBlockQuote );
 proto.createAside = command( 'modifyBlocks', createAside );
 
 proto.addDefaultBlock = function () {
-    this._body.appendChild( this.createDefaultBlock( [ ] ) );
-    //TODO: range på nya default
+    var defaultBlock = this.createDefaultBlock( [ ] );
+    this._body.appendChild( defaultBlock );
+    var range = this._createRange( defaultBlock, 0 );
+    this.setSelection( range );
     return this.focus();
 };
 
