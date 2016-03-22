@@ -1454,7 +1454,9 @@ var keyHandlers = {
                     return;
                 }
                 
-                if ( current.parentNode.nodeName !== 'BLOCKQUOTE' && previous.parentNode.nodeName === 'BLOCKQUOTE' ) {
+                if ( previous.parentNode.nodeName === 'BLOCKQUOTE' && 
+                     ( current.parentNode.nodeName !== 'BLOCKQUOTE' ||
+                       current.parentNode.className !== previous.parentNode.className ) ) {
                     //ignore
                     return;
                 }
@@ -1520,7 +1522,9 @@ var keyHandlers = {
                     return;
                 }
 
-                if ( current.parentNode.nodeName === 'BLOCKQUOTE' && next.parentNode.nodeName !== 'BLOCKQUOTE' ) {
+                if ( current.parentNode.nodeName === 'BLOCKQUOTE' && 
+                     ( next.parentNode.nodeName !== 'BLOCKQUOTE' ||
+                       current.parentNode.className !== next.parentNode.className ) ) {
                     //ignore
                     return;
                 }
