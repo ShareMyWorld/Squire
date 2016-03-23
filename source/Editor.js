@@ -1943,7 +1943,8 @@ var createTranslationMap = function ( ta ) {
         'H3' : 'heading',
         'H4' : 'heading',
         'OL' : 'list',
-        'A' : 'link'
+        'A' : 'link',
+        'MYWO-CONTENT-WIDGET' : 'smwWidget'
     };
     translations[blockquote] = 'blockquote';
     translations[aside] = 'aside';
