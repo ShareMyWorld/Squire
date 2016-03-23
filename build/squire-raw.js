@@ -97,7 +97,13 @@ TreeWalker.prototype.nextNode = function () {
                 break;
             }
             node = current.nextSibling;
-            if ( !node ) { current = current.parentNode; }
+            if ( node && node.nodeType === ELEMENT_NODE && node.getAttribute('contenteditable') === "false" ) {
+                //Don't traverse further
+                this.currentNode = node;
+                return node;
+            } else if ( !node ) { 
+                current = current.parentNode; 
+            }
         }
         if ( !node ) {
             return null;
@@ -120,9 +126,14 @@ TreeWalker.prototype.previousNode = function () {
     while ( true ) {
         if ( current === root ) {
             return null;
-        }
+        } 
         node = current.previousSibling;
-        if ( node ) {
+        if ( node && node.nodeType === ELEMENT_NODE && node.getAttribute('contenteditable') === "false" ) {
+            //Don't traverse further
+            this.currentNode = node;
+            return node;
+
+        } else if ( node ) {
             while ( current = node.lastChild ) {
                 node = current;
             }
