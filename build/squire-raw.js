@@ -4528,7 +4528,7 @@ proto.setListFormatting = function ( listType ) {
 };
 
 proto.setWidget = function( widgetHtml ) {
-    this.setHTML(widgetHtml);
+    this.insertHTML(widgetHtml);
     return this;
 }
 
