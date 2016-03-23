@@ -1800,7 +1800,7 @@ var stylesRewriters = {
         if ( img.className === 'page-break' ) {
             return img;
         } else {
-            return img;
+            return;
         }
     },
     A: function ( node, parent ) {
