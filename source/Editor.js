@@ -2291,6 +2291,11 @@ proto.setListFormatting = function ( listType ) {
     return this.focus();
 };
 
+proto.setWidget = function( widgetHtml ) {
+    this.setHTML(widgetHtml);
+    return this;
+}
+
 var getListType = function ( self, list ) {
     switch ( list ) {
         case 'UL.' + self._config.tagAttributes.noLabels.class:
