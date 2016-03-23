@@ -374,7 +374,7 @@ var cleanupBRs = function ( root ) {
         if ( !brBreaksLine[l] ) {
             detach( br );
         } else if ( !isInline( parent ) ) {
-            fixContainer( parent );
+            //fixContainer( parent );
         }
     }
 };
