@@ -131,7 +131,7 @@ var cleanTree = function cleanTree ( node ) {
         rewriter = stylesRewriters[ nodeName ];
         if ( nodeType === ELEMENT_NODE ) {
             //SMW - remove style
-            child.style = '';
+            child.setAttribute('style', '');
             childLength = child.childNodes.length;
             if ( rewriter ) {
                 var _child = rewriter( child, node );
