@@ -104,6 +104,8 @@ function Squire ( doc, config ) {
 
     this._validTags = Object.keys( this._translateToSmw );
 
+    this._onPasteErrorCallback = config.onPasteErrorCallback;
+
     // Fix IE<10's buggy implementation of Text#splitText.
     // If the split is at the end of the node, it doesn't insert the newly split
     // node into the document, and sets its value to undefined rather than ''.
@@ -2098,7 +2100,7 @@ proto.insertPageBreak = function ( ) {
     self._getRangeAndRemoveBookmark( range );
 
     if ( range.collapsed ) {
-        var endP = getNearest( range.endContainer, 'P' ); //range.endContainer.parentNode;
+        var endP = getNearest( range.endContainer, 'P' );
         endP.parentNode.insertBefore( block, endP.nextSibling );
         endP.parentNode.insertBefore( self.createDefaultBlock( [ ] ), block.nextSibling );
     } else {
@@ -2108,16 +2110,7 @@ proto.insertPageBreak = function ( ) {
     } 
     
     block.setAttribute('contenteditable', 'false');
-    // To allow undo recording we need to tell the editor that we've changed the doc
-    /*self._docWasChanged();
-    // Select the new page break
-    var pageBreakRange = self._doc.createRange();
-    pageBreakRange.selectNode( pageBreak );
-    pageBreakRange.collapse( false );
-    // Text written after page break does not trigger undo state change, we need to add the page break to undo stack manually
-    self._recordUndoState( pageBreakRange );
-    self._getRangeAndRemoveBookmark( pageBreakRange );
-*/
+
     range.setStart( block.nextSibling, 0);
     self.focus();
     self.setSelection( range );
@@ -2170,10 +2163,14 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
         self.changeFormat( add, remove, range );
         
         //Reset cursor
-        range.setStart( _startNode, _startOffset );
-        range.setEnd( _startNode, _startOffset );
-        range.collapse( true );
-        self.setSelection( range );
+        try {
+            range.setStart( _startNode, _startOffset );
+            range.setEnd( _startNode, _startOffset );
+            range.collapse( true );
+            self.setSelection( range );
+        } catch(e) {
+            console.error('Squire.changeFormatExpandToWord()', e);
+        }
     } else {
         self.changeFormat( add, remove, range );
     }

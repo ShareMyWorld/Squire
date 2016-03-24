@@ -72,43 +72,19 @@ var replaceWithTag = function ( tag ) {
 
 var stylesRewriters = {
     SPAN: function ( span, parent ) {
-        /*var style = span.style,
-            doc = span.ownerDocument,
-            attr, converter, css, newTreeBottom, newTreeTop, el;
-        span.style = '';
-
-        for ( attr in spanToSemantic ) {
-            converter = spanToSemantic[ attr ];
-            css = style[ attr ];
-            if ( css && converter.regexp.test( css ) ) {
-                el = converter.replace( doc, css );
-                if ( newTreeBottom ) {
-                    newTreeBottom.appendChild( el );
-                }
-                newTreeBottom = el;
-                if ( !newTreeTop ) {
-                    newTreeTop = el;
-                }
-            }
-        }
-
-        if ( newTreeTop ) {
-            newTreeBottom.appendChild( empty( span ) );
-            parent.replaceChild( newTreeTop, span );
-        } */
         var text = doc.createTextNode( span.textContent );
         parent.replaceChild( text, span );
         return text;
-        //return newTreeBottom || span;
     },
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
-    STRIKE: replaceWithTag( 'S' ),
     IMG: function ( img, parent ) {
         //TODO: this class is defined in config, plx get from there
         if ( img.className === 'page-break' ) {
             return img;
         } else {
+            //TODO: error
+            //TODO: returnerar text med <p class="smw-missing-image">(MISSING IMAGE: src <br> alt <br> title)</p> 
             return;
         }
     },
@@ -118,72 +94,11 @@ var stylesRewriters = {
         });
         node.innerHTML = text;
         return node;
-    },
-    FONT: function ( node, parent ) {
-        var face = node.face,
-            size = node.size,
-            colour = node.color,
-            doc = node.ownerDocument,
-            fontSpan, sizeSpan, colourSpan,
-            newTreeBottom, newTreeTop;
-        if ( face ) {
-            fontSpan = createElement( doc, 'SPAN', {
-                'class': 'font',
-                style: 'font-family:' + face
-            });
-            newTreeTop = fontSpan;
-            newTreeBottom = fontSpan;
-        }
-        if ( size ) {
-            sizeSpan = createElement( doc, 'SPAN', {
-                'class': 'size',
-                style: 'font-size:' + fontSizes[ size ] + 'px'
-            });
-            if ( !newTreeTop ) {
-                newTreeTop = sizeSpan;
-            }
-            if ( newTreeBottom ) {
-                newTreeBottom.appendChild( sizeSpan );
-            }
-            newTreeBottom = sizeSpan;
-        }
-        if ( colour && /^#?([\dA-F]{3}){1,2}$/i.test( colour ) ) {
-            if ( colour.charAt( 0 ) !== '#' ) {
-                colour = '#' + colour;
-            }
-            colourSpan = createElement( doc, 'SPAN', {
-                'class': 'colour',
-                style: 'color:' + colour
-            });
-            if ( !newTreeTop ) {
-                newTreeTop = colourSpan;
-            }
-            if ( newTreeBottom ) {
-                newTreeBottom.appendChild( colourSpan );
-            }
-            newTreeBottom = colourSpan;
-        }
-        if ( !newTreeTop ) {
-            newTreeTop = newTreeBottom = createElement( doc, 'SPAN' );
-        }
-        parent.replaceChild( newTreeTop, node );
-        newTreeBottom.appendChild( empty( node ) );
-        return newTreeBottom;
-    },
-    TT: function ( node, parent ) {
-        var el = createElement( node.ownerDocument, 'SPAN', {
-            'class': 'font',
-            style: 'font-family:menlo,consolas,"courier new",monospace'
-        });
-        parent.replaceChild( el, node );
-        el.appendChild( empty( node ) );
-        return el;
     }
 };
 
 var allowedBlock = /^(?:A(?:DDRESS|RTICLE|SIDE|UDIO)|BLOCKQUOTE|CAPTION|D(?:[DLT]|IV)|F(?:IGURE|IGCAPTION|OOTER)|H[1-6]|HEADER|L(?:ABEL|EGEND|I)|O(?:L|UTPUT)|P(?:RE)?|SECTION|T(?:ABLE|BODY|D|FOOT|H|HEAD|R)|UL)$/;
-var smwAllowedBlock = /^(BLOCKQUOTE|H[1-6]|LI|UL|OL|P|ASIDE|MYWO-CONTENT-WIDGET|SMW-CONTENT-WIDGET|DIV)$/;
-
+var smwAllowedBlock = /^(BLOCKQUOTE|H[1-4]|LI|UL|OL|P|ASIDE|MYWO-CONTENT-WIDGET|SMW-CONTENT-WIDGET)$/;
 
 var blacklist = /^(?:HEAD|META|STYLE)/;
 
@@ -240,6 +155,8 @@ var cleanTree = function cleanTree ( node ) {
             } else if ( !smwAllowedBlock.test( nodeName ) && !isInline( child ) ) {
                 i -= 1;
                 l += childLength - 1;
+                //TODO: try use text instead om tom ta bort annars text
+                //TODO: pasteError
                 node.replaceChild( empty( child ), child );
                 continue;
             }
