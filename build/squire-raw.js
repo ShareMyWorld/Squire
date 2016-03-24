@@ -2933,7 +2933,7 @@ proto.undo = function () {
         });
         this.fireEvent( 'input' );
     }
-    return this;
+    return this.focus();
 };
 
 proto.redo = function () {
@@ -2954,7 +2954,7 @@ proto.redo = function () {
         });
         this.fireEvent( 'input' );
     }
-    return this;
+    return this.focus();
 };
 
 // --- Inline formatting ---
@@ -4375,6 +4375,7 @@ proto.removeItalic = function () { return changeFormatExpandToWord( this, null, 
 
 
 var toggleInlineTag = function ( self, tag ) {
+    self._removeZWS();
     var range = self.getSelection();
     if ( self.hasFormat( tag, null, range ) ) {
         return changeFormatExpandToWord( self, null, { tag: tag }, range );
