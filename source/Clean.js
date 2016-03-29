@@ -89,7 +89,6 @@ var stylesRewriters = {
             var text = 'Missing image: ' + imageInfo.join('<br>');
             p.innerHTML = text;
             parent.replaceChild( p, img );
-            //TODO: returnerar text med <p class="smw-missing-image">(MISSING IMAGE: src <br> alt <br> title)</p> 
             return p;
         }
     },
@@ -98,6 +97,11 @@ var stylesRewriters = {
            return '&#'+i.charCodeAt(0)+';';
         });
         node.innerHTML = text;
+        return node;
+    },
+    LI: function ( node, parent ) {
+        node.setAttribute( 'class', '' );
+        node.innerHTML = node.textContent;
         return node;
     }
 };
@@ -158,8 +162,8 @@ var cleanTree = function cleanTree ( node ) {
                 l -= 1;
                 continue;
             } else if ( !smwAllowedBlock.test( nodeName ) && !isInline( child ) ) {
-                i -= 1;
-                l += childLength - 1;
+                //i -= 1;
+                //l += childLength - 1;
                 var textContent = child.textContent || child.innerText;
                 node.replaceChild( doc.createTextNode( textContent ) , child );
                 //TODO: pasteError
