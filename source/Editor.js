@@ -1589,7 +1589,7 @@ proto.insertHTML = function ( html, isPaste ) {
         };
 
         addLinks( frag );
-        cleanTree( frag );
+        cleanTree( frag, this._onPasteErrorCallback );
         cleanupBRs( frag );
         removeEmptyInlines( frag );
         frag.normalize();

@@ -1769,7 +1769,7 @@ var stylesRewriters = {
     },
     STRONG: replaceWithTag( 'B' ),
     EM: replaceWithTag( 'I' ),
-    IMG: function ( img, parent ) {
+    IMG: function ( img, parent, errorCallback ) {
         //TODO: this class is defined in config, plx get from there
         if ( img.className === 'page-break' ) {
             return img;
@@ -1780,6 +1780,7 @@ var stylesRewriters = {
             var text = 'Missing image: ' + imageInfo.join('<br>');
             p.innerHTML = text;
             parent.replaceChild( p, img );
+            errorCallback( img );
             return p;
         }
     },
@@ -1813,7 +1814,7 @@ var walker = new TreeWalker( null, SHOW_TEXT|SHOW_ELEMENT, function () {
        and whitespace nodes.
     2. Convert inline tags into our preferred format.
 */
-var cleanTree = function cleanTree ( node ) {
+var cleanTree = function cleanTree ( node, errorCallback ) {
     var children = node.childNodes,
         nonInlineParent, i, l, child, nodeName, nodeType, rewriter, childLength,
         startsWithWS, endsWithWS, data, sibling;
@@ -1834,7 +1835,7 @@ var cleanTree = function cleanTree ( node ) {
             child.setAttribute('style', '');
             childLength = child.childNodes.length;
             if ( rewriter ) {
-                var _child = rewriter( child, node );
+                var _child = rewriter( child, node, errorCallback );
                 if ( _child ) {
                     child = _child;
                     if ( child.nodeType === TEXT_NODE )
@@ -3751,7 +3752,7 @@ proto.insertHTML = function ( html, isPaste ) {
         };
 
         addLinks( frag );
-        cleanTree( frag );
+        cleanTree( frag, this._onPasteErrorCallback );
         cleanupBRs( frag );
         removeEmptyInlines( frag );
         frag.normalize();
