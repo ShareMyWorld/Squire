@@ -1775,8 +1775,13 @@ var stylesRewriters = {
             return img;
         } else {
             //TODO: error
+            var p = createElement( doc, 'P', { 'class': 'smw-missing-image' });
+            var imageInfo = [ img.src, img.alt, img.title ].filter( function(e){ return e !== undefined || e !== ""; } );
+            var text = 'Missing image: ' + imageInfo.join('<br>');
+            p.innerHTML = text;
+            parent.replaceChild( p, img );
             //TODO: returnerar text med <p class="smw-missing-image">(MISSING IMAGE: src <br> alt <br> title)</p> 
-            return;
+            return p;
         }
     },
     A: function ( node, parent ) {
@@ -1846,9 +1851,9 @@ var cleanTree = function cleanTree ( node ) {
             } else if ( !smwAllowedBlock.test( nodeName ) && !isInline( child ) ) {
                 i -= 1;
                 l += childLength - 1;
-                //TODO: try use text instead om tom ta bort annars text
+                var textContent = child.textContent || child.innerText;
+                node.replaceChild( doc.createTextNode( textContent ) , child );
                 //TODO: pasteError
-                node.replaceChild( empty( child ), child );
                 continue;
             }
             if ( childLength ) {
