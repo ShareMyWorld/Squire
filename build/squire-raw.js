@@ -1774,7 +1774,6 @@ var stylesRewriters = {
         if ( img.className === 'page-break' ) {
             return img;
         } else {
-            //TODO: error
             var p = createElement( doc, 'P', { 'class': 'smw-missing-image' });
             var imageInfo = [ img.src, img.alt, img.title ].filter( function(e){ return e !== undefined || e !== ""; } );
             var text = 'Missing image: ' + imageInfo.join('<br>');
@@ -1860,7 +1859,9 @@ var cleanTree = function cleanTree ( node, errorCallback ) {
                 //l += childLength - 1;
                 var textContent = child.textContent || child.innerText;
                 node.replaceChild( doc.createTextNode( textContent ) , child );
-                //TODO: pasteError
+                if ( errorCallback ) {
+                    errorCallback( child );
+                }
                 continue;
             }
             if ( childLength ) {
