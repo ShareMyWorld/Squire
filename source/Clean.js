@@ -89,7 +89,9 @@ var stylesRewriters = {
             var text = 'Missing image: ' + imageInfo.join('<br>');
             p.innerHTML = text;
             parent.replaceChild( p, img );
-            errorCallback( img );
+            if ( errorCallback ) {
+                errorCallback( img );
+            }
             return p;
         }
     },

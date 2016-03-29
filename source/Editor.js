@@ -1589,7 +1589,8 @@ proto.insertHTML = function ( html, isPaste ) {
         };
 
         addLinks( frag );
-        cleanTree( frag, this._onPasteErrorCallback );
+        var errorCallback = isPaste ? this._onPasteErrorCallback : null;
+        cleanTree( frag, errorCallback );
         cleanupBRs( frag );
         removeEmptyInlines( frag );
         frag.normalize();

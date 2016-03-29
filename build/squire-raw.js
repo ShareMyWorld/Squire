@@ -1780,7 +1780,9 @@ var stylesRewriters = {
             var text = 'Missing image: ' + imageInfo.join('<br>');
             p.innerHTML = text;
             parent.replaceChild( p, img );
-            errorCallback( img );
+            if ( errorCallback ) {
+                errorCallback( img );
+            }
             return p;
         }
     },
@@ -3752,7 +3754,8 @@ proto.insertHTML = function ( html, isPaste ) {
         };
 
         addLinks( frag );
-        cleanTree( frag, this._onPasteErrorCallback );
+        var errorCallback = isPaste ? this._onPasteErrorCallback : null;
+        cleanTree( frag, errorCallback );
         cleanupBRs( frag );
         removeEmptyInlines( frag );
         frag.normalize();

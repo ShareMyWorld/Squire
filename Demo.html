@@ -163,6 +163,8 @@
          * Other marked types are considered as 'block'
          */
     var inlineMarkedTypes = ['em', 'strong', 'link', 'br'];
+
+    var onPasteErrorCallback = function(){};
     // Create Squire instance
     editor = new Squire( doc, {
         blockTag: 'p',
@@ -175,7 +177,8 @@
             noLabels: {'class': 'marked-no-list-labels'},
             pageBreak: {'class': 'page-break'},
             aside: {'class' : 'aside'},
-            smwParagraph: {'class': 'smw-paragraph'}
+            smwParagraph: {'class': 'smw-paragraph'},
+            onPasteErrorCallback: onPasteErrorCallback
         },
         allowedContentForMarkedTypes: allowedContentForMarkedTypes,
         inlineMarkedTypes: inlineMarkedTypes
