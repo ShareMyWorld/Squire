@@ -1451,9 +1451,18 @@ var keyHandlers = {
         else if ( rangeDoesStartAtBlockBoundary( range ) ) {
             event.preventDefault();
             var current = getStartBlockOfRange( range ),
-                previous = current && getPreviousBlock( current );
+                previous = current && getPreviousBlock( current ),
+                header;
             // Must not be at the very beginning of the text area.
             if ( previous ) {
+                if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
+                    replaceWith( header, current );
+                    range.selectNode( current );
+                    range.collapse( );
+                    self.setSelection( range );
+                    return;
+                }
+
                 if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
                     detach( previous.parentNode );
                     return;
@@ -1502,6 +1511,12 @@ var keyHandlers = {
                 // Break blockquote
                 else if ( getNearest( current, 'BLOCKQUOTE' ) ) {
                     return self.modifyBlocks( decreaseBlockQuoteLevel, range );
+                }
+                // Remove heading
+                else if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
+                    replaceWith( header, current );
+                    range.selectNode( current );
+                    range.collapse( );
                 }
                 self.setSelection( range );
                 self._updatePath( range, true );
