@@ -1506,8 +1506,6 @@ var keyHandlers = {
                 // Remove heading
                 else if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
                     detach( header );
-                    self._ensureBottomLine();
-                    return self;
                 }
                 self.setSelection( range );
                 self._updatePath( range, true );
