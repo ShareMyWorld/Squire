@@ -278,10 +278,8 @@ var keyHandlers = {
             // Must not be at the very beginning of the text area.
             if ( previous ) {
                 if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
-                    replaceWith( header, current );
-                    range.selectNode( current );
-                    range.collapse( );
-                    self.setSelection( range );
+                    detach( header )
+                    self._ensureBottomLine();
                     return;
                 }
 
@@ -336,9 +334,9 @@ var keyHandlers = {
                 }
                 // Remove heading
                 else if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
-                    replaceWith( header, current );
-                    range.selectNode( current );
-                    range.collapse( );
+                    detach( header );
+                    self._ensureBottomLine();
+                    return self;
                 }
                 self.setSelection( range );
                 self._updatePath( range, true );
