@@ -278,26 +278,19 @@ var keyHandlers = {
             // Must not be at the very beginning of the text area.
             if ( previous ) {
                 if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
-                    detach( header )
-                    self._ensureBottomLine();
-                    return;
-                }
-
-                if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
+                    replaceWith( header, current );
+                } else if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
                     detach( previous.parentNode );
                     return;
-                }
-
-                // If not editable, just delete whole block.
-                if ( !previous.isContentEditable ) {
+                } else if ( !previous.isContentEditable ) {
+                    // If not editable, just delete whole block.
                     detach( previous );
                     return;
                 }
                 var previousBQ = getNearest( previous, 'BLOCKQUOTE' );
                 var currentBQ = getNearest( current, 'BLOCKQUOTE' );
-                if ( !currentBQ && 
-                     ( previousBQ ||
-                      ( previousBQ && previousBQ.className !== currentBQ.className ) ) ) {
+                if ( (currentBQ && previousBQ && previousBQ.className !== currentBQ.className) ||
+                     (!currentBQ && previousBQ) ) {
                     if ( current.textContent === '' ) {
                         detach( current );
                         self._ensureBottomLine();
