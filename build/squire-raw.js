@@ -4401,11 +4401,7 @@ proto.createBlockQuote = command( 'modifyBlocks', createBlockQuote );
 proto.createAside = command( 'modifyBlocks', createAside );
 
 proto.addDefaultBlock = function () {
-    var defaultBlock = this.createDefaultBlock( [ ] );
-    this._body.appendChild( defaultBlock );
-    var range = this._createRange( defaultBlock, 0 );
-    this.setSelection( range );
-    return this.focus();
+    this._ensureBottomLine();
 };
 
 //  ================ API specifics  ===========================
