@@ -1464,10 +1464,15 @@ var keyHandlers = {
                     detach( previous );
                     return;
                 }
-                
-                if ( previous.parentNode.nodeName === 'BLOCKQUOTE' && 
-                     ( current.parentNode.nodeName !== 'BLOCKQUOTE' ||
-                       current.parentNode.className !== previous.parentNode.className ) ) {
+                var previousBQ = getNearest( previous, 'BLOCKQUOTE' );
+                var currentBQ = getNearest( current, 'BLOCKQUOTE' );
+                if ( !currentBQ && 
+                     ( previousBQ ||
+                      ( previousBQ && previousBQ.className !== currentBQ.className ) ) ) {
+                    if ( current.textContent === '' ) {
+                        detach( current );
+                        self._ensureBottomLine();
+                    }
                     //ignore
                     return;
                 }
@@ -1533,9 +1538,16 @@ var keyHandlers = {
                     return;
                 }
 
-                if ( current.parentNode.nodeName === 'BLOCKQUOTE' && 
-                     ( next.parentNode.nodeName !== 'BLOCKQUOTE' ||
-                       current.parentNode.className !== next.parentNode.className ) ) {
+                var nextBQ = getNearest( next, 'BLOCKQUOTE' );
+                var currentBQ = getNearest( current, 'BLOCKQUOTE' );
+
+                if ( currentBQ && 
+                     ( !nextBQ ||
+                       ( nextBQ && currentBQ.className !== nextBQ.className ) ) ) {
+                    if ( current.textContent === '' ) {
+                        detach( current );
+                        self._ensureBottomLine();
+                    }
                     //ignore
                     return;
                 }
