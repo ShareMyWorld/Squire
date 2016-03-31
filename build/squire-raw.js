@@ -1818,7 +1818,7 @@ var stylesRewriters = {
     },
     LI: function ( node, parent ) {
         node.setAttribute( 'class', '' );
-        node.innerHTML = node.textContent;
+        node.firstChild.innerHTML = node.textContent;
         return node;
     }
 };
