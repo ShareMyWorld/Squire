@@ -1452,11 +1452,14 @@ var keyHandlers = {
             event.preventDefault();
             var current = getStartBlockOfRange( range ),
                 previous = current && getPreviousBlock( current ),
-                header;
+                header, selectedBlock;
             // Must not be at the very beginning of the text area.
             if ( previous ) {
                 if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
+                    var nextBlock = getNextBlock( current );
                     replaceWith( header, current );
+                    selectedBlock = nextBlock === null ? current : nextBlock;
+                    
                 } else if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
                     detach( previous.parentNode );
                     return;
@@ -1488,6 +1491,10 @@ var keyHandlers = {
                 }
                 if ( current && ( current = current.nextSibling ) ) {
                     mergeContainers( current );
+                }
+                if ( selectedBlock ) {
+                    range.selectNode( selectedBlock );
+                    range.collapse( true );
                 }
                 self.setSelection( range );
             }
