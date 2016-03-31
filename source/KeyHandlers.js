@@ -318,6 +318,7 @@ var keyHandlers = {
                     range.selectNode( selectedBlock );
                     range.collapse( true );
                 }
+                
                 self.setSelection( range );
             }
             // If at very beginning of text area, allow backspace

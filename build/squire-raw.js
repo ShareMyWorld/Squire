@@ -1496,6 +1496,7 @@ var keyHandlers = {
                     range.selectNode( selectedBlock );
                     range.collapse( true );
                 }
+                
                 self.setSelection( range );
             }
             // If at very beginning of text area, allow backspace
@@ -3440,7 +3441,6 @@ var makeList = function ( self, frag, type, variant ) {
         } else {
             node = node.parentNode.parentNode;
             tag = node.nodeName;
-            //TODO: change to hasTagAttributes
             if ( (tag !== type || node.getAttribute('class') !== listAttrs.class) && ( /^[OU]L$/.test( tag ) ) ) {
                 replaceWith( node,
                     self.createElement( type, listAttrs, [ empty( node ) ] )
@@ -4146,7 +4146,6 @@ var createTranslationMap = function ( ta ) {
     return translations;
 };
 
-
 var createHeader = function ( level ) {
     var tag = 'H' + level;
     return function( frag ) { return createOrReplaceHeader( this, frag, tag ) };
@@ -4555,6 +4554,9 @@ var translateAndAggregateTagInfo = function ( self, tags, tagInfos ) {
                 break;
         }
         acc[ smwTag ] = info;
+
+        //disable br (for now)
+        acc[ 'br' ] = {'allowed': false, 'enabled': false};
         return acc; 
     }, {});
 };
