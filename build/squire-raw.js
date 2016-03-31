@@ -1817,9 +1817,16 @@ var stylesRewriters = {
         return node;
     },
     LI: function ( node, parent ) {
-        node.setAttribute( 'class', '' );
-        node.firstChild.innerHTML = node.textContent;
-        return node;
+        var li;
+        if ( node.firstChild.nodeName !== 'P' ) {
+            var p = createElement( doc, 'P', {}, [ doc.createTextNode(node.textContent) ] );
+            li = createElement( doc, 'LI', {}, [p] );
+        } else {
+            li = node;
+            node.firstChild.innerHTML = node.textContent;
+        }
+        parent.replaceChild( li, node );
+        return li;
     }
 };
 
