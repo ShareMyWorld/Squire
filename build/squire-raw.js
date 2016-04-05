@@ -4143,7 +4143,8 @@ var createTranslationMap = function ( ta ) {
         'H4' : 'heading',
         'OL' : 'list',
         'A' : 'link',
-        'MYWO-CONTENT-WIDGET' : 'smwWidget'
+        'MYWO-CONTENT-WIDGET' : 'smwWidget',
+        'BR' : 'br'
     };
     translations[blockquote] = 'blockquote';
     translations[aside] = 'aside';
@@ -4581,8 +4582,6 @@ var translateAndAggregateTagInfo = function ( self, tags, tagInfos ) {
         }
         acc[ smwTag ] = info;
 
-        //disable br (for now)
-        acc[ 'br' ] = {'allowed': false, 'enabled': false};
         return acc; 
     }, {});
 };
