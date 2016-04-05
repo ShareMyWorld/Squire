@@ -2315,7 +2315,7 @@ var getListType = function ( self, list ) {
         case 'UL.' + self._config.tagAttributes.noLabels.class:
             return 'noLabels';
             break;
-        case 'UL':
+        case 'UL.' + self._config.tagAttributes.ul.class:
             return 'bulleted'
             break;
         case 'OL':
