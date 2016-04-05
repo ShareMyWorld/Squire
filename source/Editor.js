@@ -2281,6 +2281,30 @@ proto.setHeading = function ( level ) {
     //return this.focus();
 };
 
+proto.setLink = function ( url, title ) {
+    var range = this.getSelection();
+    if ( range.collapsed ) {
+        range.expand( "word" );
+    } else {
+        var ancestor = range.commonAncestorContainer;//.querySelector('A');
+        if ( ancestor.nodeType === ELEMENT_NODE ) {
+            var link = ancestor.querySelector( 'A' );
+            if ( link !== null ) {
+                range.selectNode( link );
+            }
+        }
+         
+    }
+
+    this.changeFormat({
+        tag: 'A',
+        attributes: {'href': url, 'title': title}
+    }, {
+        tag: 'A'
+    }, range );
+    return this.focus();
+};
+
 proto.canUndo = function () {
     return this._canUndo;
 };
