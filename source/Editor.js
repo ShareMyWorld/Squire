@@ -2084,6 +2084,25 @@ proto.removeAsides = function ( ) {
     return this.focus();
 };
 
+proto.insertSoftBreak = function ( ) {
+    var self = this;
+
+    var range = self.getSelection();
+    var br = self.createElement( 'BR' );
+
+    self._recordUndoState( range );
+    self._getRangeAndRemoveBookmark( range );
+
+    insertTreeFragmentIntoRange( range, br );
+    if ( !canObserveMutations ) {
+        self._docWasChanged();
+    }
+    range.collapse( false );
+    self.setSelection( range );
+    self._updatePath( range, true );
+    return self.focus();
+};
+
 proto.insertPageBreak = function ( ) {
     var self = this;
 
