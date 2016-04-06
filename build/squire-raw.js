@@ -4538,7 +4538,7 @@ proto.setLink = function ( url, title ) {
         range.expand( "word" );
     } else {
         var links = getLinksInRange( range );
-        if ( links !== null ) {
+        if ( links !== null && links.length > 0 ) {
             range.selectNode( links[0] );
         }
     }
