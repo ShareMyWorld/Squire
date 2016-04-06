@@ -2280,7 +2280,7 @@ var anyChildHasFormat = function ( tag, attributes, range ) {
 
     // Otherwise, check each text node at least partially contained within
     // the selection and make sure all of them have the format we want.
-    walker = new TreeWalker( root, SHOW_TEXT, function ( node ) {
+    walker = new TreeWalker( root, TEXT_NODE, function ( node ) {
         return isNodeContainedInRange( range, node, true );
     }, false );
 

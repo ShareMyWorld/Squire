@@ -4439,7 +4439,7 @@ proto.addDefaultBlock = function () {
     this._ensureBottomLine();
 };
 
-var hasAnyChildrenFormat = function ( tag, attributes, range ) {
+var anyChildHasFormat = function ( tag, attributes, range ) {
     // 1. Normalise the arguments and get selection
     tag = tag.toUpperCase();
     if ( !attributes ) { attributes = {}; }
@@ -4477,7 +4477,7 @@ var hasAnyChildrenFormat = function ( tag, attributes, range ) {
 
     // Otherwise, check each text node at least partially contained within
     // the selection and make sure all of them have the format we want.
-    walker = new TreeWalker( root, SHOW_TEXT, function ( node ) {
+    walker = new TreeWalker( root, TEXT_NODE, function ( node ) {
         return isNodeContainedInRange( range, node, true );
     }, false );
 
@@ -4615,7 +4615,7 @@ proto.getFormattingInfoFromCurrentSelection = function () {
         var split =  _tag.split('.');
         var tag = split[0], tagClass = split[1];
         var attributes = tagClass === undefined ? self._config.tagAttributes[ tag ] : {'class': tagClass};
-        if ( self.hasFormat( tag, attributes, selection ) ) {
+        if ( anyChildHasFormat( tag, attributes, selection ) ) {
             formatsAcc.push( _tag );
         }
         return formatsAcc;
