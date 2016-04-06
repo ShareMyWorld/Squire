@@ -2438,10 +2438,10 @@ proto.getFormattingInfoFromCurrentSelection = function () {
             // SPECIAL CASE LINK
             if ( smwTag === 'link' ) {
                 var links = getLinksInRange( selection );
-                if ( links.length > 1 ) {
+                if ( links && links.length > 1 ) {
                     info.allowed = false;
                     info.enabled = false;
-                } else if ( links.length === 1 ) {
+                } else if ( links && links.length === 1 ) {
                     info.href = links[0].href;
                     info.tilte = links[0].title;
                 }
@@ -2451,10 +2451,6 @@ proto.getFormattingInfoFromCurrentSelection = function () {
         }, {'allowed': true, 'enabled': false});
         return infos;
     }, {});
-
-    // if more than one link -> allowed & enabled = false
-    // if 0 links -> same as in tagInformations
-    // if just one link, extract href and title
 
     return translateAndAggregateTagInfo( self, tags, tagInformations );
 
@@ -2486,6 +2482,9 @@ var translateAndAggregateTagInfo = function ( self, tags, tagInfos ) {
                 break;
         }
         acc[ smwTag ] = info;
+
+        //never enable br
+        if ( smwTag === 'br' ) info.enabled = false; 
 
         return acc; 
     }, {});
