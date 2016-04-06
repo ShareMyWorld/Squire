@@ -772,13 +772,15 @@ proto.hasFormat = function ( tag, attributes, range ) {
     var seenNode = false;
     while ( node = walker.nextNode() ) {
         if ( !getNearest( node, tag, attributes ) ) {
-            return false;
+            return true;
         }
         seenNode = true;
     }
 
     return seenNode;
 };
+
+
 
 // Extracts the font-family and font-size (if any) of the element
 // holding the cursor. If there's a selection, returns an empty object.
@@ -2240,6 +2242,58 @@ proto.addDefaultBlock = function () {
     this._ensureBottomLine();
 };
 
+var anyChildHasFormat = function ( tag, attributes, range ) {
+    // 1. Normalise the arguments and get selection
+    tag = tag.toUpperCase();
+    if ( !attributes ) { attributes = {}; }
+    if ( !range && !( range = this.getSelection() ) ) {
+        return false;
+    }
+
+    // Sanitize range to prevent weird IE artifacts
+    if ( !range.collapsed &&
+            range.startContainer.nodeType === TEXT_NODE &&
+            range.startOffset === range.startContainer.length &&
+            range.startContainer.nextSibling ) {
+        range.setStartBefore( range.startContainer.nextSibling );
+    }
+    if ( !range.collapsed &&
+            range.endContainer.nodeType === TEXT_NODE &&
+            range.endOffset === 0 &&
+            range.endContainer.previousSibling ) {
+        range.setEndAfter( range.endContainer.previousSibling );
+    }
+
+    // If the common ancestor is inside the tag we require, we definitely
+    // have the format.
+    var root = range.commonAncestorContainer,
+        walker, node;
+    if ( getNearest( root, tag, attributes ) ) {
+        return true;
+    }
+
+    // If common ancestor is a text node and doesn't have the format, we
+    // definitely don't have it.
+    if ( root.nodeType === TEXT_NODE ) {
+        return false;
+    }
+
+    // Otherwise, check each text node at least partially contained within
+    // the selection and make sure all of them have the format we want.
+    walker = new TreeWalker( root, SHOW_TEXT, function ( node ) {
+        return isNodeContainedInRange( range, node, true );
+    }, false );
+
+    var seenNode = false;
+    while ( node = walker.nextNode() ) {
+        //Has any of the children the tag?
+        if ( getNearest( node, tag, attributes ) ) {
+            return true;
+        }
+    }
+    return seenNode;
+}
+
 //  ================ API specifics  ===========================
 proto.toggleStrong = function () {
     var tag = 'B';
@@ -2286,14 +2340,10 @@ proto.setLink = function ( url, title ) {
     if ( range.collapsed ) {
         range.expand( "word" );
     } else {
-        var ancestor = range.commonAncestorContainer;//.querySelector('A');
-        if ( ancestor.nodeType === ELEMENT_NODE ) {
-            var link = ancestor.querySelector( 'A' );
-            if ( link !== null ) {
-                range.selectNode( link );
-            }
+        var links = getLinksInRange( range );
+        if ( links !== null ) {
+            range.selectNode( links[0] );
         }
-         
     }
 
     this.changeFormat({
@@ -2303,6 +2353,15 @@ proto.setLink = function ( url, title ) {
         tag: 'A'
     }, range );
     return this.focus();
+};
+
+var getLinksInRange = function ( range ) {
+    var ancestor = range.commonAncestorContainer;
+    var links = null;
+    if ( ancestor.nodeType === ELEMENT_NODE ) {
+        links = ancestor.querySelectorAll( 'A' );
+    }
+    return links;
 };
 
 proto.canUndo = function () {
@@ -2359,7 +2418,7 @@ proto.getFormattingInfoFromCurrentSelection = function () {
         var split =  _tag.split('.');
         var tag = split[0], tagClass = split[1];
         var attributes = tagClass === undefined ? self._config.tagAttributes[ tag ] : {'class': tagClass};
-        if ( self.hasFormat( tag, attributes, selection ) ) {
+        if ( anyChildHasFormat( tag, attributes, selection ) ) {
             formatsAcc.push( _tag );
         }
         return formatsAcc;
@@ -2369,19 +2428,38 @@ proto.getFormattingInfoFromCurrentSelection = function () {
         infos[ tag ] = activeFormats.reduce( function( info, activeFormat ) {
             var smwTag = translateTag( self, tag );
             var smwActiveFormat = translateTag( self, activeFormat );
+
             info.enabled = info.enabled || activeFormat === tag;
             info.allowed = 
                 (info.allowed && 
                  ( isAllowedIn( self, smwTag, smwActiveFormat ) || isAllowedIn( self, smwActiveFormat, smwTag ) )
                 ) || info.enabled;
+            
+            // SPECIAL CASE LINK
+            if ( smwTag === 'link' ) {
+                var links = getLinksInRange( selection );
+                if ( links.length > 1 ) {
+                    info.allowed = false;
+                    info.enabled = false;
+                } else if ( links.length === 1 ) {
+                    info.href = links[0].href;
+                    info.tilte = links[0].title;
+                }
+            }
+
             return info;
         }, {'allowed': true, 'enabled': false});
         return infos;
     }, {});
 
+    // if more than one link -> allowed & enabled = false
+    // if 0 links -> same as in tagInformations
+    // if just one link, extract href and title
+
     return translateAndAggregateTagInfo( self, tags, tagInformations );
 
 };
+
 
 var translateAndAggregateTagInfo = function ( self, tags, tagInfos ) {
     return tags.reduce( function ( acc, tag ) {
