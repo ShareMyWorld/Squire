@@ -2969,7 +2969,7 @@ proto.hasFormat = function ( tag, attributes, range ) {
     var seenNode = false;
     while ( node = walker.nextNode() ) {
         if ( !getNearest( node, tag, attributes ) ) {
-            return true;
+            return false;
         }
         seenNode = true;
     }
@@ -4167,21 +4167,6 @@ var makeUnlabeledList = function ( frag ) {
 };
 
 var createBlockQuote = function ( frag ) {
-    var textFrag = document.createDocumentFragment();
-    var currentNode;
-    
-    // Unwrap p contents
-    
-    for(var pTagIndex = 0; pTagIndex < frag.childNodes.length; pTagIndex++){
-        
-        currentNode = frag.childNodes[pTagIndex];
-        
-        for(var childIndex = 0; childIndex < currentNode.childNodes.length; childIndex++){
-            textFrag.appendChild(currentNode.childNodes[childIndex].cloneNode(true));
-        }
-        
-    }
-    
     return createOnce( this, frag, 'BLOCKQUOTE', 'blockquote' );    
 };
 
@@ -4237,22 +4222,8 @@ var removeAllBlockquotes = function ( frag ) {
     var paraWrapper = document.createElement('p');    
     var blockquotes = frag.querySelectorAll( 'blockquote' );
     var attributes = this._config.tagAttributes.blockquote;
-
-    
     removeAllBlockquotesHelper( blockquotes, attributes.class);
-    
-    // Unwrap blockqoute contents
-    
-    for(var i = 0; i < frag.childNodes.length; i++){        
-        paraWrapper.appendChild(frag.childNodes[i].cloneNode(true));
-    }    
-    
-    // And wrap the result in a paragraph
-    docFragment.appendChild(paraWrapper);
-    
-    frag = null;
-    
-    return docFragment;
+    return frag;
 };
 
 var removeAllAsides = function ( frag ) {
