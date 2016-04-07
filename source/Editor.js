@@ -2148,7 +2148,11 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
     var _startNode = range.startContainer, _endNode = range.endContainer;
     var _startOffset = range.startOffset, _endOffset = range.endOffset;
     //Check if collapsed and not on an empty row
-    if ( range.collapsed && _startOffset < _startNode.textContent.length && _endOffset < _startNode.textContent.length ) {
+    var isAfterTag = _startNode.nodeType !== TEXT_NODE;
+    if ( range.collapsed && 
+        _startOffset < _startNode.textContent.length && 
+        _endOffset < _startNode.textContent.length && 
+        _startNode.nodeType === TEXT_NODE ) {
         
         range.expand( "word" );
         
