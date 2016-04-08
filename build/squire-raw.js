@@ -4532,6 +4532,12 @@ var getLinksInRange = function ( range ) {
     var links = null;
     if ( ancestor.nodeType === ELEMENT_NODE ) {
         links = ancestor.querySelectorAll( 'A' );
+    } else {
+        // Check wrapping node
+        var link = getNearest( ancestor, 'A' );
+        if ( link !== null ) {
+            links = [ link ];
+        }
     }
     return links;
 };

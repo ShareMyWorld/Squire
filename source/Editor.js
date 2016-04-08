@@ -2335,6 +2335,12 @@ var getLinksInRange = function ( range ) {
     var links = null;
     if ( ancestor.nodeType === ELEMENT_NODE ) {
         links = ancestor.querySelectorAll( 'A' );
+    } else {
+        // Check wrapping node
+        var link = getNearest( ancestor, 'A' );
+        if ( link !== null ) {
+            links = [ link ];
+        }
     }
     return links;
 };
@@ -2418,7 +2424,7 @@ proto.getFormattingInfoFromCurrentSelection = function () {
                     info.enabled = false;
                 } else if ( links && links.length === 1 ) {
                     info.href = links[0].href;
-                    info.tilte = links[0].title;
+                    info.title = links[0].title;
                 }
             }
 
