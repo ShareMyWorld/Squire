@@ -4621,7 +4621,7 @@ proto.getFormattingInfoFromCurrentSelection = function () {
                     info.enabled = false;
                 } else if ( links && links.length === 1 ) {
                     info.href = links[0].href;
-                    info.tilte = links[0].title;
+                    info.title = links[0].title;
                 }
             }
 
