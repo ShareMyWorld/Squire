@@ -1970,7 +1970,19 @@ var makeUnlabeledList = function ( frag ) {
 };
 
 var createBlockQuote = function ( frag ) {
-    return createOnce( this, frag, 'BLOCKQUOTE', 'blockquote' );    
+    
+    var aside = frag.querySelector('blockquote.aside');
+    if ( aside ) {
+        //wrap blockquote in aside
+        var doc = frag.ownerDocument;
+        var childFrag = doc.createDocumentFragment();
+
+        var blockquote = createOnce( this, Array.prototype.slice.call(aside.childNodes) , 'BLOCKQUOTE', 'blockquote' );
+        aside.appendChild( blockquote );
+        return frag;
+    } else {
+        return createOnce( this, frag, 'BLOCKQUOTE', 'blockquote' );    
+    }
 };
 
 var createAside = function ( frag ) {
@@ -1980,15 +1992,17 @@ var createAside = function ( frag ) {
 var createOnce = function ( self, frag, tag, attributeKey ) {
     var attributeKey = attributeKey != undefined ? attributeKey : tag;
     var attributes = self._config.tagAttributes[attributeKey]
-    var tags = frag.querySelector(tag+'.'+attributes.class);
-    if ( tags === null ) {
-        return self.createElement( tag,
-        attributes, [
-            frag
-        ]);
+    if ( frag.constructor === Array ) {
+        return self.createElement( tag, attributes, frag );
     } else {
-        return frag;
-    }  
+        var tags = frag.querySelector(tag+'.'+attributes.class);
+        if ( tags === null ) {
+            return self.createElement( tag, attributes, [ frag ]);
+        } else {
+            return frag;
+        }    
+    }
+      
 };
 
 var createOrReplaceHeader = function ( self, frag, tag ) {
@@ -2021,8 +2035,6 @@ var removeHeader = function ( frag ) {
 };
 
 var removeAllBlockquotes = function ( frag ) {
-    var docFragment = document.createDocumentFragment();
-    var paraWrapper = document.createElement('p');    
     var blockquotes = frag.querySelectorAll( 'blockquote' );
     var attributes = this._config.tagAttributes.blockquote;
     removeAllBlockquotesHelper( blockquotes, attributes.class);
