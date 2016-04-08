@@ -243,6 +243,21 @@ var keyHandlers = {
                 //break;
 
             }  
+
+            var blockquote = getNearest( nodeAfterSplit, 'BLOCKQUOTE' )
+            // SMW - Enter discontinous blockquote
+            if ( blockquote && (!range.collapsed || range.startOffset !== 0 ) ) {
+                detach( nodeAfterSplit );
+                //insert after
+                parent = blockquote.parentNode;
+                if ( parent.lastchild === blockquote ) {
+                    parent.parentNode.appendChild( nodeAfterSplit );
+                } else {
+                    parent.insertBefore( nodeAfterSplit, blockquote.nextSibling );
+                }
+                //break;
+
+            }  
            
             // 'BR's essentially don't count; they're a browser hack.
             // If you try to select the contents of a 'BR', FF will not let
