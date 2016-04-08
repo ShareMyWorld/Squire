@@ -4509,18 +4509,17 @@ proto.setHeading = function ( level ) {
 
 proto.setLink = function ( url, title ) {
     var range = this.getSelection();
-    if ( range.collapsed ) {
+    var links = getLinksInRange( range );
+    if ( links !== null && links.length > 0 ) {
+        range.selectNode( links[0] );
+    } else if ( range.collapsed ) {
         range.expand( "word" );
-    } else {
-        var links = getLinksInRange( range );
-        if ( links !== null && links.length > 0 ) {
-            range.selectNode( links[0] );
-        }
-    }
+    } 
 
+    var attributes = title !== undefined && title !== null ? {'href': url, 'title': title} : {'href': url};
     this.changeFormat({
         tag: 'A',
-        attributes: {'href': url, 'title': title}
+        attributes: attributes
     }, {
         tag: 'A'
     }, range );
