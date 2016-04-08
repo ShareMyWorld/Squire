@@ -1407,8 +1407,9 @@ var keyHandlers = {
                 child = next;
             }
 
+            header = getNearestLike( nodeAfterSplit, 'H\\d$' )
             // SMW - Enter discontinous header
-            if ( header = getNearestLike( nodeAfterSplit, 'H\\d$' ) ) {
+            if ( header && (!range.collapsed || range.startOffset !== 0 ) ) {
                 detach( nodeAfterSplit );
                 //insert after
                 parent = header.parentNode;
@@ -1419,7 +1420,7 @@ var keyHandlers = {
                 }
                 //break;
 
-            }    
+            }  
            
             // 'BR's essentially don't count; they're a browser hack.
             // If you try to select the contents of a 'BR', FF will not let
@@ -4171,9 +4172,6 @@ var createBlockQuote = function ( frag ) {
     var aside = frag.querySelector('blockquote.aside');
     if ( aside ) {
         //wrap blockquote in aside
-        var doc = frag.ownerDocument;
-        var childFrag = doc.createDocumentFragment();
-
         var blockquote = createOnce( this, Array.prototype.slice.call(aside.childNodes) , 'BLOCKQUOTE', 'blockquote' );
         aside.appendChild( blockquote );
         return frag;

@@ -1974,9 +1974,6 @@ var createBlockQuote = function ( frag ) {
     var aside = frag.querySelector('blockquote.aside');
     if ( aside ) {
         //wrap blockquote in aside
-        var doc = frag.ownerDocument;
-        var childFrag = doc.createDocumentFragment();
-
         var blockquote = createOnce( this, Array.prototype.slice.call(aside.childNodes) , 'BLOCKQUOTE', 'blockquote' );
         aside.appendChild( blockquote );
         return frag;
