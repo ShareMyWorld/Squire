@@ -188,7 +188,7 @@ var keyHandlers = {
             }
             // Break blockquote
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
-                return self.modifyBlocks( removeBlockQuote, range );
+                return self.modifyBlocks( decreaseBlockQuoteLevel, range );
             }
         } 
 

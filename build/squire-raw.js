@@ -1366,7 +1366,7 @@ var keyHandlers = {
             }
             // Break blockquote
             else if ( getNearest( block, 'BLOCKQUOTE' ) ) {
-                return self.modifyBlocks( removeBlockQuote, range );
+                return self.modifyBlocks( decreaseBlockQuoteLevel, range );
             }
         } 
 
@@ -3408,11 +3408,13 @@ var increaseBlockQuoteLevel = function ( frag ) {
 
 var decreaseBlockQuoteLevel = function ( frag ) {
     var blockquotes = frag.querySelectorAll( 'blockquote' );
-    Array.prototype.filter.call( blockquotes, function ( el ) {
+    var lastBlockquote = blockquotes[ blockquotes.length - 1 ];
+    replaceWith( lastBlockquote, empty( lastBlockquote ) );
+    /*Array.prototype.filter.call( blockquotes, function ( el ) {
         return !getNearest( el.parentNode, 'BLOCKQUOTE' );
     }).forEach( function ( el ) {
         replaceWith( el, empty( el ) );
-    });
+    });*/
     return frag;
 };
 
@@ -4100,7 +4102,7 @@ proto.removeAllFormatting = function ( range ) {
 };
 
 proto.increaseQuoteLevel = command( 'modifyBlocks', increaseBlockQuoteLevel );
-proto.decreaseQuoteLevel = command( 'modifyBlocks', decreaseBlockQuoteLevel );
+var decreaseQuoteLevel = command( 'modifyBlocks', decreaseBlockQuoteLevel );
 
 proto.makeUnorderedList = command( 'modifyBlocks', makeUnorderedList );
 proto.makeOrderedList = command( 'modifyBlocks', makeOrderedList );
@@ -4720,7 +4722,7 @@ delete proto.increaseListLevel;
 //delete proto.decreaseListLevel;
 
 delete proto.increaseQuoteLevel;
-delete proto.decreaseQuoteLevel;
+//delete proto.decreaseQuoteLevel;
 
 if ( typeof exports === 'object' ) {
     module.exports = Squire;
