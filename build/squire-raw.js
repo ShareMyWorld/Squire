@@ -4174,7 +4174,10 @@ var createTranslationMap = function ( ta ) {
 
 var createHeader = function ( level ) {
     var tag = 'H' + level;
-    return function( frag ) { return createOrReplaceHeader( this, frag, tag ) };
+    return function( frag ) { 
+            
+        return createOrReplaceHeader( this, frag, tag ) 
+    };
 };
 
 var makeUnlabeledList = function ( frag ) {
@@ -4183,7 +4186,6 @@ var makeUnlabeledList = function ( frag ) {
 };
 
 var createBlockQuote = function ( frag ) {
-    
     var aside = frag.querySelector('blockquote.aside');
     if ( aside ) {
         //wrap blockquote in aside
@@ -4216,13 +4218,26 @@ var createOnce = function ( self, frag, tag, attributeKey ) {
 };
 
 var createOrReplaceHeader = function ( self, frag, tag ) {
-    var header, headers,
+    var header, headers, children,
         tagAttributes = self._config.tagAttributes,
         headerAttrs = tagAttributes[ tag ];
+    
+    var aside = frag.querySelector('blockquote.aside');
 
     headers = frag.querySelectorAll( 'h1, h2, h3, h4' );
     if ( headers.length === 0 ) {
-        return self.createElement( tag, headerAttrs, [ frag ] );
+        if ( aside ) {
+            children = Array.prototype.slice.call(aside.childNodes);
+            header = self.createElement( tag, headerAttrs, children );
+            aside.appendChild( header );
+            return frag;
+        } else {
+            children = [ frag ];
+            header = self.createElement( tag, headerAttrs, children );
+            return header;
+        }
+        
+
     } else {
         for ( var i = 0; i < headers.length; i++ ) {
             header = headers[i];
