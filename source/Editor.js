@@ -2012,7 +2012,7 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
     var aside = frag.querySelector('blockquote.aside');
 
     headers = frag.querySelectorAll( 'h1, h2, h3, h4' );
-    if ( headers.length === 0 ) {
+    if ( !headers || headers.length === 0 ) {
         if ( aside ) {
             children = Array.prototype.slice.call(aside.childNodes);
             header = self.createElement( tag, headerAttrs, children );
@@ -2023,8 +2023,6 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
             header = self.createElement( tag, headerAttrs, children );
             return header;
         }
-        
-
     } else {
         for ( var i = 0; i < headers.length; i++ ) {
             header = headers[i];
