@@ -117,6 +117,7 @@ var stylesRewriters = {
 
 var allowedBlock = /^(?:A(?:DDRESS|RTICLE|SIDE|UDIO)|BLOCKQUOTE|CAPTION|D(?:[DLT]|IV)|F(?:IGURE|IGCAPTION|OOTER)|H[1-6]|HEADER|L(?:ABEL|EGEND|I)|O(?:L|UTPUT)|P(?:RE)?|SECTION|T(?:ABLE|BODY|D|FOOT|H|HEAD|R)|UL)$/;
 var smwAllowedBlock = /^(BLOCKQUOTE|H[1-4]|LI|UL|OL|P|ASIDE|MYWO-CONTENT-WIDGET|SMW-CONTENT-WIDGET|DIV)$/;
+var unbreakableBlock = /^(MYWO-CONTENT-WIDGET)$/;
 
 var blacklist = /^(?:HEAD|META|STYLE)/;
 
@@ -180,7 +181,7 @@ var cleanTree = function cleanTree ( node, errorCallback ) {
                 }
                 continue;
             }
-            if ( childLength ) {
+            if ( childLength && !unbreakableBlock.test( nodeName ) ) {
                 cleanTree( child );
             }
         } else {
