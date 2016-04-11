@@ -1847,7 +1847,7 @@ var stylesRewriters = {
 };
 
 var allowedBlock = /^(?:A(?:DDRESS|RTICLE|SIDE|UDIO)|BLOCKQUOTE|CAPTION|D(?:[DLT]|IV)|F(?:IGURE|IGCAPTION|OOTER)|H[1-6]|HEADER|L(?:ABEL|EGEND|I)|O(?:L|UTPUT)|P(?:RE)?|SECTION|T(?:ABLE|BODY|D|FOOT|H|HEAD|R)|UL)$/;
-var smwAllowedBlock = /^(BLOCKQUOTE|H[1-4]|LI|UL|OL|P|ASIDE|MYWO-CONTENT-WIDGET|SMW-CONTENT-WIDGET)$/;
+var smwAllowedBlock = /^(BLOCKQUOTE|H[1-4]|LI|UL|OL|P|ASIDE|MYWO-CONTENT-WIDGET|SMW-CONTENT-WIDGET|DIV)$/;
 
 var blacklist = /^(?:HEAD|META|STYLE)/;
 
@@ -4557,6 +4557,9 @@ proto.setLink = function ( url, title ) {
     } 
 
     var attributes = title !== undefined && title !== null ? {'href': url, 'title': title} : {'href': url};
+    //Change to modify blocks
+    //The only allow inline check is done outside squire
+
     this.changeFormat({
         tag: 'A',
         attributes: attributes

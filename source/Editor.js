@@ -2344,6 +2344,9 @@ proto.setLink = function ( url, title ) {
     } 
 
     var attributes = title !== undefined && title !== null ? {'href': url, 'title': title} : {'href': url};
+    //Change to modify blocks
+    //The only allow inline check is done outside squire
+
     this.changeFormat({
         tag: 'A',
         attributes: attributes
