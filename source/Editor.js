@@ -1415,7 +1415,7 @@ proto.getHTML = function ( withBookMark ) {
     return html;
 };
 
-proto.setHTML = function ( html ) {
+proto.setHTML = function ( html, skipUndo ) {
     var frag = this._doc.createDocumentFragment(),
         div = this.createElement( 'DIV' ),
         child;
@@ -1448,28 +1448,29 @@ proto.setHTML = function ( html ) {
     body.appendChild( frag );
     fixCursor( body );
 
-    // Reset the undo stack
-    this._undoIndex = -1;
-    this._undoStack.length = 0;
-    this._undoStackLength = 0;
-    this._isInUndoState = false;
+    if ( !skipUndo ) {
+        // Reset the undo stack
+        this._undoIndex = -1;
+        this._undoStack.length = 0;
+        this._undoStackLength = 0;
+        this._isInUndoState = false;
 
-    // Record undo state
-    var range = this._getRangeAndRemoveBookmark() ||
-        this._createRange( body.firstChild, 0 );
-    this._recordUndoState( range );
-    this._getRangeAndRemoveBookmark( range );
-    // IE will also set focus when selecting text so don't use
-    // setSelection. Instead, just store it in lastSelection, so if
-    // anything calls getSelection before first focus, we have a range
-    // to return.
-    if ( losesSelectionOnBlur ) {
-        this._lastSelection = range;
-    } else {
-        this.setSelection( range );
+        // Record undo state
+        var range = this._getRangeAndRemoveBookmark() ||
+            this._createRange( body.firstChild, 0 );
+        this._recordUndoState( range );
+        this._getRangeAndRemoveBookmark( range );
+        // IE will also set focus when selecting text so don't use
+        // setSelection. Instead, just store it in lastSelection, so if
+        // anything calls getSelection before first focus, we have a range
+        // to return.
+        if ( losesSelectionOnBlur ) {
+            this._lastSelection = range;
+        } else {
+            this.setSelection( range );
+        }
+        this._updatePath( range, true );
     }
-    this._updatePath( range, true );
-
     return this;
 };
 
