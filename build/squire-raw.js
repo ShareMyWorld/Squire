@@ -4571,7 +4571,7 @@ proto.setLink = function ( url, title ) {
     if ( links !== null && links.length > 0 ) {
         range.selectNode( links[0] );
     } else if ( range.collapsed ) {
-        range.expand( "word" );
+        range.selectNode( range.startContainer );
     } 
 
     var attributes = title !== undefined && title !== null ? {'href': url, 'title': title} : {'href': url};
