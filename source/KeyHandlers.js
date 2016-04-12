@@ -311,11 +311,11 @@ var keyHandlers = {
                 }
                 var previousBQ = getNearest( previous, 'BLOCKQUOTE' );
                 var currentBQ = getNearest( current, 'BLOCKQUOTE' );
-                var equalBQType = currentBQ && previousBQ && 
-                      previousBQ.className !== currentBQ.className;
-                var currentParent = current.parentNode;
-                var wasLastChild = currentParent.lastChild === current;
-                if ( equalBQType || (!currentBQ && previousBQ) ) {
+                var lastChild = current.parentNode.lastChild;
+                var wasLastChild = lastChild === current;
+                if ( (currentBQ && previousBQ && 
+                      previousBQ.className !== currentBQ.className)
+                    || (!currentBQ && previousBQ) ) {
                     var isLastPTag = current.nodeName === 'P' && wasLastChild;
                     if ( current.textContent === '' && 
                          (current.nodeName !== 'P' || !isLastPTag)
@@ -327,7 +327,7 @@ var keyHandlers = {
                             range.collapse( true );
                             self.setSelection( range );
                         } else if ( wasLastChild ) {
-                            range.selectNode( currentParent.lastChild );
+                            range.selectNode( lastChild );
                             range.collapse( true );
                             self.setSelection( range );
                         }
