@@ -1500,9 +1500,14 @@ var keyHandlers = {
                         ) {
                         detach( current );
                         self._ensureBottomLine();
-                        if ( wasLastChild ) {
+                        if ( nextBlock ) {
+                            range.selectNode( nextBlock );
+                            range.collapse( true );
+                            self.setSelection( range );
+                        } else if ( wasLastChild ) {
                             range.selectNode( currentParent.lastChild );
                             range.collapse( true );
+                            self.setSelection( range );
                         }
                         
                     }
