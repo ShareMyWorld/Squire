@@ -2444,16 +2444,23 @@ proto.getFormattingInfoFromCurrentSelection = function () {
                 ) || info.enabled;
             
             // SPECIAL CASE LINK
-            if ( smwTag === 'link' ) {
-                var links = getLinksInRange( selection );
-                if ( links && links.length > 1 ) {
-                    info.allowed = false;
-                    info.enabled = false;
-                } else if ( links && links.length === 1 ) {
-                    info.href = links[0].href;
-                    info.title = links[0].title;
-                }
-            }
+            switch ( smwTag ) {
+                case 'link':
+                    var links = getLinksInRange( selection );
+                    if ( links && links.length > 1 ) {
+                        info.allowed = false;
+                        info.enabled = false;
+                    } else if ( links && links.length === 1 ) {
+                        info.href = links[0].href;
+                        info.title = links[0].title;
+                    }
+                    break;
+                case 'hr':
+                    if ( smwActiveFormat === 'aside' ) {
+                        info.allowed = false;
+                    }
+                    break;
+            } 
 
             return info;
         }, {'allowed': true, 'enabled': false});
@@ -2488,12 +2495,13 @@ var translateAndAggregateTagInfo = function ( self, tags, tagInfos ) {
                     info = previousEntry;
                 }
                 break;
+            case 'br':
+                //never enable br
+                info.enabled = false;
+                break;
         }
         acc[ smwTag ] = info;
-
-        //never enable br
-        if ( smwTag === 'br' ) info.enabled = false; 
-
+        
         return acc; 
     }, {});
 };
