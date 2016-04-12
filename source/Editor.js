@@ -2179,8 +2179,9 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
         _endOffset < _startNode.textContent.length && 
         _startNode.nodeType === TEXT_NODE ) {
         
-        range.expand( "word" );
-        
+        //range.expand( "word" );
+        range.selectNode( _startNode );
+
         self.changeFormat( add, remove, range );
         
         //Reset cursor
