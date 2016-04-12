@@ -231,7 +231,8 @@ var keyHandlers = {
 
             header = getNearestLike( nodeAfterSplit, 'H\\d$' )
             // SMW - Enter discontinous header
-            if ( header && (!range.collapsed || range.startOffset !== 0 ) ) {
+            if ( header && 
+                 (!range.collapsed || range.startOffset !== 0 || nodeAfterSplit.textContent !== '') ) {
                 detach( nodeAfterSplit );
                 //insert after
                 parent = header.parentNode;
@@ -244,10 +245,14 @@ var keyHandlers = {
 
             }  
 
-            var blockquote = getNearest( nodeAfterSplit, 'BLOCKQUOTE' )
+            var blockquote = getNearest( nodeAfterSplit, 'BLOCKQUOTE' );
             // SMW - Enter discontinous blockquote
-            if ( blockquote && (!range.collapsed || range.startOffset !== 0 ) ) {
+            if ( blockquote && 
+                 (!range.collapsed || range.startOffset !== 0 || nodeAfterSplit.textContent !== '' ) ) {
                 detach( nodeAfterSplit );
+                if ( blockquote.childNodes.length === 0 ){
+                    detach( blockquote );
+                }
                 //insert after
                 parent = blockquote.parentNode;
                 if ( parent.lastchild === blockquote ) {
