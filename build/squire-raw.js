@@ -1491,14 +1491,20 @@ var keyHandlers = {
                 var currentBQ = getNearest( current, 'BLOCKQUOTE' );
                 var equalBQType = currentBQ && previousBQ && 
                       previousBQ.className !== currentBQ.className;
+                var currentParent = current.parentNode;
+                var wasLastChild = currentParent.lastChild === current;
                 if ( equalBQType || (!currentBQ && previousBQ) ) {
-                    var isLastPTag = current.nodeName === 'P' &&
-                         current.parentNode.lastChild === current;
+                    var isLastPTag = current.nodeName === 'P' && wasLastChild;
                     if ( current.textContent === '' && 
                          (current.nodeName !== 'P' || !isLastPTag)
                         ) {
                         detach( current );
                         self._ensureBottomLine();
+                        if ( wasLastChild ) {
+                            range.selectNode( currentParent.lastChild );
+                            range.collapse( true );
+                        }
+                        
                     }
                     //ignore
                     return;
