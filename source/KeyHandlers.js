@@ -311,23 +311,19 @@ var keyHandlers = {
                 }
                 var previousBQ = getNearest( previous, 'BLOCKQUOTE' );
                 var currentBQ = getNearest( current, 'BLOCKQUOTE' );
-                var lastChild = current.parentNode.lastChild;
-                var wasLastChild = lastChild === current;
+                
                 if ( (currentBQ && previousBQ && 
                       previousBQ.className !== currentBQ.className)
                     || (!currentBQ && previousBQ) ) {
-                    var isLastPTag = current.nodeName === 'P' && wasLastChild;
-                    if ( current.textContent === '' && 
-                         (current.nodeName !== 'P' || !isLastPTag)
-                        ) {
+                    if ( current.textContent === '' ) {
                         detach( current );
                         self._ensureBottomLine();
                         if ( nextBlock ) {
                             range.selectNode( nextBlock );
                             range.collapse( true );
                             self.setSelection( range );
-                        } else if ( wasLastChild ) {
-                            range.selectNode( lastChild );
+                        } else {
+                            range.selectNode( self._body.lastChild );
                             range.collapse( true );
                             self.setSelection( range );
                         }
