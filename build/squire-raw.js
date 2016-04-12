@@ -1428,9 +1428,7 @@ var keyHandlers = {
             if ( blockquote && 
                  (!range.collapsed || range.startOffset !== 0 || nodeAfterSplit.textContent !== '' ) ) {
                 detach( nodeAfterSplit );
-                if ( blockquote.childNodes.length === 0 ){
-                    detach( blockquote );
-                }
+
                 //insert after
                 parent = blockquote.parentNode;
                 if ( parent.lastchild === blockquote ) {
@@ -1491,9 +1489,14 @@ var keyHandlers = {
                 }
                 var previousBQ = getNearest( previous, 'BLOCKQUOTE' );
                 var currentBQ = getNearest( current, 'BLOCKQUOTE' );
-                if ( (currentBQ && previousBQ && previousBQ.className !== currentBQ.className) ||
-                     (!currentBQ && previousBQ) ) {
-                    if ( current.textContent === '' ) {
+                var equalBQType = currentBQ && previousBQ && 
+                      previousBQ.className !== currentBQ.className;
+                if ( equalBQType || (!currentBQ && previousBQ) ) {
+                    var isLastPTag = current.nodeName === 'P' &&
+                         current.parentNode.lastChild === current;
+                    if ( current.textContent === '' && 
+                         (current.nodeName !== 'P' || !isLastPTag)
+                        ) {
                         detach( current );
                         self._ensureBottomLine();
                     }
