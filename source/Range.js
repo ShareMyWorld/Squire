@@ -26,17 +26,18 @@ var getNodeAfter = function ( node, offset ) {
 };
 
 var expandWord = function ( range ) {
-    //TODO: error if not collapsed
-    var text = range.startContainer.textContent;
-    var wordRe = /\w+$|\w+(?=\s)/g;
-    var match;
-    while ( (match = wordRe.exec( text )) !== null ) {
-        var wordStart = match.index;
-        var wordEnd = match.index + match[0].length;
-        if ( wordStart <= range.startOffset && wordEnd > range.startOffset ) {
-            range.setStart( range.startContainer, wordStart );
-            range.setEnd( range.endContainer, wordEnd );
-            return range;
+    if ( range.collapsed ) {
+        var text = range.startContainer.textContent;
+        var wordRe = /\S+/g;
+        var match;
+        while ( (match = wordRe.exec( text )) !== null ) {
+            var wordStart = match.index;
+            var wordEnd = match.index + match[0].length;
+            if ( wordStart < range.startOffset && wordEnd > range.startOffset ) {
+                range.setStart( range.startContainer, wordStart );
+                range.setEnd( range.endContainer, wordEnd );
+                break;
+            }
         }
     }
     //No words in start node of range
