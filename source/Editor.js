@@ -2186,7 +2186,7 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
         //Reset cursor
         try {
             range.setStart( _startNode, _startOffset );
-            range.setEnd( _startNode, _startOffset );
+            range.setEnd( _endNode, _startOffset );
             range.collapse( true );
             self.setSelection( range );
         } catch(e) {

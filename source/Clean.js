@@ -95,10 +95,10 @@ var stylesRewriters = {
         }
     },
     A: function ( node, parent ) {
-        var text = node.textContent.replace(/[\[\]]/gim, function(i) {
+        /*var text = node.textContent.replace(/[\[\]]/gim, function(i) {
            return '&#'+i.charCodeAt(0)+';';
         });
-        node.innerHTML = text;
+        node.innerHTML = text;*/
         return node;
     },
     LI: function ( node, parent ) {
@@ -116,7 +116,7 @@ var stylesRewriters = {
 };
 
 var allowedBlock = /^(?:A(?:DDRESS|RTICLE|SIDE|UDIO)|BLOCKQUOTE|CAPTION|D(?:[DLT]|IV)|F(?:IGURE|IGCAPTION|OOTER)|H[1-6]|HEADER|L(?:ABEL|EGEND|I)|O(?:L|UTPUT)|P(?:RE)?|SECTION|T(?:ABLE|BODY|D|FOOT|H|HEAD|R)|UL)$/;
-var smwAllowedBlock = /^(BLOCKQUOTE|H[1-4]|LI|UL|OL|P|ASIDE|MYWO-CONTENT-WIDGET|SMW-CONTENT-WIDGET|DIV)$/;
+var smwAllowedBlock = /^(A|BLOCKQUOTE|H[1-4]|LI|UL|OL|P|ASIDE|MYWO-CONTENT-WIDGET|SMW-CONTENT-WIDGET|DIV)$/;
 var unbreakableBlock = /^(MYWO-CONTENT-WIDGET)$/;
 
 var blacklist = /^(?:HEAD|META|STYLE)/;
