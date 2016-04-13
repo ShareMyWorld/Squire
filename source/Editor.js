@@ -1142,7 +1142,7 @@ proto.forEachBlock = function ( fn, mutates, range ) {
     return this;
 };
 
-proto.modifyBlocks = function ( modify, range, extractPattern ) {
+proto.modifyBlocks = function ( modify, range, extractPattern, noExpand ) {
     if ( !range && !( range = this.getSelection() ) ) {
         return this;
     }
@@ -1155,7 +1155,9 @@ proto.modifyBlocks = function ( modify, range, extractPattern ) {
     }
 
     // 2. Expand range to block boundaries
-    expandRangeToBlockBoundaries( range );
+    if ( !noExpand) {
+        expandRangeToBlockBoundaries( range );
+    } 
 
     // 3. Remove range.
     var body = this._body,
@@ -2364,7 +2366,7 @@ proto.setLink = function ( url, title ) {
             var a = this.createElement( 'A', attributes, childrenOfP );
             return this.createDefaultBlock( [ a ] );
         } 
-    }, range);
+    }, range, undefined, true );
   
     return this.focus();
 };
