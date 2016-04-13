@@ -681,6 +681,24 @@ var getNodeAfter = function ( node, offset ) {
     return node;
 };
 
+var expandWord = function ( range ) {
+    //TODO: error if not collapsed
+    var text = range.startContainer.textContent;
+    var wordRe = /\w+$|\w+(?=\s)/g;
+    var match;
+    while ( (match = wordRe.exec( text )) !== null ) {
+        var wordStart = match.index;
+        var wordEnd = match.index + match[0].length;
+        if ( wordStart <= range.startOffset && wordEnd > range.startOffset ) {
+            range.setStart( range.startContainer, wordStart );
+            range.setEnd( range.endContainer, wordEnd );
+            return range;
+        }
+    }
+    //No words in start node of range
+    return range;
+};
+
 // ---
 
 var insertNodeInRange = function ( range, node ) {
@@ -4408,9 +4426,8 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
         _endOffset < _startNode.textContent.length && 
         _startNode.nodeType === TEXT_NODE ) {
         
-        //range.expand( "word" );
-        range.selectNode( _startNode );
-
+        expandWord( range );
+        
         self.changeFormat( add, remove, range );
         
         //Reset cursor
@@ -4567,23 +4584,30 @@ proto.setHeading = function ( level ) {
 
 proto.setLink = function ( url, title ) {
     var range = this.getSelection();
+    this._recordUndoState( range );
+    this._getRangeAndRemoveBookmark( range );
+
     var links = getLinksInRange( range );
     if ( links !== null && links.length > 0 ) {
         range.selectNode( links[0] );
     } else if ( range.collapsed ) {
-        range.selectNode( range.startContainer );
+        expandWord( range );
     } 
 
-    var attributes = title !== undefined && title !== null ? {'href': url, 'title': title} : {'href': url};
-    //Change to modify blocks
-    //The only allow inline check is done outside squire
-
-    this.changeFormat({
-        tag: 'A',
-        attributes: attributes
-    }, {
-        tag: 'A'
-    }, range );
+    var attributes; 
+    if ( title ) {
+        attributes = {'href': url, 'title': title};
+    } else {
+        attributes = {'href': url};
+    }
+   
+    this.modifyBlocks( function( frag ){
+        //Asumes that all children are allowed inside an a-tag
+        var childrenOfP = Array.prototype.slice.call( frag.querySelector( 'P' ).childNodes );
+        var a = this.createElement( 'A', attributes, childrenOfP );
+        return this.createDefaultBlock( [ a ] );
+    });
+  
     return this.focus();
 };
 
