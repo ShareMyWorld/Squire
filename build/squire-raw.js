@@ -4588,25 +4588,30 @@ proto.setLink = function ( url, title ) {
     this._getRangeAndRemoveBookmark( range );
 
     var links = getLinksInRange( range );
-    if ( links !== null && links.length > 0 ) {
-        range.selectNode( links[0] );
-    } else if ( range.collapsed ) {
+    if ( range.collapsed ) {
         expandWord( range );
-    } 
-
-    var attributes; 
-    if ( title ) {
-        attributes = {'href': url, 'title': title};
-    } else {
-        attributes = {'href': url};
     }
-   
     this.modifyBlocks( function( frag ){
-        //Asumes that all children are allowed inside an a-tag
-        var childrenOfP = Array.prototype.slice.call( frag.querySelector( 'P' ).childNodes );
-        var a = this.createElement( 'A', attributes, childrenOfP );
-        return this.createDefaultBlock( [ a ] );
-    });
+        if ( links !== null && links.length > 0 ) {
+            //Update first link found
+            links[0].setAttribute('href', url);
+            if ( title ) {
+                links[0].setAttribute('title', title);
+            }
+            return frag;
+        } else {
+            var attributes; 
+            if ( title ) {
+                attributes = {'href': url, 'title': title};
+            } else {
+                attributes = {'href': url};
+            }
+            //Asumes that all children are allowed inside an a-tag
+            var childrenOfP = Array.prototype.slice.call( frag.querySelector( 'P' ).childNodes );
+            var a = this.createElement( 'A', attributes, childrenOfP );
+            return this.createDefaultBlock( [ a ] );
+        } 
+    }, range);
   
     return this.focus();
 };
