@@ -3390,7 +3390,7 @@ proto.forEachBlock = function ( fn, mutates, range ) {
     return this;
 };
 
-proto.modifyBlocks = function ( modify, range, extractPattern, noExpand ) {
+proto.modifyBlocks = function ( modify, range, extractPattern ) {
     if ( !range && !( range = this.getSelection() ) ) {
         return this;
     }
@@ -3403,9 +3403,7 @@ proto.modifyBlocks = function ( modify, range, extractPattern, noExpand ) {
     }
 
     // 2. Expand range to block boundaries
-    if ( !noExpand) {
-        expandRangeToBlockBoundaries( range );
-    } 
+    expandRangeToBlockBoundaries( range );
 
     // 3. Remove range.
     var body = this._body,
@@ -4594,27 +4592,26 @@ proto.setLink = function ( url, title ) {
     if ( range.collapsed ) {
         expandWord( range );
     }
-    this.modifyBlocks( function( frag ){
-        if ( links !== null && links.length > 0 ) {
-            //Update first link found
-            links[0].setAttribute('href', url);
-            if ( title ) {
-                links[0].setAttribute('title', title);
-            }
-            return frag;
+
+    if ( links !== null && links.length > 0 ) {
+        //Update first link found
+        links[0].setAttribute('href', url);
+        if ( title ) {
+            links[0].setAttribute('title', title);
+        }
+    } else {
+        var attributes; 
+        if ( title ) {
+            attributes = {'href': url, 'title': title};
         } else {
-            var attributes; 
-            if ( title ) {
-                attributes = {'href': url, 'title': title};
-            } else {
-                attributes = {'href': url};
-            }
-            //Asumes that all children are allowed inside an a-tag
-            var childrenOfP = Array.prototype.slice.call( frag.querySelector( 'P' ).childNodes );
-            var a = this.createElement( 'A', attributes, childrenOfP );
-            return this.createDefaultBlock( [ a ] );
-        } 
-    }, range, undefined, true );
+            attributes = {'href': url};
+        }
+        var contents = range.extractContents();
+        //Asumes that all children are allowed inside an a-tag
+        var a = this.createElement( 'A', attributes, Array.prototype.slice.call( contents.childNodes ) );
+        insertNodeInRange( range, a );
+    } 
+    
   
     return this.focus();
 };
