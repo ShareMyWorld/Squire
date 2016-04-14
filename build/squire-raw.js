@@ -2712,19 +2712,22 @@ var removeZWS = function ( root ) {
         }, false ),
         parent, node, index;
     while ( node = walker.nextNode() ) {
-        while ( ( index = node.data.indexOf( ZWS ) ) > -1 ) {
-            if ( node.length === 1 ) {
-                do {
-                    parent = node.parentNode;
-                    parent.removeChild( node );
-                    node = parent;
-                    walker.currentNode = parent;
-                } while ( isInline( node ) && !getLength( node ) );
-                break;
-            } else {
-                node.deleteData( index, 1 );
+        if ( node.data ) {
+            while ( ( index = node.data.indexOf( ZWS ) ) > -1 ) {
+                if ( node.length === 1 ) {
+                    do {
+                        parent = node.parentNode;
+                        parent.removeChild( node );
+                        node = parent;
+                        walker.currentNode = parent;
+                    } while ( isInline( node ) && !getLength( node ) );
+                    break;
+                } else {
+                    node.deleteData( index, 1 );
+                }
             }
         }
+
     }
 };
 
