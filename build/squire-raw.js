@@ -1496,42 +1496,32 @@ var keyHandlers = {
             var current = getStartBlockOfRange( range ),
                 previous = current && getPreviousBlock( current ),
                 header, selectedBlock;
+            if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
+                var parent =  header.parentNode;
+                replaceWith( header, current );
+                range = self._createRange( current, 0 );
+                self.setSelection( range );
+                self._updatePath( range, true );
+                return;
+            }
             // Must not be at the very beginning of the text area.
             if ( previous ) {
-                if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
-                    var nextBlock = getNextBlock( current );
-                    replaceWith( header, current );
-                    selectedBlock = nextBlock === null ? current : nextBlock;
-                    
-                } else if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
+                var previousBQ = getNearest( previous, 'BLOCKQUOTE' );
+                var currentBQ = getNearest( current, 'BLOCKQUOTE' );
+
+                if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
                     detach( previous.parentNode );
                     return;
                 } else if ( !previous.isContentEditable ) {
                     // If not editable, just delete whole block.
                     detach( previous );
                     return;
-                }
-                var previousBQ = getNearest( previous, 'BLOCKQUOTE' );
-                var currentBQ = getNearest( current, 'BLOCKQUOTE' );
-                
-                if ( (currentBQ && previousBQ && 
-                      previousBQ.className !== currentBQ.className)
-                    || (!currentBQ && previousBQ) ) {
-                    if ( current.textContent === '' ) {
-                        detach( current );
-                        self._ensureBottomLine();
-                        if ( nextBlock ) {
-                            range.selectNode( nextBlock );
-                            range.collapse( true );
-                            self.setSelection( range );
-                        } else {
-                            range.selectNode( self._body.lastChild );
-                            range.collapse( true );
-                            self.setSelection( range );
-                        }
-                        
-                    }
-                    //ignore
+                } else if ( (currentBQ && 
+                             previousBQ && 
+                             previousBQ.className !== currentBQ.className) ||
+                            (!currentBQ && previousBQ) 
+                          ) {
+                    // do not merge
                     return;
                 }
                 
@@ -1547,11 +1537,6 @@ var keyHandlers = {
                 if ( current && ( current = current.nextSibling ) ) {
                     mergeContainers( current );
                 }
-                if ( selectedBlock ) {
-                    range.selectNode( selectedBlock );
-                    range.collapse( true );
-                }
-                
                 self.setSelection( range );
             }
             // If at very beginning of text area, allow backspace
