@@ -4624,11 +4624,7 @@ var getLinksInRange = function ( range ) {
     var ancestor = range.commonAncestorContainer;
     var links = null;
     if ( ancestor.nodeType === ELEMENT_NODE ) {
-        if ( ancestor.nodeName === 'A' ){
-            links = [ ancestor ];
-        } else {
-            links = ancestor.querySelectorAll( 'A' );
-        }
+        links = ancestor.querySelectorAll( 'A' );
     } else {
         // Check wrapping node
         var link = getNearest( ancestor, 'A' );
