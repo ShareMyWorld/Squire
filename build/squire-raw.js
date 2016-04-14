@@ -1429,7 +1429,8 @@ var keyHandlers = {
             header = getNearestLike( nodeAfterSplit, 'H\\d$' )
             // SMW - Enter discontinous header
             if ( header && 
-                 (!range.collapsed || range.startOffset !== 0 || nodeAfterSplit.textContent !== '') ) {
+                 ( !range.collapsed || range.collapsed && range.startOffset !== 0 ) &&
+                 ( nodeAfterSplit.textContent !== '') ) {
                 detach( nodeAfterSplit );
                 //insert after
                 parent = header.parentNode;
@@ -4623,7 +4624,11 @@ var getLinksInRange = function ( range ) {
     var ancestor = range.commonAncestorContainer;
     var links = null;
     if ( ancestor.nodeType === ELEMENT_NODE ) {
-        links = ancestor.querySelectorAll( 'A' );
+        if ( ancestor.nodeName === 'A' ){
+            links = [ ancestor ];
+        } else {
+            links = ancestor.querySelectorAll( 'A' );
+        }
     } else {
         // Check wrapping node
         var link = getNearest( ancestor, 'A' );
