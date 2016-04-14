@@ -2348,7 +2348,7 @@ proto.setLink = function ( url, title ) {
         expandWord( range );
     }
 
-    if ( links !== null && links.length > 0 ) {
+    if (links && links.length > 0 ) {
         //Update first link found
         links[0].setAttribute('href', url);
         if ( title ) {
@@ -2373,13 +2373,14 @@ proto.setLink = function ( url, title ) {
 
 var getLinksInRange = function ( range ) {
     var ancestor = range.commonAncestorContainer;
-    var links = null;
+    var links;
     if ( ancestor.nodeType === ELEMENT_NODE ) {
         links = ancestor.querySelectorAll( 'A' );
-    } else {
+    }
+    if (!links || links.length === 0) {
         // Check wrapping node
         var link = getNearest( ancestor, 'A' );
-        if ( link !== null ) {
+        if (link) {
             links = [ link ];
         }
     }
