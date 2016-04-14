@@ -1428,18 +1428,22 @@ var keyHandlers = {
 
             header = getNearestLike( nodeAfterSplit, 'H\\d$' )
             // SMW - Enter discontinous header
-            if ( header && 
-                 ( !range.collapsed || range.collapsed && range.startOffset !== 0 ) &&
-                 ( nodeAfterSplit.textContent !== '') ) {
-                detach( nodeAfterSplit );
-                //insert after
-                parent = header.parentNode;
-                if ( parent.lastchild === header ) {
-                    parent.parentNode.appendChild( nodeAfterSplit );
-                } else {
-                    parent.insertBefore( nodeAfterSplit, header.nextSibling );
+            if ( header ){ 
+                if (( !range.collapsed || range.collapsed && range.startOffset !== 0 ) &&
+                    ( nodeAfterSplit.textContent !== '') ) {
+                    detach( nodeAfterSplit );
+                    //insert after
+                    parent = header.parentNode;
+                    if ( parent.lastchild === header ) {
+                        parent.parentNode.appendChild( nodeAfterSplit );
+                    } else {
+                        parent.insertBefore( nodeAfterSplit, header.nextSibling );
+                    }
+                } else if ( range.collapsed && range.startOffset === 0 ) {
+                    var previous = nodeAfterSplit.previousSibling;
+                    detach( previous );
+                    header.parentNode.insertBefore( previous, header );
                 }
-                //break;
 
             }  
 
