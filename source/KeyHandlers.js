@@ -245,7 +245,7 @@ var keyHandlers = {
 
             }  
 
-            var blockquote = getNearest( nodeAfterSplit, 'BLOCKQUOTE' );
+            var blockquote = getNearest( nodeAfterSplit, 'BLOCKQUOTE', 'blockquote' );
             // SMW - Enter discontinous blockquote
             if ( blockquote && 
                  (!range.collapsed || range.startOffset !== 0 || nodeAfterSplit.textContent !== '' ) ) {
