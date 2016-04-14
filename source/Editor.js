@@ -2343,18 +2343,18 @@ proto.setLink = function ( url, title ) {
     this._recordUndoState( range );
     this._getRangeAndRemoveBookmark( range );
 
-    var links = getLinksInRange( range );
-    if ( range.collapsed ) {
-        expandWord( range );
-    }
+    var links = getElementsInRange( 'A', null, range );
 
-    if ( links !== null && links.length > 0 ) {
+    if ( links.length > 0 ) {
         //Update first link found
         links[0].setAttribute('href', url);
         if ( title ) {
             links[0].setAttribute('title', title);
         }
     } else {
+        if ( range.collapsed ) {
+            expandWord( range );
+        }
         var attributes; 
         if ( title ) {
             attributes = {'href': url, 'title': title};
@@ -2371,24 +2371,65 @@ proto.setLink = function ( url, title ) {
     return this.focus();
 };
 
-var getLinksInRange = function ( range ) {
-    var ancestor = range.commonAncestorContainer;
-    var links = null;
-    if ( ancestor.nodeType === ELEMENT_NODE ) {
-        if ( ancestor.nodeName === 'A' ) {
-            links = [ ancestor ];
-        } else {
-            links = ancestor.querySelectorAll( 'A' );
-        }
-    } else {
-        // Check wrapping node
-        var link = getNearest( ancestor, 'A' );
-        if ( link !== null ) {
-            links = [ link ];
+
+/**
+ * Finds all elements in a range that matches the specified tagName and attributes.
+ * This method returns elements found both among children and ancestors
+ *
+ * @param {Range} range
+ * @returns {Array} A list with all found nodes
+ */
+function getElementsInRange(tag, attributes, range ) {
+    // 1. Normalise the arguments and get selection
+    tag = tag.toUpperCase();
+    if ( !attributes ) { attributes = {}; }
+    if ( !range && !( range = this.getSelection() ) ) {
+        return [];
+    }
+
+    // Sanitize range to prevent weird IE artifacts
+    if ( !range.collapsed &&
+            range.startContainer.nodeType === TEXT_NODE &&
+            range.startOffset === range.startContainer.length &&
+            range.startContainer.nextSibling ) {
+        range.setStartBefore( range.startContainer.nextSibling );
+    }
+    if ( !range.collapsed &&
+            range.endContainer.nodeType === TEXT_NODE &&
+            range.endOffset === 0 &&
+            range.endContainer.previousSibling ) {
+        range.setEndAfter( range.endContainer.previousSibling );
+    }
+
+    // If the common ancestor is inside the tag we require, we definitely
+    // have the format.
+    var root = range.commonAncestorContainer,
+        walker, node, result = [];
+    var nearest = getNearest( root, tag, attributes );
+    if ( nearest ) {
+        result.push(nearest);
+    }
+
+    // If common ancestor is a text node and doesn't have the format, we
+    // definitely don't have it.
+    if ( root.nodeType === TEXT_NODE ) {
+        return result;
+    }
+
+    // Otherwise, check each text node at least partially contained within
+    // the selection and make sure all of them have the format we want.
+    walker = new TreeWalker( root, SHOW_ELEMENT, function ( node ) {
+        return isNodeContainedInRange( range, node, true );
+    });
+
+    while ( node = walker.nextNode() ) {
+        //Has any of the children the tag?
+        if ( hasTagAttributes( node, tag, attributes ) ) {
+            result.push(node);
         }
     }
-    return links;
-};
+    return result;
+}
 
 proto.canUndo = function () {
     return this._canUndo;
@@ -2437,91 +2478,132 @@ var getListType = function ( self, list ) {
 proto.getFormattingInfoFromCurrentSelection = function () {
     var self = this;
     //List of all tags
-    var tags = self._validTags;
+    var squireTags = self._validTags;
     var selection = self.getSelection();
-    var activeFormats = tags.reduce(function( formatsAcc, _tag ) {
-        
-        var split =  _tag.split('.');
-        var tag = split[0], tagClass = split[1];
-        var attributes = tagClass === undefined ? self._config.tagAttributes[ tag ] : {'class': tagClass};
-        if ( anyChildHasFormat( tag, attributes, selection ) ) {
-            formatsAcc.push( _tag );
+    var commonAncestor = selection.commonAncestorContainer;
+    var ancestorIsBody = hasTagAttributes(commonAncestor, 'BODY');
+    var ancestorIsAside = hasTagAttributes(commonAncestor, 'BLOCKQUOTE', self._config.tagAttributes.aside);
+    
+    var formattingInfoMap = {};
+    var usedSmwTagToElementsMap = {};
+
+    // Find all elements for each formatting type, throw away stuff when we find elements that map to the same smwTag
+    var allSquireTagsWithElements = squireTags.map(function(squireTagWithClass) {
+        var smwTag =  translateTag(self, squireTagWithClass);
+        var split =  squireTagWithClass.split('.');
+        var squireTag = split[0], tagClass = split[1];
+        var attributes = tagClass === undefined ? self._config.tagAttributes[ squireTag ] : {'class': tagClass};
+        var elements = getElementsInRange(squireTag, attributes, selection);
+
+        if (elements.length > 0) {
+            if (usedSmwTagToElementsMap[smwTag]) {
+                usedSmwTagToElementsMap[smwTag] = usedSmwTagToElementsMap[smwTag].concat(elements);
+            } else {
+                usedSmwTagToElementsMap[smwTag] = elements;
+            }
         }
-        return formatsAcc;
-    }, []);
 
-    var tagInformations = tags.reduce(function( infos, tag ) {
-        infos[ tag ] = activeFormats.reduce( function( info, activeFormat ) {
-            var smwTag = translateTag( self, tag );
-            var smwActiveFormat = translateTag( self, activeFormat );
+        return {
+            squireTag: squireTagWithClass,
+            smwTag: translateTag(self, squireTagWithClass),
+            elements: elements
+        };
+    });
 
-            info.enabled = info.enabled || activeFormat === tag;
-            info.allowed = 
-                (info.allowed && 
-                 ( isAllowedIn( self, smwTag, smwActiveFormat ) || isAllowedIn( self, smwActiveFormat, smwTag ) )
-                ) || info.enabled;
-            
-            // SPECIAL CASE LINK
-            switch ( smwTag ) {
-                case 'link':
-                    var links = getLinksInRange( selection );
-                    if ( links && links.length > 1 ) {
-                        info.allowed = false;
-                        info.enabled = false;
-                    } else if ( links && links.length === 1 ) {
-                        info.href = links[0].href;
-                        info.title = links[0].title;
-                    }
-                    break;
-                case 'hr':
-                    if ( smwActiveFormat === 'aside' ) {
-                        info.allowed = false;
-                    }
-                    break;
-            } 
+    var usedSmwBlockTags = Object.keys(usedSmwTagToElementsMap).filter(function(smwTag) {
+        return !isSmwInline(self, smwTag);
+    });
 
-            return info;
-        }, {'allowed': true, 'enabled': false});
-        return infos;
-    }, {});
+    allSquireTagsWithElements.forEach(function(obj) {
+        var smwTag = obj.smwTag;
 
-    return translateAndAggregateTagInfo( self, tags, tagInformations );
+        // If we already processed this smwTag, lets just skip it
+        if (formattingInfoMap[smwTag] && (formattingInfoMap[smwTag].enabled || formattingInfoMap[smwTag].allowed)) {
+            return;
+        }
+        var info = {};
 
-};
-
-
-var translateAndAggregateTagInfo = function ( self, tags, tagInfos ) {
-    return tags.reduce( function ( acc, tag ) {
-        var info = tagInfos[ tag ];
-        var smwTag = translateTag( self, tag );
-        var previousEntry = acc[ smwTag ];
-        var isEnabledOrNoPreviousEnabled = info.enabled || !previousEntry || (previousEntry && !previousEntry.enabled);
-        switch ( smwTag ) {
-            case 'list':
-                if ( isEnabledOrNoPreviousEnabled ) {
-                    var listType = getListType( self, tag );
-                    info.listType = listType;
-                } else {
-                    info = previousEntry;
-                }
-                break;
+        switch (smwTag) {
+            // This can almost be checked with isSmwInline, but links are the exception
+            case 'blockquote':
+            case 'aside':
             case 'heading':
-                if ( isEnabledOrNoPreviousEnabled ) {
-                    var level = tag[1];
-                    info.depth = level;
-                } else {
-                    info = previousEntry;
-                }
+            case 'list':
+            case 'link':
+            case 'smwWidget':
+            case 'hr':
+                // headings and lists have several squireTags that map to the same smwTag
+                info.enabled = obj.elements.length === 1 && usedSmwTagToElementsMap[smwTag] && usedSmwTagToElementsMap[smwTag].length === 1;
                 break;
-            case 'br':
-                //never enable br
-                info.enabled = false;
-                break;
+
+            default:
+                info.enabled = usedSmwTagToElementsMap[smwTag] && usedSmwTagToElementsMap[smwTag].length > 0;
         }
-        acc[ smwTag ] = info;
-        
-        return acc; 
-    }, {});
+
+        var allowed = info.enabled || usedSmwBlockTags.every(function(usedBlockTag) {
+            return isAllowedIn(self, smwTag , usedBlockTag) || isAllowedIn(self, usedBlockTag, smwTag);
+        });
+
+        // Now add even more restrictions!
+        if (allowed) {
+            switch (smwTag) {
+                case 'aside':
+                    allowed = (obj.elements.length === 1 && !ancestorIsBody) || obj.elements.length === 0;
+                    break;
+
+                case 'hr':
+                    allowed = !usedSmwTagToElementsMap.aside && selection.collapsed;
+                    break;
+
+                case 'link':
+                    allowed = false;
+                    if (!ancestorIsBody && !ancestorIsAside) {
+                        if (info.enabled || !selection.collapsed) {
+                            allowed = true;
+                        } else if (selection.collapsed) {
+                            var clonedSelection = selection.cloneRange();
+                            expandWord(clonedSelection);
+                            if (!clonedSelection.collapsed) {
+                                allowed = true;
+                            }
+                        }
+                    }
+                    break;
+
+                case 'smwWidget':
+                case 'br':
+                    allowed = selection.collapsed;
+                    break;
+
+                default:
+                    // As all text is wrapped in some tag, like p, blockquote, ol, etc. if the ancesor is aside or body, we are selecting more than 1 block
+                    allowed = !ancestorIsBody && !ancestorIsAside;
+
+            }
+        }
+        info.allowed = allowed;
+
+        // Add info special to some smwTags
+        if (info.enabled) {
+            switch (smwTag) {
+                case 'list':
+                    info.listType = getListType( self, obj.squireTag );
+                    break;
+
+                case 'heading':
+                    info.depth = obj.squireTag[1]
+                    break;
+
+                case 'link':
+                    info.href = obj.elements[0].href;
+                    info.title = obj.elements[0].title;
+                    break;
+            }
+        }
+        formattingInfoMap[smwTag] = info;
+    });
+    return formattingInfoMap;
+
 };
 
 //Remove unwanted functionality

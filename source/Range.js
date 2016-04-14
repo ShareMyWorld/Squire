@@ -35,7 +35,7 @@ var expandWord = function ( range ) {
             var wordEnd = match.index + match[0].length;
             if ( wordStart < range.startOffset && wordEnd > range.startOffset ) {
                 range.setStart( range.startContainer, wordStart );
-                range.setEnd( range.endContainer, wordEnd );
+                range.setEnd( range.startContainer, wordEnd );
                 break;
             }
         }
