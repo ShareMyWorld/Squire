@@ -1524,7 +1524,7 @@ var keyHandlers = {
             fixContainer( current.parentNode, root );
             // Now get previous block
             previous = getPreviousBlock( current, root );
-            if ( header = getNearestLike( current, 'H\\d$' ) ) {
+            /*if ( header = getNearestLike( current, 'H\\d$' ) ) {
                   var parent =  header.parentNode;
                   if ( previous &&
                        (previous.textContent === '' || !previous.isContentEditable ) && 
@@ -1546,7 +1546,7 @@ var keyHandlers = {
                     return;
                   }
 
-            }
+            }*/
             // Must not be at the very beginning of the text area.
             if ( previous ) {
                 var previousBQ = getNearest( previous, root, 'BLOCKQUOTE' );
@@ -1562,8 +1562,21 @@ var keyHandlers = {
                         detach( previous );
                     } else if ( current.textContent === '' ){
                         replaceWith( current.parentNode, current );
+                        range = self._createRange( current, 0 );
+                        self.setSelection( range );
+                        self._updatePath( range, true );
                     } 
                     return;
+                } else if ( (header = getNearestLike( current, 'H\\d$' )) &&
+                            previous.textContent === '' &&
+                            range.collapsed && 
+                            range.startOffset === 0 ){
+                        replaceWith( previous, header );
+                        range = self._createRange( header, 0 );
+                        self.setSelection( range );
+                        self._updatePath( range, true );
+                        return;
+
                 } else if ( (currentBQ && 
                              previousBQ && 
                              previousBQ.className !== currentBQ.className) ||
@@ -1571,7 +1584,7 @@ var keyHandlers = {
                           ) {
                     // do not merge
                     return;
-                }
+                } 
                 
                 // Otherwise merge.
                 mergeWithBlock( previous, current, range );
