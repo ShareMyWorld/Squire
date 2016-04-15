@@ -230,14 +230,14 @@ var keyHandlers = {
                 child = next;
             }
 
-            header = getNearestLike( nodeAfterSplit, root, 'H\\d$' )
+            header = getNearestLike( nodeAfterSplit, 'H\\d$' );
             // SMW - Enter discontinous header
             if ( header ){ 
                 if ( !range.collapsed || (range.collapsed && range.startOffset !== 0) ) {
                     detach( nodeAfterSplit );
                     //insert after
                     parent = header.parentNode;
-                    if ( parent.lastchild === header ) {
+                    if ( parent.lastChild === header ) {
                         parent.parentNode.appendChild( nodeAfterSplit );
                     } else {
                         parent.insertBefore( nodeAfterSplit, header.nextSibling );
