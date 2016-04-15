@@ -2187,14 +2187,14 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
         self.changeFormat( add, remove, range );
         
         //Reset cursor
-        try {
+        /*try {
             range.setStart( _startNode, _startOffset );
             range.setEnd( _endNode, _startOffset );
             range.collapse( true );
             self.setSelection( range );
         } catch(e) {
             console.error('Squire.changeFormatExpandToWord()', e);
-        }
+        }*/
     } else {
         self.changeFormat( add, remove, range );
     }
