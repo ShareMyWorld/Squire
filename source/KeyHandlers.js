@@ -299,20 +299,18 @@ var keyHandlers = {
             var current = getStartBlockOfRange( range ),
                 previous = current && getPreviousBlock( current ),
                 header, selectedBlock;
-            if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
-                var parent =  header.parentNode;
-                replaceWith( header, current );
-                range = self._createRange( current, 0 );
-                self.setSelection( range );
-                self._updatePath( range, true );
-                return;
-            }
+
             // Must not be at the very beginning of the text area.
             if ( previous ) {
                 var previousBQ = getNearest( previous, 'BLOCKQUOTE' );
                 var currentBQ = getNearest( current, 'BLOCKQUOTE' );
 
-                if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
+                if ( header = getNearestLike( current, 'H\\d$' ) ) {
+                    if ( previous.textContent === '' && range.collapsed && range.startOffset === 0 ) {
+                        replaceWith( previous, header );
+                        return;
+                    }
+                } else if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
                     detach( previous.parentNode );
                     return;
                 } else if ( !previous.isContentEditable ) {
