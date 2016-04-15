@@ -1527,7 +1527,7 @@ var keyHandlers = {
             if ( header = getNearestLike( current, 'H\\d$' ) ) {
                   var parent =  header.parentNode;
                   if ( previous &&
-                       previous.textContent === '' && 
+                       (previous.textContent === '' || !previous.isContentEditable ) && 
                        range.collapsed && 
                        range.startOffset === 0 ) {
                         replaceWith( previous, header );
@@ -1541,6 +1541,9 @@ var keyHandlers = {
                     self.setSelection( range );
                     self._updatePath( range, true );
                     return;
+                  } else {
+                    //ignore
+                    return;
                   }
 
             }
@@ -1552,9 +1555,14 @@ var keyHandlers = {
                 if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
                     detach( previous.parentNode );
                     return;
-                } else if ( current.parentNode.nodeName === 'BODY' && !previous.isContentEditable ) {
+                } else if ( !previous.isContentEditable ) {
                     // If not editable, just delete whole block.
-                    detach( previous );
+                    
+                    if ( current.parentNode.nodeName === 'BODY' ) {
+                        detach( previous );
+                    } else if ( current.textContent === '' ){
+                        replaceWith( current.parentNode, current );
+                    } 
                     return;
                 } else if ( (currentBQ && 
                              previousBQ && 

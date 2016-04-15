@@ -309,7 +309,7 @@ var keyHandlers = {
             if ( header = getNearestLike( current, 'H\\d$' ) ) {
                   var parent =  header.parentNode;
                   if ( previous &&
-                       previous.textContent === '' && 
+                       (previous.textContent === '' || !previous.isContentEditable ) && 
                        range.collapsed && 
                        range.startOffset === 0 ) {
                         replaceWith( previous, header );
@@ -322,6 +322,9 @@ var keyHandlers = {
                     range = self._createRange( current, 0 );
                     self.setSelection( range );
                     self._updatePath( range, true );
+                    return;
+                  } else {
+                    //ignore
                     return;
                   }
 
@@ -341,7 +344,7 @@ var keyHandlers = {
                         detach( previous );
                     } else if ( current.textContent === '' ){
                         replaceWith( current.parentNode, current );
-                    }
+                    } 
                     return;
                 } else if ( (currentBQ && 
                              previousBQ && 
