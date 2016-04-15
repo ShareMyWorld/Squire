@@ -1556,15 +1556,15 @@ var keyHandlers = {
                     detach( previous.parentNode );
                     return;
                 } else if ( !previous.isContentEditable ) {
-                    // If not editable, just delete whole block.
-                    
-                    if ( current.parentNode.nodeName === 'BODY' ) {
-                        detach( previous );
-                    } else if ( current.textContent === '' ){
+                    if ( current.textContent === '' && current.parentNode.nodeName !== 'BODY' ){
+                        // If empty node with wrapping element delete wrapping first
                         replaceWith( current.parentNode, current );
                         range = self._createRange( current, 0 );
                         self.setSelection( range );
                         self._updatePath( range, true );
+                    } else {
+                        // If not editable, just delete whole block.
+                        detach( previous );
                     } 
                     return;
                 } else if ( (header = getNearestLike( current, 'H\\d$' )) &&
