@@ -334,9 +334,14 @@ var keyHandlers = {
                 if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
                     detach( previous.parentNode );
                     return;
-                } else if ( current.parentNode.nodeName === 'BODY' && !previous.isContentEditable ) {
+                } else if ( !previous.isContentEditable ) {
                     // If not editable, just delete whole block.
-                    detach( previous );
+                    
+                    if ( current.parentNode.nodeName === 'BODY' ) {
+                        detach( previous );
+                    } else if ( current.textContent === '' ){
+                        replaceWith( current.parentNode, current );
+                    }
                     return;
                 } else if ( (currentBQ && 
                              previousBQ && 
@@ -360,6 +365,7 @@ var keyHandlers = {
                     mergeContainers( current, root );
                 }
                 self.setSelection( range );
+                self._ensureBottomLine();
             }
             // If at very beginning of text area, allow backspace
             // to break lists/blockquote.

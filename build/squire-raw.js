@@ -1578,6 +1578,7 @@ var keyHandlers = {
                     mergeContainers( current, root );
                 }
                 self.setSelection( range );
+                self._ensureBottomLine();
             }
             // If at very beginning of text area, allow backspace
             // to break lists/blockquote.
