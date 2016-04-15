@@ -528,9 +528,25 @@ var rangeDoesEndAtBlockBoundary = function ( range, root ) {
 };
 
 var expandRangeToBlockBoundaries = function ( range, root ) {
-    var start = getStartBlockOfRange( range, root ),
-        end = getEndBlockOfRange( range, root ),
-        parent;
+    var node = range.commonAncestorContainer;
+    var untouchableNode = null;
+    var start, end, parent;
+
+    while ( node && node !== root ) {
+        if ( node.getAttribute('contenteditable') === 'false' || node.contenteditable === 'false') {
+            untouchableNode = node;
+        }
+        node = node.parentNode;
+    }
+
+    if (untouchableNode) {
+        start = untouchableNode;
+        end = untouchableNode;
+    } else {
+        start = getStartBlockOfRange( range, root );
+        end = getEndBlockOfRange( range, root );
+    }
+
 
     if ( start && end ) {
         parent = start.parentNode;
