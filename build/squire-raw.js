@@ -1520,11 +1520,11 @@ var keyHandlers = {
             if ( previous ) {
                 var previousBQ = getNearest( previous, 'BLOCKQUOTE' );
                 var currentBQ = getNearest( current, 'BLOCKQUOTE' );
-                
+
                 if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
                     detach( previous.parentNode );
                     return;
-                } else if ( !previous.isContentEditable ) {
+                } else if ( current.parentNode.nodeName === 'BODY' && !previous.isContentEditable ) {
                     // If not editable, just delete whole block.
                     detach( previous );
                     return;
