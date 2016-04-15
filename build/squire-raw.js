@@ -1429,8 +1429,7 @@ var keyHandlers = {
             header = getNearestLike( nodeAfterSplit, 'H\\d$' )
             // SMW - Enter discontinous header
             if ( header ){ 
-                if (( !range.collapsed || (range.collapsed && range.startOffset !== 0) ) &&
-                    ( nodeAfterSplit.textContent !== '') ) {
+                if ( !range.collapsed || (range.collapsed && range.startOffset !== 0) ) {
                     detach( nodeAfterSplit );
                     //insert after
                     parent = header.parentNode;
