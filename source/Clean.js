@@ -106,11 +106,11 @@ var stylesRewriters = {
         if ( node.firstChild.nodeName !== 'P' ) {
             var p = createElement( doc, 'P', {}, [ doc.createTextNode(node.textContent) ] );
             li = createElement( doc, 'LI', {}, [p] );
+            parent.replaceChild( li, node );
         } else {
             li = node;
-            node.firstChild.innerHTML = node.textContent;
+            //node.firstChild.innerHTML = node.textContent;
         }
-        parent.replaceChild( li, node );
         return li;
     }
 };
