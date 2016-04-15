@@ -132,7 +132,7 @@ var walker = new TreeWalker( null, SHOW_TEXT|SHOW_ELEMENT, function () {
        and whitespace nodes.
     2. Convert inline tags into our preferred format.
 */
-var cleanTree = function cleanTree ( node, errorCallback ) {
+var cleanTree = function cleanTree ( node, preserveWS, errorCallback ) {
     var children = node.childNodes,
         nonInlineParent, i, l, child, nodeName, nodeType, rewriter, childLength,
         startsWithWS, endsWithWS, data, sibling;
@@ -182,14 +182,14 @@ var cleanTree = function cleanTree ( node, errorCallback ) {
                 continue;
             }
             if ( childLength && !unbreakableBlock.test( nodeName ) ) {
-                cleanTree( child );
+                cleanTree( child, preserveWS || ( nodeName === 'PRE' ), errorCallback );
             }
         } else {
             if ( nodeType === TEXT_NODE ) {
                 data = child.data;
                 startsWithWS = !notWS.test( data.charAt( 0 ) );
                 endsWithWS = !notWS.test( data.charAt( data.length - 1 ) );
-                if ( !startsWithWS && !endsWithWS ) {
+                if ( preserveWS || ( !startsWithWS && !endsWithWS ) ) {
                     continue;
                 }
                 // Iterate through the nodes; if we hit some other content
@@ -208,9 +208,7 @@ var cleanTree = function cleanTree ( node, errorCallback ) {
                             break;
                         }
                     }
-                    if ( !sibling ) {
-                        data = data.replace( /^\s+/g, '' );
-                    }
+                    data = data.replace( /^\s+/g, sibling ? ' ' : '' );
                 }
                 if ( endsWithWS ) {
                     walker.currentNode = child;
@@ -225,9 +223,7 @@ var cleanTree = function cleanTree ( node, errorCallback ) {
                             break;
                         }
                     }
-                    if ( !sibling ) {
-                        data = data.replace( /^\s+/g, '' );
-                    }
+                    data = data.replace( /\s+$/g, sibling ? ' ' : '' );
                 }
                 if ( data ) {
                     child.data = data;
@@ -244,8 +240,8 @@ var cleanTree = function cleanTree ( node, errorCallback ) {
 
 // ---
 
-var removeEmptyInlines = function removeEmptyInlines ( root ) {
-    var children = root.childNodes,
+var removeEmptyInlines = function removeEmptyInlines ( node ) {
+    var children = node.childNodes,
         l = children.length,
         child;
     while ( l-- ) {
@@ -253,10 +249,10 @@ var removeEmptyInlines = function removeEmptyInlines ( root ) {
         if ( child.nodeType === ELEMENT_NODE && !isLeaf( child ) ) {
             removeEmptyInlines( child );
             if ( isInline( child ) && !child.firstChild ) {
-                root.removeChild( child );
+                node.removeChild( child );
             }
         } else if ( child.nodeType === TEXT_NODE && !child.data ) {
-            root.removeChild( child );
+            node.removeChild( child );
         }
     }
 };
@@ -286,8 +282,8 @@ var isLineBreak = function ( br ) {
 // line breaks by wrapping the inline text in a <div>. Browsers that want <br>
 // elements at the end of each block will then have them added back in a later
 // fixCursor method call.
-var cleanupBRs = function ( root ) {
-    var brs = root.querySelectorAll( 'BR' ),
+var cleanupBRs = function ( node, root ) {
+    var brs = node.querySelectorAll( 'BR' ),
         brBreaksLine = [],
         l = brs.length,
         i, br, parent;
@@ -312,7 +308,7 @@ var cleanupBRs = function ( root ) {
         if ( !brBreaksLine[l] ) {
             detach( br );
         } else if ( !isInline( parent ) ) {
-            //fixContainer( parent );
+            // fixContainer( parent, root );
         }
     }
 };
