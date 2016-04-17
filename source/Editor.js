@@ -1212,10 +1212,13 @@ proto.modifyBlocks = function ( modify, range, extractPattern ) {
     insertNodeInRange( range, modify.call( this, frag ) );
 
     // 5. Merge containers at edges
+    // SMW: Skip merging containers. Seems the right decision for our model.
+    /*
     if ( range.endOffset < range.endContainer.childNodes.length ) {
         mergeContainers( range.endContainer.childNodes[ range.endOffset ], root );
     }
     mergeContainers( range.startContainer.childNodes[ range.startOffset ], root );
+    */
 
     // 6. Restore selection
     this._getRangeAndRemoveBookmark( range );
