@@ -264,10 +264,12 @@ function getNearest ( node, root, tag, attributes ) {
     }
     return null;
 }
-function getNearestLike ( node, tagLike ) {
+function getNearestLike ( node, tagLike, attributes ) {
     do {
-        if ( node.nodeName.match( '^'+tagLike ) ) {
-            return node;
+        if ( node.nodeName.match( '^'+tagLike )) {
+            if ( !attributes || hasTagAttributes(node, node.nodeName, attributes) ) {
+                return node;
+            }
         }
     } while ( node = node.parentNode );
     return null;
@@ -704,7 +706,7 @@ var getNodeAfter = function ( node, offset ) {
 };
 
 var expandWord = function ( range ) {
-    if ( range.collapsed ) {
+    if ( range.collapsed && range.startContainer.nodeType === TEXT_NODE) {
         var text = range.startContainer.textContent;
         var wordRe = /\S+/g;
         var match;
@@ -1422,8 +1424,10 @@ var keyHandlers = {
                 return self.modifyBlocks( decreaseListLevel, range );
             }
             // Break blockquote
-            else if ( getNearest( block, root, 'BLOCKQUOTE' ) ) {
+            else if ( getNearest( block, root, 'BLOCKQUOTE', { class: 'blockquote'} ) ) {
                 return self.modifyBlocks( decreaseBlockQuoteLevel, range );
+            } else if ( getNearest( block, root, 'BLOCKQUOTE', { class: 'aside'} ) ) {
+                return self.modifyBlocks( decreaseBlockQuoteLevel, range, null, true );
             }
         } 
 
@@ -1626,8 +1630,10 @@ var keyHandlers = {
                     return self.modifyBlocks( decreaseListLevel, range );
                 }
                 // Break blockquote
-                else if ( getNearest( current, root, 'BLOCKQUOTE' ) ) {
+                else if ( getNearest( current, root, 'BLOCKQUOTE', {class: 'blockquote'} ) ) {
                     return self.modifyBlocks( decreaseBlockQuoteLevel, range );
+                } else if ( getNearest( current, root, 'BLOCKQUOTE', {class: 'aside'} ) ) {
+                    return self.modifyBlocks( decreaseBlockQuoteLevel, range, null, true );
                 }
                 // Remove heading
                 else if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
@@ -3553,7 +3559,16 @@ proto.forEachBlock = function ( fn, mutates, range ) {
     return this;
 };
 
-proto.modifyBlocks = function ( modify, range, extractPattern ) {
+/**
+ *
+ * @param {function} modify - Callback function that will be called with a document fragment containing the nodes that should be modified
+ * @param {Range=} range - The range to where to apply the modify operation. Defaults to current selection.
+ * @param {String=} expandToPattern - A Regexp string identifying the tag name of parent block the range should try to expand to
+ * @param {Object} expandToAttrs - Extra attributes that must also match for expandToPattern to match the node.
+ * @param {Boolean=} forceModifyFromRoot - If set to true, the document fragment will be relative to root instead of nearest block container.
+ * @returns {Squire} 
+ */
+proto.modifyBlocks = function ( modify, range, expandToPattern, expandToAttrs, forceModifyFromRoot ) {
     if ( !range && !( range = this.getSelection() ) ) {
         return this;
     }
@@ -3566,23 +3581,40 @@ proto.modifyBlocks = function ( modify, range, extractPattern ) {
     }
 
     var root = this._root;
-    var frag;
+    var frag, blockContainer, expandContainer;
 
     // 2. Expand range to block boundaries
-    expandRangeToBlockBoundaries( range, root );
+    if (expandToPattern) {
+        expandContainer = getNearestLike(range.commonAncestorContainer, expandToPattern, expandToAttrs);
+    }
+    if (expandContainer) {
+        range.setStart(expandContainer, 0);
+        range.setEnd(expandContainer, expandContainer.childNodes.length);
+    } else {
+        expandRangeToBlockBoundaries( range, root );
+    }
 
     // 3. Remove range.
-    moveRangeBoundariesUpTree( range, root ); // Jonas/Andreas: This does the right thing?
-    frag = extractContentsOfRange( range, root, root, extractPattern );
+    if (forceModifyFromRoot) {
+        blockContainer = root;
+    } else {
+        // Get Neareast parent container that can contain other blocks
+        blockContainer = getNearest(range.commonAncestorContainer, root, 'BLOCKQUOTE', { class: 'aside' }) || root;
+    }
+    moveRangeBoundariesUpTree( range, blockContainer ); 
+    frag = extractContentsOfRange( range, blockContainer, root );
 
     // 4. Modify tree of fragment and reinsert.
     insertNodeInRange( range, modify.call( this, frag ) );
 
     // 5. Merge containers at edges
+    // SMW: Skip merging containers. Seems the right decision for our model.
+    /*
     if ( range.endOffset < range.endContainer.childNodes.length ) {
         mergeContainers( range.endContainer.childNodes[ range.endOffset ], root );
     }
     mergeContainers( range.startContainer.childNodes[ range.startOffset ], root );
+    */
 
     // 6. Restore selection
     this._getRangeAndRemoveBookmark( range );
@@ -4489,7 +4521,7 @@ proto.removeBlockquotes = function ( ) {
 proto.removeAsides = function ( ) {
     var range = this.getSelection();
     var pattern = 'BLOCKQUOTE';
-    this.modifyBlocks( removeAllAsides, range, pattern );
+    this.modifyBlocks( removeAllAsides, range, pattern, {class: 'aside'}, true );
     return this.focus();
 };
 

@@ -188,8 +188,10 @@ var keyHandlers = {
                 return self.modifyBlocks( decreaseListLevel, range );
             }
             // Break blockquote
-            else if ( getNearest( block, root, 'BLOCKQUOTE' ) ) {
+            else if ( getNearest( block, root, 'BLOCKQUOTE', { class: 'blockquote'} ) ) {
                 return self.modifyBlocks( decreaseBlockQuoteLevel, range );
+            } else if ( getNearest( block, root, 'BLOCKQUOTE', { class: 'aside'} ) ) {
+                return self.modifyBlocks( decreaseBlockQuoteLevel, range, null, true );
             }
         } 
 
@@ -392,8 +394,10 @@ var keyHandlers = {
                     return self.modifyBlocks( decreaseListLevel, range );
                 }
                 // Break blockquote
-                else if ( getNearest( current, root, 'BLOCKQUOTE' ) ) {
+                else if ( getNearest( current, root, 'BLOCKQUOTE', {class: 'blockquote'} ) ) {
                     return self.modifyBlocks( decreaseBlockQuoteLevel, range );
+                } else if ( getNearest( current, root, 'BLOCKQUOTE', {class: 'aside'} ) ) {
+                    return self.modifyBlocks( decreaseBlockQuoteLevel, range, null, true );
                 }
                 // Remove heading
                 else if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {

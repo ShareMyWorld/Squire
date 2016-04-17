@@ -26,7 +26,7 @@ var getNodeAfter = function ( node, offset ) {
 };
 
 var expandWord = function ( range ) {
-    if ( range.collapsed ) {
+    if ( range.collapsed && range.startContainer.nodeType === TEXT_NODE) {
         var text = range.startContainer.textContent;
         var wordRe = /\S+/g;
         var match;

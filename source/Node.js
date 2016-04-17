@@ -82,10 +82,12 @@ function getNearest ( node, root, tag, attributes ) {
     }
     return null;
 }
-function getNearestLike ( node, tagLike ) {
+function getNearestLike ( node, tagLike, attributes ) {
     do {
-        if ( node.nodeName.match( '^'+tagLike ) ) {
-            return node;
+        if ( node.nodeName.match( '^'+tagLike )) {
+            if ( !attributes || hasTagAttributes(node, node.nodeName, attributes) ) {
+                return node;
+            }
         }
     } while ( node = node.parentNode );
     return null;

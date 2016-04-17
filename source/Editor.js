@@ -1186,7 +1186,16 @@ proto.forEachBlock = function ( fn, mutates, range ) {
     return this;
 };
 
-proto.modifyBlocks = function ( modify, range, extractPattern ) {
+/**
+ *
+ * @param {function} modify - Callback function that will be called with a document fragment containing the nodes that should be modified
+ * @param {Range=} range - The range to where to apply the modify operation. Defaults to current selection.
+ * @param {String=} expandToPattern - A Regexp string identifying the tag name of parent block the range should try to expand to
+ * @param {Object} expandToAttrs - Extra attributes that must also match for expandToPattern to match the node.
+ * @param {Boolean=} forceModifyFromRoot - If set to true, the document fragment will be relative to root instead of nearest block container.
+ * @returns {Squire} 
+ */
+proto.modifyBlocks = function ( modify, range, expandToPattern, expandToAttrs, forceModifyFromRoot ) {
     if ( !range && !( range = this.getSelection() ) ) {
         return this;
     }
@@ -1199,14 +1208,28 @@ proto.modifyBlocks = function ( modify, range, extractPattern ) {
     }
 
     var root = this._root;
-    var frag;
+    var frag, blockContainer, expandContainer;
 
     // 2. Expand range to block boundaries
-    expandRangeToBlockBoundaries( range, root );
+    if (expandToPattern) {
+        expandContainer = getNearestLike(range.commonAncestorContainer, expandToPattern, expandToAttrs);
+    }
+    if (expandContainer) {
+        range.setStart(expandContainer, 0);
+        range.setEnd(expandContainer, expandContainer.childNodes.length);
+    } else {
+        expandRangeToBlockBoundaries( range, root );
+    }
 
     // 3. Remove range.
-    moveRangeBoundariesUpTree( range, root ); // Jonas/Andreas: This does the right thing?
-    frag = extractContentsOfRange( range, root, root, extractPattern );
+    if (forceModifyFromRoot) {
+        blockContainer = root;
+    } else {
+        // Get Neareast parent container that can contain other blocks
+        blockContainer = getNearest(range.commonAncestorContainer, root, 'BLOCKQUOTE', { class: 'aside' }) || root;
+    }
+    moveRangeBoundariesUpTree( range, blockContainer ); 
+    frag = extractContentsOfRange( range, blockContainer, root );
 
     // 4. Modify tree of fragment and reinsert.
     insertNodeInRange( range, modify.call( this, frag ) );
@@ -2125,7 +2148,7 @@ proto.removeBlockquotes = function ( ) {
 proto.removeAsides = function ( ) {
     var range = this.getSelection();
     var pattern = 'BLOCKQUOTE';
-    this.modifyBlocks( removeAllAsides, range, pattern );
+    this.modifyBlocks( removeAllAsides, range, pattern, {class: 'aside'}, true );
     return this.focus();
 };
 
