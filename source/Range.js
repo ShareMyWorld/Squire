@@ -533,7 +533,7 @@ var expandRangeToBlockBoundaries = function ( range, root ) {
     var start, end, parent;
 
     while ( node && node !== root ) {
-        if ( node.getAttribute('contenteditable') === 'false' || node.contenteditable === 'false') {
+        if ( node.getAttribute('contenteditable') === 'false' || !node.isContentEditable) {
             untouchableNode = node;
         }
         node = node.parentNode;

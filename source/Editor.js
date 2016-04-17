@@ -2358,7 +2358,7 @@ proto.setLink = function ( url, title ) {
     this._recordUndoState( range );
     this._getRangeAndRemoveBookmark( range );
 
-    var links = getElementsInRange( 'A', null, range );
+    var links = getElementsInRange(this._root, 'A', null, range );
 
     if ( links.length > 0 ) {
         //Update first link found

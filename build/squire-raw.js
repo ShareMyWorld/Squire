@@ -447,6 +447,11 @@ function fixCursor ( node, root ) {
 
 // Recursively examine container nodes and wrap any inline children.
 function fixContainer ( container, root ) {
+
+    if (!container.isContentEditable || container.getAttribute('contenteditable') === 'false') {
+        return;
+    }
+
     var children = container.childNodes,
         doc = container.ownerDocument,
         wrapper = null,
@@ -1213,7 +1218,7 @@ var expandRangeToBlockBoundaries = function ( range, root ) {
     var start, end, parent;
 
     while ( node && node !== root ) {
-        if ( node.getAttribute('contenteditable') === 'false' || node.contenteditable === 'false') {
+        if ( node.getAttribute('contenteditable') === 'false' || !node.isContentEditable) {
             untouchableNode = node;
         }
         node = node.parentNode;
@@ -4731,7 +4736,7 @@ proto.setLink = function ( url, title ) {
     this._recordUndoState( range );
     this._getRangeAndRemoveBookmark( range );
 
-    var links = getElementsInRange( 'A', null, range );
+    var links = getElementsInRange(this._root, 'A', null, range );
 
     if ( links.length > 0 ) {
         //Update first link found

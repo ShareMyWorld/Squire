@@ -265,6 +265,11 @@ function fixCursor ( node, root ) {
 
 // Recursively examine container nodes and wrap any inline children.
 function fixContainer ( container, root ) {
+
+    if (!container.isContentEditable || container.getAttribute('contenteditable') === 'false') {
+        return;
+    }
+
     var children = container.childNodes,
         doc = container.ownerDocument,
         wrapper = null,
