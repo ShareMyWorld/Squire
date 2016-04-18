@@ -733,6 +733,11 @@ proto.undo = function () {
         var range = this._getRangeAndRemoveBookmark();
         if ( range ) {
             this.setSelection( range );
+            var startNode = range.startContainer;
+            if ( startNode.nodeType != ELEMENT_NODE ) {
+                startNode = startNode.parentNode;
+            }
+            startNode.scrollIntoView();
         }
         this._isInUndoState = true;
         this.fireEvent( 'undoStateChange', {
