@@ -110,9 +110,15 @@ function Squire ( root, config ) {
     this.setConfig( config );
 
     //SMW
-    this._allowedContent = createAllowedContentMap( config.allowedContentForMarkedTypes );
+    this._allowedContent = 
+        createAllowedContentMap( config.classifications, 
+                                 config.allowedBlocksForContainers, 
+                                 config.allowedTags );
+
+    this._allowedBlocksForContainser = config.allowedBlocksForContainers;
     
-    this._translateToSmw = createTranslationMap( config.tagAttributes );
+    this._translateToSmw = 
+        createTranslationMap( config.tagAttributes, config.allowedTags );
 
     this._validTags = Object.keys( this._translateToSmw );
 
@@ -2002,14 +2008,41 @@ proto.decreaseListLevel = command( 'modifyBlocks', decreaseListLevel );
 
 // Functions
 
-var createAllowedContentMap = function ( allowedObj ) {
-    return Object.keys(allowedObj).reduce( function( acc, key ) {
-        allowedObj[key].forEach( function( tag ){ acc[tag] = key });
+var createAllowedContentMap = function ( classifications, allowedBlocks, allowedTags ) {
+    var textTag = 'p';
+
+    return Object.keys(classifications).reduce( function( acc, classification ) {
+        classifications[classification].forEach( function( tag ){ 
+            if ( allowedTags.indexOf( tag ) !== -1 ) {
+                var tags = [];
+                switch ( classification ) {
+                    case 'containers':
+                        tags = allowedBlocks[ tag ];
+                        break;
+                    case 'blockAtomic':
+                        tags = [];
+                        break;
+                    case 'blockWithText':
+                        tags = classifications.inlineWithAtomic.concat(classifications.inlineWithText);
+                        tags.push( textTag );
+                        break;
+                    case 'inlineWithAtomic':
+                        tags = [];
+                        break;
+                    case 'inlineWithText':
+                        tags = classifications.inlineWithText;
+                        tags.push( textTag );
+                        break; 
+                }
+                acc[tag] = tags; 
+            }
+        });
         return acc;
     }, {});
+
 }
 
-var createTranslationMap = function ( ta ) {
+var createTranslationMap = function ( ta, allowedSmwTags ) {
     var blockquote = ta.blockquote != undefined ? 'BLOCKQUOTE.' + ta.blockquote.class : 'BLOCKQUOTE';
     var aside = 'BLOCKQUOTE.' + ta.aside.class;
     //var aside = 'ASIDE';
@@ -2033,6 +2066,11 @@ var createTranslationMap = function ( ta ) {
     translations[bulleted] = 'list';
     translations[noLabels] = 'list';
     translations[hr] = 'hr';
+
+    for ( var htmlTag in translations ) {
+        if ( allowedSmwTags.indexOf( translations[ htmlTag ] ) === -1 )
+            delete translations[ htmlTag ];
+    }
     return translations;
 };
 
@@ -2279,14 +2317,16 @@ var isSmwInline = function ( self, tag ) {
 
 // Tags must be in SMW form
 var isAllowedIn = function ( self, tag, containerTag ) {
-    var allowedClass = self._allowedContent[ containerTag ];
+    return self._allowedContent[ containerTag ] &&
+        self._allowedContent[ containerTag ].indexOf( tag ) !== -1;
+    /*var allowedClass = self._allowedContent[ containerTag ];
     if ( allowedClass === 'none' ) {
         return false;
     } else if ( allowedClass === 'inline' ) {
         return isSmwInline( self, tag );
     } else if ( allowedClass === 'all' ) {
         return true;
-    }
+    }*/
 };
 
 var getSmwTagType = function ( smwTagTypes, tag ) {

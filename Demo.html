@@ -190,7 +190,23 @@
             all: ['aside'],
             none: [ 'br', 'hr', 'link', 'smwWidget']
         };
-
+    var classifications = {
+        containers: ['aside'],
+        blockAtomic: [ 'smwWidget', 'hr'],
+        blockWithText: ['heading', 'list', 'blockquote'],
+        inlineWithAtomic: ['br'],
+        inlineWithText: ['link', 'strong', 'em']
+    };
+    var allowedBlocksForContainers = {
+          root: ['heading', 'list', 'smwWidget', 'hr', 'blockquote', 'aside'],
+          aside: ['heading', 'list', 'smwWidget', 'blockquote']
+      };
+    var contentModeTypes = {
+            abstract:   ['blockquote', 'br', 'em', 'link', 'strong'],
+            inline:     ['br', 'em', 'link', 'strong'],
+            noWidgets:  ['aside', 'blockquote', 'br', 'em', 'heading', 'hr', 'link', 'list', 'strong'],
+            full:       ['aside', 'blockquote', 'br', 'em', 'heading', 'hr', 'link', 'list', 'strong', 'smwWidget']
+        };
         /**
          * List of marked types that are 'inline'
          * Other marked types are considered as 'block'
@@ -213,6 +229,9 @@
             smwParagraph: {'class': 'smw-paragraph'},
             onPasteErrorCallback: onPasteErrorCallback
         },
+        classifications: classifications,
+        allowedBlocksForContainers: allowedBlocksForContainers,
+        allowedTags: contentModeTypes['full'],
         allowedContentForMarkedTypes: allowedContentForMarkedTypes,
         inlineMarkedTypes: inlineMarkedTypes
     });
