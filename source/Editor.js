@@ -111,10 +111,11 @@ function Squire ( root, config ) {
 
     //SMW
     this._allowedContent = 
-        createAllowedContentMap( config.classifications, 
-                                 config.allowedBlocksForContainers, 
-                                 config.allowedTags );
+       createAllowedContentMap( config.classifications, config.allowedTags );
 
+    this._classifications = config.classifications;
+    this._allowedBlocks = config.allowedBlocksForContainers;
+    
     this._allowedBlocksForContainser = config.allowedBlocksForContainers;
     
     this._translateToSmw = 
@@ -2008,33 +2009,11 @@ proto.decreaseListLevel = command( 'modifyBlocks', decreaseListLevel );
 
 // Functions
 
-var createAllowedContentMap = function ( classifications, allowedBlocks, allowedTags ) {
-    var textTag = 'p';
-
+var createAllowedContentMap = function ( classifications, allowedTags ) {
     return Object.keys(classifications).reduce( function( acc, classification ) {
         classifications[classification].forEach( function( tag ){ 
             if ( allowedTags.indexOf( tag ) !== -1 ) {
-                var tags = [];
-                switch ( classification ) {
-                    case 'containers':
-                        tags = allowedBlocks[ tag ];
-                        break;
-                    case 'blockAtomic':
-                        tags = [];
-                        break;
-                    case 'blockWithText':
-                        tags = classifications.inlineWithAtomic.concat(classifications.inlineWithText);
-                        tags.push( textTag );
-                        break;
-                    case 'inlineWithAtomic':
-                        tags = [];
-                        break;
-                    case 'inlineWithText':
-                        tags = classifications.inlineWithText;
-                        tags.push( textTag );
-                        break; 
-                }
-                acc[tag] = tags; 
+                acc[tag] = classification; 
             }
         });
         return acc;
@@ -2312,13 +2291,36 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
 };
 
 var isSmwInline = function ( self, tag ) {
-    return self._config.inlineMarkedTypes.indexOf( tag ) > -1;
+    return self._config.inlineMarkedTypes.indexOf( tag ) !== -1;
 };
 
 // Tags must be in SMW form
 var isAllowedIn = function ( self, tag, containerTag ) {
-    return self._allowedContent[ containerTag ] &&
-        self._allowedContent[ containerTag ].indexOf( tag ) !== -1;
+    var tags = [];
+    var allInline = self._classifications.inlineWithText.concat(self._classifications.inlineWithAtomic);
+    var classification = self._allowedContent[ containerTag ];
+    switch ( classification ) {
+        case 'containers':
+            tags = allInline.concat( self._allowedBlocks[ containerTag ] );
+            break;
+        case 'blockAtomic':
+            tags = [];
+            break;
+        case 'blockWithText':
+            tags = allInline;
+            break;
+        case 'inlineWithAtomic':
+            tags = [];
+            break;
+        case 'inlineWithText':
+            tags = self._classifications.inlineWithText;
+            break;
+        default:
+            tags = [];
+            break;
+    }
+
+    return tags.indexOf( tag ) !== -1;
     /*var allowedClass = self._allowedContent[ containerTag ];
     if ( allowedClass === 'none' ) {
         return false;
