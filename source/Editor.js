@@ -2010,7 +2010,7 @@ proto.decreaseListLevel = command( 'modifyBlocks', decreaseListLevel );
 // Functions
 
 var createAllowedContentMap = function ( classifications, allowedTags ) {
-    return Object.keys(classifications).reduce( function( acc, classification ) {
+return Object.keys(classifications).reduce( function( acc, classification ) {
         classifications[classification].forEach( function( tag ){ 
             if ( allowedTags.indexOf( tag ) !== -1 ) {
                 acc[tag] = classification; 
@@ -2318,6 +2318,10 @@ var isAllowedIn = function ( self, tag, containerTag ) {
         default:
             tags = [];
             break;
+    }
+    //SUPER SPECIAL RULE for heading
+    if ( containerTag === 'heading' ) {
+        tags = tags.filter(function(e){return e != 'br'});
     }
 
     return tags.indexOf( tag ) !== -1;
