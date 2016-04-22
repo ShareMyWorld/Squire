@@ -116,7 +116,7 @@ function Squire ( root, config ) {
     this._classifications = config.classifications;
     this._allowedBlocks = config.allowedBlocksForContainers;
     
-    this._allowedBlocksForContainser = config.allowedBlocksForContainers;
+    this._allowedBlocksForContainers = config.allowedBlocksForContainers;
     
     this._translateToSmw = 
         createTranslationMap( config.tagAttributes, config.allowedTags );
@@ -1499,6 +1499,7 @@ proto.getHTML = function ( withBookMark ) {
     if ( range ) {
         this._getRangeAndRemoveBookmark( range );
     }
+
     return html;
 };
 
@@ -2003,12 +2004,8 @@ proto.decreaseListLevel = command( 'modifyBlocks', decreaseListLevel );
 //        \::/    /                \::/    /                \::/____/        
 //         \/____/                  \/____/                  ~~              
 
-// Config
-
-
 
 // Functions
-
 var createAllowedContentMap = function ( classifications, allowedTags ) {
 return Object.keys(classifications).reduce( function( acc, classification ) {
         classifications[classification].forEach( function( tag ){ 
@@ -2295,7 +2292,7 @@ var isSmwInline = function ( self, tag ) {
 };
 
 // Tags must be in SMW form
-var isAllowedIn = function ( self, tag, containerTag ) {
+proto.isAllowedIn = function ( self, tag, containerTag ) {
     var tags = [];
     var allInline = self._classifications.inlineWithText.concat(self._classifications.inlineWithAtomic);
     var classification = self._allowedContent[ containerTag ];
@@ -2366,6 +2363,7 @@ proto.addDefaultBlock = function () {
 //  ================ API specifics  ===========================
 proto.toggleStrong = function () {
     var tag = 'B';
+    fixContainer( this._root, this._root );
     return toggleInlineTag( this, tag );
 };
 
@@ -2607,7 +2605,7 @@ proto.getFormattingInfoFromCurrentSelection = function () {
         }
 
         var allowed = info.enabled || usedSmwBlockTags.every(function(usedBlockTag) {
-            return isAllowedIn(self, smwTag , usedBlockTag) || isAllowedIn(self, usedBlockTag, smwTag);
+            return self.isAllowedIn(self, smwTag , usedBlockTag) || self.isAllowedIn(self, usedBlockTag, smwTag);
         });
 
         // Now add even more restrictions!
@@ -2688,3 +2686,6 @@ delete proto.increaseListLevel;
 
 delete proto.increaseQuoteLevel;
 //delete proto.decreaseQuoteLevel;
+proto.fixCursor = function( ){
+    fixContainer( this._root, this._root );
+}

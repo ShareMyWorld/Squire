@@ -263,6 +263,82 @@ function fixCursor ( node, root ) {
     return originalNode;
 }
 
+function fixBlocks( node, squire, doc, config ) {
+    
+    if ( node.nodeName === 'P' ) {
+        fixParagraph( node, node.parentNode, squire, doc );
+    } else {
+        //create array to decouple from dom
+        var children = Array.prototype.slice.call(node.childNodes),
+            child;
+        //Only one p allowed! 
+        var smwNode = squire._translateToSmw[ node.nodeName ];
+        var classification = squire._allowedContent[ smwNode ];
+                
+        if ( classification === 'blockAtomic' ) {
+            //remove all children
+            while (node.firstChild) {
+                node.removeChild(node.firstChild);
+            }
+        } else {
+            var p = node.querySelector('P');
+            if ( !p ) {
+                p = createElement( doc, config.blockTag, config.blockAttributes );
+                var textNode = doc.createTextNode( node.textContent );
+                p.appendChild( textNode )
+            } else {
+                var text = children.reduce( function( acc, child ){
+                    if ( child !== p ) {
+                        acc += child.textContent;
+                        detach( child );
+                    } 
+                    return acc
+                }, "");
+                var textNode = doc.createTextNode( text );
+                p.appendChild( textNode );
+            }
+
+            fixParagraph( p, node, squire, doc );
+        }
+        
+    }
+}
+
+
+function fixParagraph( node, parent, squire, doc ) {
+    var smwParent = squire._translateToSmw[ parent.nodeName ];
+    var children = node.childNodes,
+        child;
+ 
+    for ( var i = 0; i <= children.length; i++ ) {
+        child = children[i];
+        var smwChild = squire._translateToSmw[ child.nodeName ];
+        if ( isInline( child ) ) {
+            //All inline are allowed in root
+            if ( !( parent.nodeName === 'BODY' || 
+                    squire.isAllowedIn( squire, smwChild, smwParent )
+                  ) ) {
+                var textNode = doc.createTextNode( child.textContent );
+                node.replaceChild( textNode, child );
+            } 
+        } 
+    }
+}
+
+function isBlockAllowedIn( _node, _container, squire ) {
+    var smwNode = squire._translateToSmw[ _node.nodeName ];
+    var smwContainer = squire._translateToSmw[ _container.nodeName ];
+    var containerTag = smwContainer !== undefined ? smwContainer : _container.nodeName.toLowerCase();
+    var allowed = squire._allowedBlocksForContainers[ containerTag ];
+    if ( _node.nodeName === 'P' ) {
+        return true;
+    } else if ( allowed ) {
+        return allowed.indexOf( smwNode ) !== -1;
+    } else {
+        return false;
+    }
+}
+
 // Recursively examine container nodes and wrap any inline children.
 function fixContainer ( container, root ) {
 
@@ -274,7 +350,8 @@ function fixContainer ( container, root ) {
         doc = container.ownerDocument,
         wrapper = null,
         i, l, child, isBR,
-        config = getSquireInstance( doc )._config;
+        squire = getSquireInstance( doc ),
+        config = squire._config;
 
     for ( i = 0, l = children.length; i < l; i += 1 ) {
         child = children[i];
@@ -301,6 +378,13 @@ function fixContainer ( container, root ) {
                 l += 1;
             }
             wrapper = null;
+        } else if ( isBlockAllowedIn( child, container, squire ) ) {
+            fixBlocks( child, squire, doc, config );
+        } else {
+            // if is inline, remove all but outermost of same sort if more than one
+            var textNode = doc.createTextNode( child.textContent );
+            container.replaceChild( textNode, child );
+            
         }
         if ( isContainer( child ) ) {
             fixContainer( child, root );
