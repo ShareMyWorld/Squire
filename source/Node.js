@@ -331,7 +331,7 @@ function fixParagraph( node, parent, squire, doc ) {
     for ( var i = 0; i < children.length; i++ ) {
         child = children[i];
         var smwChild = squire._translateToSmw[ child.nodeName ];
-        if ( node.nodeType === ELEMENT_NODE && isInline( child ) ) {
+        if ( child.nodeType === ELEMENT_NODE && isInline( child ) ) {
             //All inline are allowed in root
             if ( !( parent.nodeName === 'BODY' || 
                     squire.isAllowedIn( squire, smwChild, smwParent )
