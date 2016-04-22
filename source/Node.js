@@ -408,9 +408,19 @@ function fixContainer ( container, root ) {
             wrapper = null;
         } else if ( isBlockAllowedIn( child, container, squire, config ) ) {
             // fix Li
-            if ( /^[OU]L$/.test( child.nodeName ) ){
-                //Only allow li
-                //but wait with the fixes til li
+            if ( /^[OU]L$/.test( child.nodeName ) ) {
+                var listChildren = Array.prototype.slice.call( child.childNodes );
+                listChildren.forEach(function(c){
+                    if ( c.nodeName !== 'LI' ) {
+                        var liWrapper = createElement( doc, 'LI' );
+                        var p = createElement( doc,
+                            config.blockTag, config.blockAttributes );
+                        var textNode = doc.createTextNode( c.textContent );
+                        p.appendChild( textNode );
+                        liWrapper.appendChild( p );
+                        child.replaceChild( liWrapper, c );
+                    }
+                });
             } else {
                 fixBlocks( child, squire, doc, config );
             } 
