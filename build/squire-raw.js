@@ -468,8 +468,10 @@ function fixBlocks( node, squire, doc, config ) {
         } */else {
             //Only one p allowed! 
             var p = filterParagraphs( node, doc, config );
-
-            fixParagraph( p, node, squire, doc );
+            if ( node.nodeName === 'LI' )
+                fixParagraph( p, node.parentNode, squire, doc );
+            else
+                fixParagraph( p, node, squire, doc );
         }
         
     }
