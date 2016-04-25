@@ -558,6 +558,9 @@ function fixParagraph( node, parent, squire, doc ) {
             } 
         } 
     }
+
+    // Ensure the paragraph is focusable
+    fixCursor( node, squire._root );
 }
 
 function isBlockAllowedIn( _node, _container, squire, config ) {
@@ -777,7 +780,7 @@ function mergeWithBlock ( block, next, range ) {
         container = container.parentNode;
     }
     detach( container );
-
+    block.normalize();
     offset = block.childNodes.length;
 
     // Remove extra <BR> fixer if present.
@@ -1552,7 +1555,6 @@ var afterDelete = function ( self, range ) {
 var keyHandlers = {
     enter: function ( self, event, range ) {
         var root = self._root;
-        var block, parent, nodeAfterSplit, header, blockquote;
 
         // We handle this ourselves
         event.preventDefault();
@@ -1571,46 +1573,61 @@ var keyHandlers = {
             deleteContentsOfRange( range, root );
         }
 
-        block = getStartBlockOfRange( range, root );
+        fixContainer(root, root);
 
-        // If this is a malformed bit of document or in a table;
-        // just play it safe and insert a <br>.
-        if ( !block || /^T[HD]$/.test( block.nodeName ) ) {
-            insertNodeInRange( range, self.createElement( 'BR' ) );
+        var current = getStartBlockOfRange( range, root );
+
+        if (!current) {
             range.collapse( false );
             self.setSelection( range );
             self._updatePath( range, true );
             return;
         }
 
-        // If in a list, we'll split the LI instead.
-        if ( parent = getNearest( block, root, 'LI' ) ) {
-            block = parent;
+        var currentBlock = current.parentNode;
+        var currentContainer, nodeAfterSplit, blockAfterSplit;
+        
+        if (currentBlock === root || isAside(currentBlock)) {
+            currentContainer = currentBlock;
+            currentBlock = current;
+        } else {
+            currentContainer = currentBlock.parentNode;
         }
 
-        if ( !block.textContent ) {
-            // Break list
-            if ( getNearest( block, root, 'UL' ) ||
-                    getNearest( block, root, 'OL' ) ) {
-                return self.modifyBlocks( decreaseListLevel, range );
+        if (isHeading(currentBlock)) {
+            if (!current.textContent.trim()) {
+                // Empty headings becomes P instead
+                currentContainer.insertBefore(self.createDefaultBlock(), currentBlock );
+                currentContainer.removeChild( currentBlock );
+                nodeAfterSplit = splitBlock( self, current, range.startContainer, range.startOffset );
+            } else  {
+                if (range.startOffset === 0) {
+                    currentContainer.insertBefore(self.createDefaultBlock(), currentBlock );
+                    nodeAfterSplit = current;
+                } else {
+                    nodeAfterSplit = splitBlockAndUnwrapAfter( self, currentBlock, range );
+                }
             }
-            // Break blockquote
-            else if ( getNearest( block, root, 'BLOCKQUOTE', { class: 'blockquote'} ) ) {
-                return self.modifyBlocks( decreaseBlockQuoteLevel, range );
-            } else if ( getNearest( block, root, 'BLOCKQUOTE', { class: 'aside'} ) ) {
-                return self.modifyBlocks( decreaseBlockQuoteLevel, range, null, true );
+            
+        } else if (isBlockquote(currentBlock)) {
+            nodeAfterSplit = splitBlockAndUnwrapAfter( self, currentBlock, range );
+            
+        } else if (isListItem(currentBlock)) {
+            if (currentContainer.lastElementChild === currentBlock && !current.textContent.trim()) {
+                self.modifyBlocks( decreaseListLevel, range );
+                nodeAfterSplit = current;
+            } else {
+                blockAfterSplit = splitBlock( self, currentBlock, range.startContainer, range.startOffset );
+                nodeAfterSplit = blockAfterSplit.firstElementChild;
             }
-        } 
+        } else {
+            nodeAfterSplit = splitBlock( self, current, range.startContainer, range.startOffset );
+        }
 
-        // Otherwise, split at cursor point.
-        nodeAfterSplit = splitBlock( self, block,
-            range.startContainer, range.startOffset );
-
-        // Clean up any empty inlines if we hit enter at the beginning of the
-        // block
-        removeZWS( block );
-        removeEmptyInlines( block );
-        fixCursor( block, root );
+        // Ensure the P before split is still focusable
+        removeZWS( current );
+        removeEmptyInlines( current );
+        fixCursor( current, root );
 
         // Focus cursor
         // If there's a <b>/<i> etc. at the beginning of the split
@@ -1639,44 +1656,6 @@ var keyHandlers = {
                 child = next;
             }
 
-            header = getNearestLike( nodeAfterSplit, 'H\\d$' );
-            // SMW - Enter discontinous header
-            if ( header ){ 
-                if ( !range.collapsed || (range.collapsed && range.startOffset !== 0) ) {
-                    detach( nodeAfterSplit );
-                    //insert after
-                    parent = header.parentNode;
-                    if ( parent.lastChild === header ) {
-                        parent.parentNode.appendChild( nodeAfterSplit );
-                    } else {
-                        parent.insertBefore( nodeAfterSplit, header.nextSibling );
-                    }
-                } else if ( range.collapsed && range.startOffset === 0 ) {
-                    var previous = nodeAfterSplit.previousSibling;
-                    detach( previous );
-                    header.parentNode.insertBefore( previous, header );
-                }
-
-            }  
-
-            var blockquote = getNearest( nodeAfterSplit, root, 'BLOCKQUOTE' );
-            // SMW - Enter discontinous blockquote
-            if ( blockquote &&
-                 blockquote.className === 'blockquote' && 
-                 (!range.collapsed || range.startOffset !== 0 || nodeAfterSplit.textContent !== '' ) ) {
-                detach( nodeAfterSplit );
-
-                //insert after
-                parent = blockquote.parentNode;
-                if ( parent.lastchild === blockquote ) {
-                    parent.parentNode.appendChild( nodeAfterSplit );
-                } else {
-                    parent.insertBefore( nodeAfterSplit, blockquote.nextSibling );
-                }
-                //break;
-
-            }  
-           
             // 'BR's essentially don't count; they're a browser hack.
             // If you try to select the contents of a 'BR', FF will not let
             // you type anything!
@@ -1688,7 +1667,10 @@ var keyHandlers = {
 
             nodeAfterSplit = child;
         }
-        range = self._createRange( nodeAfterSplit, 0 );
+
+        if (nodeAfterSplit) {
+            range = self._createRange( nodeAfterSplit, 0 );
+        }
         self.setSelection( range );
         self._updatePath( range, true );
     },
@@ -1704,10 +1686,10 @@ var keyHandlers = {
             afterDelete( self, range );
         }
         // If at beginning of block, merge with previous
-        else if ( rangeDoesStartAtBlockBoundary( range, root ) ) {
+        else if ( rangeDoesStartAtBlockBoundary( range, root ) && range.startOffset === 0) {
             event.preventDefault();
             var current = getStartBlockOfRange( range, root ),
-                previous, header;
+                previous;
             if ( !current ) {
                 return;
             }
@@ -3659,6 +3641,17 @@ var splitBlock = function ( self, block, node, offset ) {
     }
     return nodeAfterSplit;
 };
+
+var splitBlockAndUnwrapAfter = function( self, block, range ) {
+    var blockAfterSplit = splitBlock( self, block, range.startContainer, range.startOffset);
+    var nodeAfterSplit = blockAfterSplit.firstElementChild;
+    var container = block.parentNode;
+    // Remove Heading in the new block
+    container.insertBefore(nodeAfterSplit, blockAfterSplit);
+    container.removeChild(blockAfterSplit);
+
+    return nodeAfterSplit;
+}
 
 proto.forEachBlock = function ( fn, mutates, range ) {
     if ( !range && !( range = this.getSelection() ) ) {
