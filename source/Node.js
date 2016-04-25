@@ -47,6 +47,14 @@ function isAside (node) {
     return node && getFullNodeName(node) === 'BLOCKQUOTE.aside';
 }
 
+function isList (node) {
+    return node && /^[OU]L$/.test(node.nodeName);
+}
+
+function isListItem (node) {
+    return node && node.nodeName === 'LI';
+}
+
 function isParagraph (node) {
     var fullNodeName = getFullNodeName(node);
     return node && fullNodeName === 'P' || fullNodeName === 'P.paragraph';
