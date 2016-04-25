@@ -544,18 +544,27 @@ function fixParagraph( node, parent, squire, doc ) {
         //Use UL/OL as parent for validity checks
         parent = parent.parentNode;
     }
-
+    //Remove all nested brs (the only inline that may not be allowed)
     var smwParent = squire._translateToSmw[ getFullNodeName( parent ) ];
+    if ( smwParent && !squire.isAllowedIn( squire, 'br', smwParent ) ){
+        var brs = node.querySelectorAll( 'BR' );
+        for ( var i = 0; i < brs.length; i++ ) {
+            brs[ i ].parentNode.removeChild( brs[ i ] );
+        }
+    }
+
     for ( var i = 0; i < children.length; i++ ) {
         child = children[i];
         var smwChild = squire._translateToSmw[ child.nodeName ];
         if ( child.nodeType === ELEMENT_NODE && isInline( child ) ) {
             //All inline are allowed in root
+            //TODO: if is inline, remove all but outermost of same sort if more than one
             if ( !( parent.nodeName === 'BODY' || 
                     squire.isAllowedIn( squire, smwChild, smwParent ) ) ) {
                 var textNode = doc.createTextNode( child.textContent );
                 node.replaceChild( textNode, child );
             } 
+
         } 
     }
 
@@ -647,7 +656,7 @@ function fixContainer ( container, root ) {
         } else if ( isBlockAllowedIn( child, container, squire, config ) ) {
             fixBlocks( child, squire, doc, config );
         } else {
-            // if is inline, remove all but outermost of same sort if more than one
+            
             var textNode = doc.createTextNode( child.textContent );
             container.replaceChild( textNode, child );
             
