@@ -125,6 +125,8 @@ function Squire ( root, config ) {
 
     this._onPasteErrorCallback = config.onPasteErrorCallback;
 
+    this.confirmDeleteWidget = config.confirmDeleteWidget;
+
     // Fix IE<10's buggy implementation of Text#splitText.
     // If the split is at the end of the node, it doesn't insert the newly split
     // node into the document, and sets its value to undefined rather than ''.

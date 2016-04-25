@@ -343,7 +343,7 @@ var keyHandlers = {
             }
 
             // Replace the blockquote with a p, i.e. unset blockquote
-            if ( getNearestCallback( current, currentContainer, isBlockquote)) {
+            if (isBlockquote(currentBlock)) {
                 self.modifyBlocks( decreaseBlockQuoteLevel, range );
             } 
             // If the block is the first block within the container, or if the previous sibling is a container
@@ -359,16 +359,14 @@ var keyHandlers = {
                 } else {
                     previousBlock = previous.parentNode;
                 }
-                var previousFullNodeName = getFullNodeName(previousBlock);
 
-                if ( isPagebreak(previousBlock) ) {
-                    detach( previousBlock );
-                } else if ( isParagraph(previousBlock) && !previous.textContent.trim() ) {
-                    // We prefer removing previous block in this case to keep header formatting
+                if ( isPagebreak(previousBlock) || (isParagraph(previousBlock) && !previous.textContent.trim()) || previousBlock.isContentEditable) {
+                    // We prefer removing previous block in this case to keep header formatting for currentBlock example
                     detach( previousBlock );
                 } else if ( isWidget(previousBlock) ) {
-                    // TODO: Callback ask if we should remove
-                    detach( previousBlock );
+                    self.confirmDeleteWidget(previousBlock.getAttribute('widget-id'), previousBlock.getAttribute('widget-type')).then(function() {
+                        detach( previousBlock );
+                    });
                 } else {
                     mergeWithBlock( previous, current, range );
                 }
