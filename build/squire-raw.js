@@ -583,6 +583,8 @@ function fixContainer ( container, root ) {
                 l += 1;
             }
             wrapper = null;
+        } else if ( !child.isContentEditable || container.getAttribute('contenteditable') === 'false' ) {
+            //Don't check this child
         } else if ( /^[OU]L$/.test( child.nodeName ) ) {
             var listChildren = Array.prototype.slice.call( child.childNodes );
             listChildren.forEach(function(c){
@@ -598,16 +600,15 @@ function fixContainer ( container, root ) {
             });
 
         } else if ( isBlockAllowedIn( child, container, squire, config ) ) {
-           
             fixBlocks( child, squire, doc, config );
-            
         } else {
             // if is inline, remove all but outermost of same sort if more than one
             var textNode = doc.createTextNode( child.textContent );
             container.replaceChild( textNode, child );
             
         }
-        if ( isContainer( child ) && child.nodeName !== 'LI' ) { //&& !/^[OU]L$/.test( child.nodeName )
+        if ( isContainer( child ) && child.nodeName !== 'LI' && 
+             ( !child.isContentEditable || container.getAttribute('contenteditable') === 'false' ) ) {
             fixContainer( child, root );
         }
     }
