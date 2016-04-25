@@ -39,6 +39,31 @@ function isContainer ( node ) {
         !isInline( node ) && !isBlock( node );
 }
 
+function isBlockquote (node) {
+    return node && getFullNodeName(node) === 'BLOCKQUOTE.blockquote';
+}
+
+function isAside (node) {
+    return node && getFullNodeName(node) === 'BLOCKQUOTE.aside';
+}
+
+function isParagraph (node) {
+    var fullNodeName = getFullNodeName(node);
+    return node && fullNodeName === 'P' || fullNodeName === 'P.paragraph';
+}
+
+function isHeading (node) {
+    return node && /^H\d$/.test(node.nodeName);
+}
+
+function isPagebreak (node) {
+    return node && getFullNodeName(node) === 'P.page-break-container';
+}
+
+function isWidget (node) {
+    return node && node.nodeName === 'MYWO-CONTENT-WIDGET';
+}
+
 function getBlockWalker ( node, root ) {
     var walker = new TreeWalker( root, SHOW_ELEMENT, isBlock );
     walker.currentNode = node;
@@ -76,6 +101,15 @@ function hasTagAttributes ( node, tag, attributes ) {
 function getNearest ( node, root, tag, attributes ) {
     while ( node && node !== root ) {
         if ( hasTagAttributes( node, tag, attributes ) ) {
+            return node;
+        }
+        node = node.parentNode;
+    }
+    return null;
+}
+function getNearestCallback ( node, root, callback ) {
+    while ( node && node !== root ) {
+        if (callback(node)) {
             return node;
         }
         node = node.parentNode;
