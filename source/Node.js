@@ -460,7 +460,7 @@ function fixContainer ( container, root ) {
             
         }
         if ( isContainer( child ) && child.nodeName !== 'LI' && 
-             ( !child.isContentEditable || container.getAttribute('contenteditable') === 'false' ) ) {
+             ( child.isContentEditable || container.getAttribute('contenteditable') !== 'false' ) ) {
             fixContainer( child, root );
         }
     }
