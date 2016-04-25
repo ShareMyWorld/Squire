@@ -184,15 +184,15 @@ var keyHandlers = {
             currentContainer = currentBlock.parentNode;
         }
 
-        if (isHeading(currentBlock)) {
+        if ( isHeading(currentBlock) ) {
             if (!current.textContent.trim()) {
                 // Empty headings becomes P instead
-                currentContainer.insertBefore(self.createDefaultBlock(), currentBlock );
-                currentContainer.removeChild( currentBlock );
+                currentContainer.insertBefore( self.createDefaultBlock(), currentBlock );
+                detach( currentBlock );
                 nodeAfterSplit = splitBlock( self, current, range.startContainer, range.startOffset );
             } else  {
                 if (range.startOffset === 0) {
-                    currentContainer.insertBefore(self.createDefaultBlock(), currentBlock );
+                    currentContainer.insertBefore( self.createDefaultBlock(), currentBlock );
                     nodeAfterSplit = current;
                 } else {
                     nodeAfterSplit = splitBlockAndUnwrapAfter( self, currentBlock, range );

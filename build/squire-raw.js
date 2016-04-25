@@ -544,8 +544,9 @@ function fixParagraph( node, parent, squire, doc ) {
         //Use UL/OL as parent for validity checks
         parent = parent.parentNode;
     }
-    //Remove all nested brs (the only inline that may not be allowed)
+    //Remove all brs down the tree (the only inline that may not be allowed)
     var smwParent = squire._translateToSmw[ getFullNodeName( parent ) ];
+    // P and BODY doesn't have any translation, luckily we accept br in thoose
     if ( smwParent && !squire.isAllowedIn( squire, 'br', smwParent ) ){
         var brs = node.querySelectorAll( 'BR' );
         for ( var i = 0; i < brs.length; i++ ) {
@@ -1603,15 +1604,15 @@ var keyHandlers = {
             currentContainer = currentBlock.parentNode;
         }
 
-        if (isHeading(currentBlock)) {
+        if ( isHeading(currentBlock) ) {
             if (!current.textContent.trim()) {
                 // Empty headings becomes P instead
-                currentContainer.insertBefore(self.createDefaultBlock(), currentBlock );
-                currentContainer.removeChild( currentBlock );
+                currentContainer.insertBefore( self.createDefaultBlock(), currentBlock );
+                detach( currentBlock );
                 nodeAfterSplit = splitBlock( self, current, range.startContainer, range.startOffset );
             } else  {
                 if (range.startOffset === 0) {
-                    currentContainer.insertBefore(self.createDefaultBlock(), currentBlock );
+                    currentContainer.insertBefore( self.createDefaultBlock(), currentBlock );
                     nodeAfterSplit = current;
                 } else {
                     nodeAfterSplit = splitBlockAndUnwrapAfter( self, currentBlock, range );
