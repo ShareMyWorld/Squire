@@ -221,6 +221,31 @@ function isContainer ( node ) {
         !isInline( node ) && !isBlock( node );
 }
 
+function isBlockquote (node) {
+    return node && getFullNodeName(node) === 'BLOCKQUOTE.blockquote';
+}
+
+function isAside (node) {
+    return node && getFullNodeName(node) === 'BLOCKQUOTE.aside';
+}
+
+function isParagraph (node) {
+    var fullNodeName = getFullNodeName(node);
+    return node && fullNodeName === 'P' || fullNodeName === 'P.paragraph';
+}
+
+function isHeading (node) {
+    return node && /^H\d$/.test(node.nodeName);
+}
+
+function isPagebreak (node) {
+    return node && getFullNodeName(node) === 'P.page-break-container';
+}
+
+function isWidget (node) {
+    return node && node.nodeName === 'MYWO-CONTENT-WIDGET';
+}
+
 function getBlockWalker ( node, root ) {
     var walker = new TreeWalker( root, SHOW_ELEMENT, isBlock );
     walker.currentNode = node;
@@ -258,6 +283,15 @@ function hasTagAttributes ( node, tag, attributes ) {
 function getNearest ( node, root, tag, attributes ) {
     while ( node && node !== root ) {
         if ( hasTagAttributes( node, tag, attributes ) ) {
+            return node;
+        }
+        node = node.parentNode;
+    }
+    return null;
+}
+function getNearestCallback ( node, root, callback ) {
+    while ( node && node !== root ) {
+        if (callback(node)) {
             return node;
         }
         node = node.parentNode;
@@ -1671,7 +1705,7 @@ var keyHandlers = {
             }
             // In case inline data has somehow got between blocks.
             fixContainer( current.parentNode, root );
-            // Now get previous block
+            // Now get previous block (p tag)
             previous = getPreviousBlock( current, root );
             /*if ( header = getNearestLike( current, 'H\\d$' ) ) {
                   var parent =  header.parentNode;
@@ -1696,81 +1730,127 @@ var keyHandlers = {
                   }
 
             }*/
-            // Must not be at the very beginning of the text area.
-            if ( previous ) {
-                var previousBQ = getNearest( previous, root, 'BLOCKQUOTE' );
-                var currentBQ = getNearest( current, root, 'BLOCKQUOTE' );
 
-                if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
-                    detach( previous.parentNode );
-                    return;
-                } else if ( !previous.isContentEditable ) {
-                    if ( current.textContent === '' && current.parentNode.nodeName !== 'BODY' ){
-                        // If empty node with wrapping element delete wrapping first
-                        replaceWith( current.parentNode, current );
-                        range = self._createRange( current, 0 );
-                        self.setSelection( range );
-                        self._updatePath( range, true );
-                    } else {
-                        // If not editable, just delete whole block.
-                        detach( previous );
-                    } 
-                    return;
-                } else if ( (header = getNearestLike( current, 'H\\d$' )) &&
-                            previous.textContent === '' &&
-                            range.collapsed && 
-                            range.startOffset === 0 ){
-                        replaceWith( previous, header );
-                        range = self._createRange( header, 0 );
-                        self.setSelection( range );
-                        self._updatePath( range, true );
-                        return;
 
-                } else if ( (currentBQ && 
-                             previousBQ && 
-                             previousBQ.className !== currentBQ.className) ||
-                            (!currentBQ && previousBQ) 
-                          ) {
-                    // do not merge
-                    return;
-                } 
-                
-                // Otherwise merge.
-                mergeWithBlock( previous, current, range );
-                
-                // If deleted line between containers, merge newly adjacent
-                // containers.
-                current = previous.parentNode;
-                while ( current !== root && !current.nextSibling ) {
-                    current = current.parentNode;
-                }
-                if ( current !== root && ( current = current.nextSibling ) ) {
-                    mergeContainers( current, root );
-                }
-                self.setSelection( range );
-                self._ensureBottomLine();
+            var currentBlock = current.parentNode;
+            var currentContainer;
+            if (currentBlock === root || isAside(currentBlock)) {
+                currentContainer = currentBlock;
+                currentBlock = current;
+            } else {
+                currentContainer = currentBlock.parentNode;
             }
-            // If at very beginning of text area, allow backspace
-            // to break lists/blockquote.
-            else if ( current ) {
-                // Break list
-                if ( getNearest( current, root, 'UL' ) ||
-                        getNearest( current, root, 'OL' ) ) {
-                    return self.modifyBlocks( decreaseListLevel, range );
-                }
-                // Break blockquote
-                else if ( getNearest( current, root, 'BLOCKQUOTE', {class: 'blockquote'} ) ) {
-                    return self.modifyBlocks( decreaseBlockQuoteLevel, range );
-                } else if ( getNearest( current, root, 'BLOCKQUOTE', {class: 'aside'} ) ) {
-                    return self.modifyBlocks( decreaseBlockQuoteLevel, range, null, true );
-                }
-                // Remove heading
-                else if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
-                    detach( header );
-                }
-                self.setSelection( range );
-                self._updatePath( range, true );
+
+            // Replace the blockquote with a p, i.e. unset blockquote
+            if ( getNearestCallback( current, currentContainer, isBlockquote)) {
+                self.modifyBlocks( decreaseBlockQuoteLevel, range );
+            } 
+            // If the block is the first block within the container, or if the previous sibling is a container
+            else if ( currentContainer.firstElementChild === currentBlock || isAside(currentBlock.previousSibling)) {
+                // Do nothing
             }
+            else if ( previous ) {
+                // The rest of the actions we need to merge with previous node or delete previous node
+
+                var previousBlock;
+                if (previous.parentNode === root || isAside(previous.parentNode)) {
+                    previousBlock = previous;
+                } else {
+                    previousBlock = previous.parentNode;
+                }
+                var previousFullNodeName = getFullNodeName(previousBlock);
+
+                if ( isPagebreak(previousBlock) ) {
+                    detach( previousBlock );
+                } else if ( isParagraph(previousBlock) && !previous.textContent.trim() ) {
+                    // We prefer removing previous block in this case to keep header formatting
+                    detach( previousBlock );
+                } else if ( isWidget(previousBlock) ) {
+                    // TODO: Callback ask if we should remove
+                    detach( previousBlock );
+                } else {
+                    mergeWithBlock( previous, current, range );
+                }
+            }
+
+            self.setSelection( range );
+            self._updatePath( range, true );
+            
+
+//            if ( previous ) {
+//                var previousBQ = getNearest( previous, root, 'BLOCKQUOTE' );
+//                var currentBQ = getNearest( current, root, 'BLOCKQUOTE' );
+//
+//                if ( previous.nodeName === 'IMG' && previous.className === 'page-break' ) {
+//                    detach( previous.parentNode );
+//                    return;
+//                } else if ( !previous.isContentEditable ) {
+//                    if ( current.textContent === '' && current.parentNode.nodeName !== 'BODY' ){
+//                        // If empty node with wrapping element delete wrapping first
+//                        replaceWith( current.parentNode, current );
+//                        range = self._createRange( current, 0 );
+//                        self.setSelection( range );
+//                        self._updatePath( range, true );
+//                    } else {
+//                        // If not editable, just delete whole block.
+//                        detach( previous );
+//                    }
+//                    return;
+//                } else if ( (header = getNearestLike( current, 'H\\d$' )) &&
+//                            previous.textContent === '' &&
+//                            range.collapsed &&
+//                            range.startOffset === 0 ){
+//                        replaceWith( previous, header );
+//                        range = self._createRange( header, 0 );
+//                        self.setSelection( range );
+//                        self._updatePath( range, true );
+//                        return;
+//
+//                } else if ( (currentBQ &&
+//                             previousBQ &&
+//                             previousBQ.className !== currentBQ.className) ||
+//                            (!currentBQ && previousBQ)
+//                          ) {
+//                    // do not merge
+//                    return;
+//                }
+//
+//                // Otherwise merge.
+//                mergeWithBlock( previous, current, range );
+//
+//                // If deleted line between containers, merge newly adjacent
+//                // containers.
+//                current = previous.parentNode;
+//                while ( current !== root && !current.nextSibling ) {
+//                    current = current.parentNode;
+//                }
+//                if ( current !== root && ( current = current.nextSibling ) ) {
+//                    mergeContainers( current, root );
+//                }
+//                self.setSelection( range );
+//                self._ensureBottomLine();
+//            }
+//            // If at very beginning of text area, allow backspace
+//            // to break lists/blockquote.
+//            else if ( current ) {
+//                // Break list
+//                if ( getNearest( current, root, 'UL' ) ||
+//                        getNearest( current, root, 'OL' ) ) {
+//                    return self.modifyBlocks( decreaseListLevel, range );
+//                }
+//                // Break blockquote
+//                else if ( getNearest( current, root, 'BLOCKQUOTE', {class: 'blockquote'} ) ) {
+//                    return self.modifyBlocks( decreaseBlockQuoteLevel, range );
+//                } else if ( getNearest( current, root, 'BLOCKQUOTE', {class: 'aside'} ) ) {
+//                    return self.modifyBlocks( decreaseBlockQuoteLevel, range, null, true );
+//                }
+//                // Remove heading
+//                else if ( current.textContent === '' && (header = getNearestLike( current, 'H\\d$' )) ) {
+//                    detach( header );
+//                }
+//                self.setSelection( range );
+//                self._updatePath( range, true );
+//            }
         }
         // Otherwise, leave to browser but check afterwards whether it has
         // left behind an empty inline tag.
