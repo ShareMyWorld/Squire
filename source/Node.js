@@ -264,11 +264,9 @@ function fixCursor ( node, root ) {
 }
 
 function fixBlocks( node, squire, doc, config ) {
-    
     if ( node.nodeName === 'P' ) {
         fixParagraph( node, node.parentNode, squire, doc );
     } else {
-        
         var smwNode = squire._translateToSmw[ getFullNodeName( node ) ];
         var classification = squire._allowedContent[ smwNode ];
                 
@@ -277,19 +275,10 @@ function fixBlocks( node, squire, doc, config ) {
             while ( node.firstChild ) {
                 node.removeChild( node.firstChild );
             }
-        } /*else if ( smwNode === 'list' ) {
-            var lis =  Array.prototype.slice.call(node.querySelectorAll('LI'));
-            lis.forEach(function(li){
-                var p = filterParagraphs( li, doc, config);
-                fixParagraph( p, node, squire, doc );
-            });
-        } */else {
+        } else {
             //Only one p allowed! 
             var p = filterParagraphs( node, doc, config );
-            if ( node.nodeName === 'LI' )
-                fixParagraph( p, node.parentNode, squire, doc );
-            else
-                fixParagraph( p, node, squire, doc );
+            fixParagraph( p, node, squire, doc );
         }
         
     }
@@ -324,18 +313,22 @@ function filterParagraphs( node, doc, config ) {
 }
 
 function fixParagraph( node, parent, squire, doc ) {
-    var smwParent = squire._translateToSmw[ getFullNodeName( parent ) ];
     var children = node.childNodes,
         child;
- 
+
+    if ( parent.nodeName === 'LI' ) {
+        //Use UL/OL as parent for validity checks
+        parent = parent.parentNode;
+    }
+
+    var smwParent = squire._translateToSmw[ getFullNodeName( parent ) ];
     for ( var i = 0; i < children.length; i++ ) {
         child = children[i];
         var smwChild = squire._translateToSmw[ child.nodeName ];
         if ( child.nodeType === ELEMENT_NODE && isInline( child ) ) {
             //All inline are allowed in root
             if ( !( parent.nodeName === 'BODY' || 
-                    squire.isAllowedIn( squire, smwChild, smwParent )
-                  ) ) {
+                    squire.isAllowedIn( squire, smwChild, smwParent ) ) ) {
                 var textNode = doc.createTextNode( child.textContent );
                 node.replaceChild( textNode, child );
             } 
@@ -408,32 +401,31 @@ function fixContainer ( container, root ) {
                 l += 1;
             }
             wrapper = null;
-        } else if ( isBlockAllowedIn( child, container, squire, config ) ) {
-            // fix Li
-            if ( /^[OU]L$/.test( child.nodeName ) ) {
-                var listChildren = Array.prototype.slice.call( child.childNodes );
-                listChildren.forEach(function(c){
-                    if ( c.nodeName !== 'LI' ) {
-                        var liWrapper = createElement( doc, 'LI' );
-                        var p = createElement( doc,
-                            config.blockTag, config.blockAttributes );
-                        var textNode = doc.createTextNode( c.textContent );
-                        p.appendChild( textNode );
-                        liWrapper.appendChild( p );
-                        child.replaceChild( liWrapper, c );
-                    }
-                });
-            } else {
-                fixBlocks( child, squire, doc, config );
-            } 
+        } else if ( /^[OU]L$/.test( child.nodeName ) ) {
+            var listChildren = Array.prototype.slice.call( child.childNodes );
+            listChildren.forEach(function(c){
+                if ( c.nodeName !== 'LI' ) {
+                    var liWrapper = createElement( doc, 'LI' );
+                    var p = createElement( doc,
+                        config.blockTag, config.blockAttributes );
+                    var textNode = doc.createTextNode( c.textContent );
+                    p.appendChild( textNode );
+                    liWrapper.appendChild( p );
+                    child.replaceChild( liWrapper, c );
+                }
+            });
 
+        } else if ( isBlockAllowedIn( child, container, squire, config ) ) {
+           
+            fixBlocks( child, squire, doc, config );
+            
         } else {
             // if is inline, remove all but outermost of same sort if more than one
             var textNode = doc.createTextNode( child.textContent );
             container.replaceChild( textNode, child );
             
         }
-        if ( isContainer( child )  ) { //&& !/^[OU]L$/.test( child.nodeName )
+        if ( isContainer( child ) && child.nodeName !== 'LI' ) { //&& !/^[OU]L$/.test( child.nodeName )
             fixContainer( child, root );
         }
     }
