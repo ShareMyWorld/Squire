@@ -1599,6 +1599,31 @@ var afterDelete = function ( self, range ) {
 };
 
 var keyHandlers = {
+    'shift-enter': function ( self, event, range) {
+        if (range.collapsed) {
+            var currentNode = range.startContainer;
+            if (getNearestCallback(currentNode, self._root, isHeading)) {
+                event.preventDefault();
+            }
+            else if (currentNode.nodeType === TEXT_NODE) {
+                // If empty, and there is a br before or after, DENY!
+                var previousNode = currentNode.previousSibling;
+                var nextNode = currentNode.nextSibling;
+
+                if (
+                    (!currentNode.data.slice(0, range.startOffset).trim() && (!previousNode || previousNode.nodeName === 'BR')) ||
+                    (!currentNode.data.slice(range.endOffset).trim() && nextNode && nextNode.parentNode.lastChild !== nextNode && nextNode.nodeName === 'BR')
+                ) {
+                    event.preventDefault();
+                }
+            } else {
+                currentNode = currentNode.childNodes[range.startOffset];
+                if (currentNode.nodeName === 'BR' && (!previousNode || previousNode.nodeName === 'BR' || (nextNode && nextNode.parentNode.lastChild !== nextNode && nextNode.nodeName === 'BR') )) {
+                    event.preventDefault();
+                }
+            }
+        }
+    },
     enter: function ( self, event, range ) {
         var root = self._root;
 
@@ -1892,6 +1917,7 @@ var keyHandlers = {
             setTimeout( function () { afterDelete( self ); }, 0 );
         }
     },
+    /*
     tab: function ( self, event, range ) {
         var root = self._root;
         var node, parent;
@@ -1930,6 +1956,7 @@ var keyHandlers = {
             }
         }
     },
+    */
     space: function ( self, _, range ) {
         var node, parent;
         self._recordUndoState( range );
@@ -1956,8 +1983,6 @@ var keyHandlers = {
     }
 };
 
-// NOTE: Remove tab
-delete keyHandlers.tab; 
 
 // Firefox pre v29 incorrectly handles Cmd-left/Cmd-right on Mac:
 // it goes back/forward in history! Override to do the right
@@ -4053,6 +4078,7 @@ proto.setHTML = function ( html, skipUndo ) {
 
     // Parse HTML into DOM tree
     div.innerHTML = html;
+    div.normalize();
     frag.appendChild( empty( div ) );
 
     cleanTree( frag );
