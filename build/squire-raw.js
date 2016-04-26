@@ -5138,7 +5138,7 @@ proto.getFormattingInfoFromCurrentSelection = function () {
 
                 case 'link':
                     allowed = false;
-                    if (!ancestorIsBody && !ancestorIsAside) {
+                    if (!ancestorIsBody && !ancestorIsAside && obj.elements.length === 1 ) {
                         if (info.enabled || !selection.collapsed) {
                             allowed = true;
                         } else if (selection.collapsed) {
