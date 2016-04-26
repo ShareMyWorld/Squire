@@ -575,7 +575,7 @@ function fixParagraph( node, parent, squire, doc ) {
 
 function isBlockAllowedIn( _node, _container, squire, config ) {
     var smwNode = squire._translateToSmw[ getFullNodeName( _node ) ];
-    var smwContainer = squire._translateToSmw[ getFullNodeName( _container.nodeName ) ];
+    var smwContainer = squire._translateToSmw[ getFullNodeName( _container ) ];
     var containerTag = smwContainer !== undefined ? smwContainer : _container.nodeName.toLowerCase();
     var allowed = squire._allowedBlocksForContainers[ containerTag ];
     
