@@ -1030,7 +1030,28 @@ var extractContentsOfRange = function ( range, common, root, parentPattern ) {
     return frag;
 };
 
+var encapsulateNonEditableElements = function ( range, root ) {
+    var startNode = range.startContainer;
+    var endNode = range.endContainer;
+    // Ensure range encapsulates contenteditable=false elements
+    while ( startNode && startNode !== root ) {
+        if ( startNode.nodeType !== TEXT_NODE && !startNode.isContentEditable) {
+            range.setStartBefore(startNode);
+        }
+        startNode = startNode.parentNode;
+    }
+
+    while ( endNode && endNode !== root) {
+        if ( endNode.nodeType !== TEXT_NODE && !endNode.isContentEditable) {
+            range.setEndAfter(endNode);
+        }
+        endNode = endNode.parentNode;
+    }
+}
+
+
 var deleteContentsOfRange = function ( range, root ) {
+    encapsulateNonEditableElements(range, root);
     // Move boundaries up as much as possible to reduce need to split.
     // But we need to check whether we've moved the boundary outside of a
     // block. If so, the entire block will be removed, so we shouldn't merge
