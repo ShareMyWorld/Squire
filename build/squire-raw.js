@@ -1615,6 +1615,8 @@ var keyHandlers = {
             currentContainer = currentBlock.parentNode;
         }
 
+        var linkBeforeSplit = getNearest(range.startContainer, root, 'A');
+
         if ( isHeading(currentBlock) ) {
             if (!current.textContent.trim()) {
                 // Empty headings becomes P instead
@@ -1659,13 +1661,20 @@ var keyHandlers = {
 
             // Don't continue links over a block break; unlikely to be the
             // desired outcome.
-            if ( nodeAfterSplit.nodeName === 'A' &&
-                    ( !nodeAfterSplit.textContent ||
-                        nodeAfterSplit.textContent === ZWS ) ) {
-                child = self._doc.createTextNode( '' );
-                replaceWith( nodeAfterSplit, child );
-                nodeAfterSplit = child;
-                break;
+            if ( nodeAfterSplit.nodeName === 'A') {
+                var nodeTextContent = nodeAfterSplit.textContent;
+                if (nodeTextContent === ZWS) {
+                    nodeTextContent = '';
+                }
+                if ( !nodeTextContent || ( linkBeforeSplit && linkBeforeSplit.textContent && linkBeforeSplit.href === nodeAfterSplit.href )) {
+                    child = self._doc.createTextNode(nodeTextContent);
+                    replaceWith( nodeAfterSplit, child );
+                    nodeAfterSplit = child;
+                    break;
+                } else if ( linkBeforeSplit && !linkBeforeSplit.textContent ) {
+                    detach( linkBeforeSplit );
+                    linkBeforeSplit = null;
+                }
             }
 
             while ( child && child.nodeType === TEXT_NODE && !child.data ) {
