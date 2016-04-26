@@ -322,9 +322,10 @@ function fixBlocks( node, squire, doc, config ) {
             var p = filterParagraphs( node, doc, config );
             fixParagraph( p, node, squire, doc );
         }
-        
+        fixStaticBlocks( node, squire, doc, config );
     }
 }
+
 
 function filterParagraphs( node, doc, config ) {
     var children = Array.prototype.slice.call(node.childNodes),
@@ -493,17 +494,40 @@ function fixContainer ( container, root ) {
         }
         if ( isContainer( child ) && child.nodeName !== 'LI' && 
              ( child.isContentEditable || container.getAttribute('contenteditable') !== 'false' ) ) {
+            fixStaticBlocks( child, squire, doc, config );
             fixContainer( child, root );
         }
     }
-    if ( isContainer( container ) ) {
+    if ( isContainer( container ) && !/^[OU]L$/.test( container ) ) {
         squire._ensureBottomLine( container );
+
+        
     }
 
     if ( wrapper ) {
         container.appendChild( fixCursor( wrapper, root ) );
     }
     return container;
+}
+
+function fixStaticBlocks( node, squire, doc, config ) {
+    var smwNode = squire._translateToSmw[ getFullNodeName( node ) ];
+    var classification = squire._allowedContent[ smwNode ];
+    var isStatic = classification === 'blockAtomic' || classification === 'containers'; 
+    
+    var previous;
+    if ( isStatic && (previous = node.previousSibling) ) {
+        var smwPrevious = squire._translateToSmw[ getFullNodeName( previous ) ];
+        var prevClassification = squire._allowedContent[ smwPrevious ];
+        switch ( prevClassification ) {
+            case 'blockAtomic':
+            case 'containers':
+                //insert between static nodes
+                var defaultBlock = createElement( doc, config.blockTag, config.blockAttributes );
+                node.parentNode.insertBefore( defaultBlock, node );
+                break;
+        } 
+    }
 }
 
 function split ( node, offset, stopNode, root ) {
