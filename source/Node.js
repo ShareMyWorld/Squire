@@ -386,6 +386,9 @@ function fixParagraph( node, parent, squire, doc ) {
 
         } 
     }
+
+    // Ensure the paragraph is focusable
+    fixCursor( node, squire._root );
 }
 
 function isBlockAllowedIn( _node, _container, squire, config ) {
@@ -607,7 +610,7 @@ function mergeWithBlock ( block, next, range ) {
         container = container.parentNode;
     }
     detach( container );
-
+    block.normalize();
     offset = block.childNodes.length;
 
     // Remove extra <BR> fixer if present.

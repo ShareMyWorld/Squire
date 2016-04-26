@@ -1167,6 +1167,17 @@ var splitBlock = function ( self, block, node, offset ) {
     return nodeAfterSplit;
 };
 
+var splitBlockAndUnwrapAfter = function( self, block, range ) {
+    var blockAfterSplit = splitBlock( self, block, range.startContainer, range.startOffset);
+    var nodeAfterSplit = blockAfterSplit.firstElementChild;
+    var container = block.parentNode;
+    // Remove Heading in the new block
+    container.insertBefore(nodeAfterSplit, blockAfterSplit);
+    container.removeChild(blockAfterSplit);
+
+    return nodeAfterSplit;
+}
+
 proto.forEachBlock = function ( fn, mutates, range ) {
     if ( !range && !( range = this.getSelection() ) ) {
         return this;
