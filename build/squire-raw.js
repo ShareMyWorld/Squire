@@ -559,6 +559,15 @@ function fixParagraph( node, parent, squire, doc ) {
         var smwChild = squire._translateToSmw[ child.nodeName ];
         if ( child.nodeType === ELEMENT_NODE && isInline( child ) ) {
             //All inline are allowed in root
+            var containingP = getNearestCallback( child, parent, isParagraph );
+            var sameInlines = containingP.querySelectorAll( child.nodeName );
+            //Keep outermost
+            for( var j = 1; j < sameInlines.length; j++ ) {
+                var sameInline = sameInlines[ j ];
+                var textNode = doc.createTextNode( sameInline.textContent );
+                sameInline.parentNode.replaceChild( textNode, sameInline );
+            }
+
             //TODO: if is inline, remove all but outermost of same sort if more than one
             if ( !( parent.nodeName === 'BODY' || 
                     squire.isAllowedIn( squire, smwChild, smwParent ) ) ) {
