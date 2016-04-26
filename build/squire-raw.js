@@ -544,8 +544,9 @@ function fixParagraph( node, parent, squire, doc ) {
         //Use UL/OL as parent for validity checks
         parent = parent.parentNode;
     }
-    //Remove all nested brs (the only inline that may not be allowed)
+    //Remove all brs down the tree (the only inline that may not be allowed)
     var smwParent = squire._translateToSmw[ getFullNodeName( parent ) ];
+    // P and BODY doesn't have any translation, luckily we accept br in thoose
     if ( smwParent && !squire.isAllowedIn( squire, 'br', smwParent ) ){
         var brs = node.querySelectorAll( 'BR' );
         for ( var i = 0; i < brs.length; i++ ) {
@@ -634,6 +635,8 @@ function fixContainer ( container, root ) {
                 l += 1;
             }
             wrapper = null;
+        } else if ( getFullNodeName( child ) === 'BLOCKQUOTE.aside' ) {
+            //continue further down the tree
         } else if ( !child.isContentEditable || container.getAttribute('contenteditable') === 'false' ) {
             //Don't check this child
         } else if ( /^[OU]L$/.test( child.nodeName ) ) {

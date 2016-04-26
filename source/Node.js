@@ -453,6 +453,8 @@ function fixContainer ( container, root ) {
                 l += 1;
             }
             wrapper = null;
+        } else if ( getFullNodeName( child ) === 'BLOCKQUOTE.aside' ) {
+            //continue further down the tree
         } else if ( !child.isContentEditable || container.getAttribute('contenteditable') === 'false' ) {
             //Don't check this child
         } else if ( /^[OU]L$/.test( child.nodeName ) ) {
