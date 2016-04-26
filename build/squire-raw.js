@@ -1614,7 +1614,7 @@ var keyHandlers = {
         } else {
             currentContainer = currentBlock.parentNode;
         }
-
+        // We need a reference to the link so we can figure out which of the two to keep after split
         var linkBeforeSplit = getNearest(range.startContainer, root, 'A');
 
         if ( isHeading(currentBlock) ) {
@@ -1742,7 +1742,7 @@ var keyHandlers = {
                 self.modifyBlocks( decreaseBlockQuoteLevel, range );
             } 
             // If the block is the first block within the container, or if the previous sibling is a container
-            else if ( currentContainer.firstElementChild === currentBlock || isAside(currentBlock.previousSibling)) {
+            else if ( currentContainer.firstElementChild === currentBlock || isAside(currentBlock.previousElementSibling)) {
                 if (isListItem(currentBlock)) {
                     self.modifyBlocks(decreaseListLevel, range);
                 }
@@ -1806,40 +1806,39 @@ var keyHandlers = {
             fixContainer( current.parentNode, root );
             // Now get next block
             next = getNextBlock( current, root );
-            // Must not be at the very end of the text area.
-            if ( next ) {
-                // If not editable, just delete whole block.
-                if ( !next.isContentEditable ) {
-                    detach( next );
-                    return;
+            
+            var currentBlock, currentContainer;
+            if (current.parentNode === root || isAside(current.parentNode)) {
+                currentBlock = current;
+                currentContainer = current.parentNode;
+            } else {
+                currentBlock = current.parentNode;
+                currentContainer = currentBlock.parentNode;
+            }
+
+            if ( isAside(currentBlock.nextElementSibling ) ||
+                    ( currentContainer.lastElementChild === currentBlock && ( !isList(currentContainer) || isAside(currentContainer.nextElementSibling)) )) {
+                // Do not merge if last element of container
+            } else if ( next ) {
+                var nextBlock;
+                if (next.parentNode === root || isAside(next.parentNode)) {
+                    nextBlock = next;
+                } else {
+                    nextBlock = next.parentNode;
                 }
 
-                var nextBQ = getNearest( next, root, 'BLOCKQUOTE' );
-                var currentBQ = getNearest( current, root, 'BLOCKQUOTE' );
+                if ( isWidget(nextBlock) ) {
+                    self.confirmDeleteWidget(nextBlock.getAttribute('widget-id'), nextBlock.getAttribute('widget-type')).then(function() {
+                        detach( nextBlock );
+                    });
+                }
+                else if ( isPagebreak(nextBlock) || !nextBlock.isContentEditable) {
+                    detach( nextBlock );
+                }
+                else {
+                    mergeWithBlock( current, next, range );
+                }
 
-                if ( currentBQ && 
-                     ( !nextBQ ||
-                       ( nextBQ && currentBQ.className !== nextBQ.className ) ) ) {
-                    if ( current.textContent === '' ) {
-                        detach( current );
-                        self._ensureBottomLine();
-                    }
-                    //ignore
-                    return;
-                }
-                
-
-                // Otherwise merge.
-                mergeWithBlock( current, next, range );
-                // If deleted line between containers, merge newly adjacent
-                // containers.
-                next = current.parentNode;
-                while ( next !== root && !next.nextSibling ) {
-                    next = next.parentNode;
-                }
-                if ( next !== root && ( next = next.nextSibling ) ) {
-                    mergeContainers( next, root );
-                }
                 self.setSelection( range );
                 self._updatePath( range, true );
             }
