@@ -561,12 +561,16 @@ function fixParagraph( node, parent, squire, doc ) {
         if ( child.nodeType === ELEMENT_NODE && isInline( child ) ) {
             //All inline are allowed in root
             var containingP = getNearestCallback( child, parent, isParagraph );
-            var sameInlines = containingP.querySelectorAll( child.nodeName );
+            var allSameInlines = containingP.querySelectorAll( child.nodeName );
             //Keep outermost
-            for( var j = 1; j < sameInlines.length; j++ ) {
-                var sameInline = sameInlines[ j ];
-                var textNode = doc.createTextNode( sameInline.textContent );
-                sameInline.parentNode.replaceChild( textNode, sameInline );
+            for( var j = 0; j < allSameInlines.length; j++ ) {
+                var sameInline = allSameInlines[ j ];
+                var innerSameInlines = Array.prototype.slice.call( sameInline.querySelectorAll( child.nodeName ) );
+                innerSameInlines.forEach( function( e ) {
+                    var textNode = doc.createTextNode( e.textContent );
+                    e.parentNode.replaceChild( textNode, e );    
+                });
+                
             }
 
             //TODO: if is inline, remove all but outermost of same sort if more than one
