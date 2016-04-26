@@ -1524,6 +1524,7 @@ proto.setHTML = function ( html, skipUndo ) {
 
     // Parse HTML into DOM tree
     div.innerHTML = html;
+    div.normalize();
     frag.appendChild( empty( div ) );
 
     cleanTree( frag );
