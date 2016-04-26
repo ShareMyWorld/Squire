@@ -1453,8 +1453,8 @@ var decreaseListLevel = function ( frag ) {
     return frag;
 };
 
-proto._ensureBottomLine = function () {
-    var root = this._root;
+proto._ensureBottomLine = function ( container ) {
+    var root = container === undefined ? this._root : container;
     var last = root.lastElementChild;
     if ( !last ||
             last.nodeName !== this._config.blockTag || !isBlock( last ) ) {

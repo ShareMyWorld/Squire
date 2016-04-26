@@ -496,6 +496,10 @@ function fixContainer ( container, root ) {
             fixContainer( child, root );
         }
     }
+    if ( isContainer( container ) ) {
+        squire._ensureBottomLine( container );
+    }
+
     if ( wrapper ) {
         container.appendChild( fixCursor( wrapper, root ) );
     }
