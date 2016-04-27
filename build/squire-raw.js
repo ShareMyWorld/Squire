@@ -1222,7 +1222,7 @@ var insertTreeFragmentIntoRange = function ( range, frag, root ) {
                 nodeBeforeSplit.childNodes.length : 0;
         }
         // Merge inserted containers with edges of split
-        if ( isContainer( next ) ) {
+        if ( isContainer( next ) && ( next.isContentEditable || container.getAttribute('contenteditable') !== 'false' ) ) {
             mergeContainers( next, root );
         }
 
