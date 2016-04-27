@@ -502,7 +502,7 @@ function fixContainer ( container, root ) {
             fixContainer( child, root );
         }
     }
-    if ( isContainer( container ) && !/^[OU]L$/.test( container ) ) {
+    if ( isContainer( container ) && !/^[OU]L$/.test( container.nodeName ) ) {
         squire._ensureBottomLine( container );
     }
 

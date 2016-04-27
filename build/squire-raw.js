@@ -684,7 +684,7 @@ function fixContainer ( container, root ) {
             fixContainer( child, root );
         }
     }
-    if ( isContainer( container ) && !/^[OU]L$/.test( container ) ) {
+    if ( isContainer( container ) && !/^[OU]L$/.test( container.nodeName ) ) {
         squire._ensureBottomLine( container );
     }
 
@@ -1910,6 +1910,11 @@ var keyHandlers = {
                 }
                 else if ( isPagebreak(nextBlock) || !nextBlock.isContentEditable) {
                     detach( nextBlock );
+                }
+                else if ( isParagraph( currentBlock ) && !current.textContent.trim() ) {
+                    detach( currentBlock );
+                    range.setStart( next, 0 );
+                    moveRangeBoundariesDownTree(range);
                 }
                 else {
                     mergeWithBlock( current, next, range );
