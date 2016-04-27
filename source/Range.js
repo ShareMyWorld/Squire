@@ -317,7 +317,7 @@ var insertTreeFragmentIntoRange = function ( range, frag, root ) {
                 nodeBeforeSplit.childNodes.length : 0;
         }
         // Merge inserted containers with edges of split
-        if ( isContainer( next ) && ( next.isContentEditable || container.getAttribute('contenteditable') !== 'false' ) ) {
+        if ( isContainer( next ) && next.isContentEditable ) {
             mergeContainers( next, root );
         }
 
@@ -339,12 +339,13 @@ var insertTreeFragmentIntoRange = function ( range, frag, root ) {
             endOffset = prev.childNodes.length;
         }
         // Merge inserted containers with edges of split
-        if ( nodeAfterSplit && isContainer( nodeAfterSplit ) ) {
+        if ( nodeAfterSplit && isContainer( nodeAfterSplit ) && nodeAfterSplit.isContentEditable ) {
             mergeContainers( nodeAfterSplit, root );
         }
 
         range.setStart( startContainer, startOffset );
         range.setEnd( endContainer, endOffset );
+        encapsulateNonEditableElements(range, root);
         moveRangeBoundariesDownTree( range );
     }
 };
@@ -385,7 +386,7 @@ var moveRangeBoundariesDownTree = function ( range ) {
 
     while ( startContainer.nodeType !== TEXT_NODE ) {
         child = startContainer.childNodes[ startOffset ];
-        if ( !child || isLeaf( child ) ) {
+        if ( !child || isLeaf( child ) || !child.isContentEditable) {
             break;
         }
         startContainer = child;
@@ -394,7 +395,7 @@ var moveRangeBoundariesDownTree = function ( range ) {
     if ( endOffset ) {
         while ( endContainer.nodeType !== TEXT_NODE ) {
             child = endContainer.childNodes[ endOffset - 1 ];
-            if ( !child || isLeaf( child ) ) {
+            if ( !child || isLeaf( child ) || !child.isContentEditable) {
                 break;
             }
             endContainer = child;
@@ -403,7 +404,7 @@ var moveRangeBoundariesDownTree = function ( range ) {
     } else {
         while ( endContainer.nodeType !== TEXT_NODE ) {
             child = endContainer.firstChild;
-            if ( !child || isLeaf( child ) ) {
+            if ( !child || isLeaf( child ) || !child.isContentEditable) {
                 break;
             }
             endContainer = child;
