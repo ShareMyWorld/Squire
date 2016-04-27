@@ -1755,9 +1755,13 @@ var keyHandlers = {
 
             while ( child && child.nodeType === TEXT_NODE && !child.data ) {
                 next = child.nextSibling;
-                if ( !next || next.nodeName === 'BR' ) {
-                    break;
-                }
+                detach( child );
+                child = next;
+            }
+
+            if ( child && child.nodeName === 'BR') {
+                // Remove BR in the beginning of the splitted node, they are confusing after pressing return just before a br
+                next = child.nextSibling;
                 detach( child );
                 child = next;
             }
@@ -1765,11 +1769,9 @@ var keyHandlers = {
             // 'BR's essentially don't count; they're a browser hack.
             // If you try to select the contents of a 'BR', FF will not let
             // you type anything!
-            if ( !child || child.nodeName === 'BR' ||
-                    ( child.nodeType === TEXT_NODE && !isPresto ) ) {
+            if ( !child || ( child.nodeType === TEXT_NODE && !isPresto ) ) {
                 break;
             }
-
 
             nodeAfterSplit = child;
         }
@@ -1777,6 +1779,7 @@ var keyHandlers = {
         if (nodeAfterSplit) {
             range = self._createRange( nodeAfterSplit, 0 );
         }
+        fixContainer(root, root);
         self.setSelection( range );
         self._updatePath( range, true );
     },
@@ -1846,7 +1849,7 @@ var keyHandlers = {
                     mergeWithBlock( previous, current, range );
                 }
             }
-
+            fixContainer( root, root );
             self.setSelection( range );
             self._updatePath( range, true );
             
@@ -1920,6 +1923,7 @@ var keyHandlers = {
                     mergeWithBlock( current, next, range );
                 }
 
+                fixContainer( root, root );
                 self.setSelection( range );
                 self._updatePath( range, true );
             }
