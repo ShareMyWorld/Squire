@@ -504,8 +504,6 @@ function fixContainer ( container, root ) {
     }
     if ( isContainer( container ) && !/^[OU]L$/.test( container ) ) {
         squire._ensureBottomLine( container );
-
-        
     }
 
     if ( wrapper ) {

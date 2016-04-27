@@ -2373,6 +2373,12 @@ proto.addDefaultBlock = function () {
     this._ensureBottomLine();
 };
 
+proto.mergeInlines = function() {
+    var root = this._root;
+    var range = this._doc.createRange();
+    range.selectNode( root )
+    mergeInlines( root, range );
+}
 
 //  ================ API specifics  ===========================
 proto.toggleStrong = function () {
@@ -2700,6 +2706,3 @@ delete proto.increaseListLevel;
 
 delete proto.increaseQuoteLevel;
 //delete proto.decreaseQuoteLevel;
-proto.fixCursor = function( ){
-    fixContainer( this._root, this._root );
-}
