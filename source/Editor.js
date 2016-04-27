@@ -1524,19 +1524,18 @@ proto.setHTML = function ( html, skipUndo ) {
 
     // Parse HTML into DOM tree
     div.innerHTML = html;
-    div.normalize();
     frag.appendChild( empty( div ) );
 
     cleanTree( frag );
     cleanupBRs( frag, root );
 
-    fixContainer( frag, root );
+//    fixContainer( frag, root );
 
     // Fix cursor
-    var node = frag;
-    while ( node = getNextBlock( node, root ) ) {
-        fixCursor( node, root );
-    }
+//    var node = frag;
+//    while ( node = getNextBlock( node, root ) ) {
+//        fixCursor( node, root );
+//    }
 
     // Don't fire an input event
     this._ignoreChange = true;
@@ -1548,7 +1547,7 @@ proto.setHTML = function ( html, skipUndo ) {
 
     // And insert new content
     root.appendChild( frag );
-    fixCursor( root, root );
+    fixContainer( root, root );
 
     if ( !skipUndo ) {
         // Reset the undo stack

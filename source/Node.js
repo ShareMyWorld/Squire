@@ -247,6 +247,9 @@ function fixCursor ( node, root ) {
     if ( node.nodeType === TEXT_NODE ) {
         return originalNode;
     }
+    if ( node.parentNode && !node.isContentEditable ) {
+        return originalNode;
+    }
 
     if ( isInline( node ) ) {
         child = node.firstChild;
@@ -306,6 +309,7 @@ function fixCursor ( node, root ) {
 }
 
 function fixBlocks( node, squire, doc, config ) {
+    var nodeInsertedBefore = false;
     if ( node.nodeName === 'P' ) {
         fixParagraph( node, node.parentNode, squire, doc );
     } else {
@@ -322,8 +326,10 @@ function fixBlocks( node, squire, doc, config ) {
             var p = filterParagraphs( node, doc, config );
             fixParagraph( p, node, squire, doc );
         }
-        fixStaticBlocks( node, squire, doc, config );
+        nodeInsertedBefore = fixStaticBlocks( node, squire, doc, config );
     }
+
+    return nodeInsertedBefore;
 }
 
 
@@ -436,8 +442,11 @@ function getFullNodeName( node ) {
 // Recursively examine container nodes and wrap any inline children.
 function fixContainer ( container, root ) {
 
-    if (!container.isContentEditable || container.getAttribute('contenteditable') === 'false') {
+    if ( !container.isContentEditable ) {
         return;
+    }
+    if (container === root) {
+        container.normalize(); // Normalize all text nodes. fixCursor will reinject any empty textNodes where required
     }
 
     var children = container.childNodes,
@@ -446,10 +455,6 @@ function fixContainer ( container, root ) {
         i, l, child, isBR,
         squire = getSquireInstance( doc ),
         config = squire._config;
-
-    if (container === root) {
-        container.normalize(); // Normalize all text nodes. fixCursor will reinject any empty textNodes where required
-    }
 
     for ( i = 0, l = children.length; i < l; i += 1 ) {
         child = children[i];
@@ -467,7 +472,6 @@ function fixContainer ( container, root ) {
                 wrapper = createElement( doc,
                     config.blockTag, config.blockAttributes );
             }
-            fixCursor( wrapper, root );
             if ( isBR ) {
                 container.replaceChild( wrapper, child );
             } else {
@@ -475,6 +479,7 @@ function fixContainer ( container, root ) {
                 i += 1;
                 l += 1;
             }
+            fixParagraph( wrapper, container, squire, doc );
             wrapper = null;
         } else if ( getFullNodeName( child ) === 'BLOCKQUOTE.aside' ) {
             //continue further down the tree
@@ -487,33 +492,39 @@ function fixContainer ( container, root ) {
                     var liWrapper = createElement( doc, 'LI' );
                     var p = createElement( doc,
                         config.blockTag, config.blockAttributes );
-                    var textNode = doc.createTextNode( c.textContent );
-                    p.appendChild( textNode );
+                    p.appendChild( empty( c ));
                     liWrapper.appendChild( p );
                     child.replaceChild( liWrapper, c );
                 }
             });
 
         } else if ( isBlockAllowedIn( child, container, squire, config ) ) {
-            fixBlocks( child, squire, doc, config );
+            if ( fixBlocks( child, squire, doc, config ) ) {
+                i += 1;
+                l += 1;
+            }
         } else {
-            
-            var textNode = doc.createTextNode( child.textContent );
-            container.replaceChild( textNode, child );
-            
+            wrapper = createElement( doc, config.blockTag, config.blockAttributes );
+            wrapper.appendChild( empty( child ) );
+            container.replaceChild( wrapper, child );
+            fixParagraph( wrapper, container, squire, doc );
+            wrapper = null;
         }
-        if ( isContainer( child ) && child.nodeName !== 'LI' && 
-             ( child.isContentEditable || container.getAttribute('contenteditable') !== 'false' ) ) {
-            fixStaticBlocks( child, squire, doc, config );
+        if ( isContainer( child ) && child.nodeName !== 'LI' && child.isContentEditable ) {
+            if ( fixStaticBlocks( child, squire, doc, config ) ) {
+                i += 1;
+                l += 1;
+            }
             fixContainer( child, root );
         }
     }
-    if ( isContainer( container ) && !/^[OU]L$/.test( container.nodeName ) ) {
+    if ( container === root || ( isContainer( container ) && !/^[OU]L$/.test( container.nodeName ) ) ) {
         squire._ensureBottomLine( container );
     }
 
     if ( wrapper ) {
-        container.appendChild( fixCursor( wrapper, root ) );
+        fixParagraph( wrapper, container, squire, doc );
+        container.appendChild( wrapper );
     }
     return container;
 }
@@ -524,6 +535,7 @@ function fixStaticBlocks( node, squire, doc, config ) {
     var isStatic = classification === 'blockAtomic' || classification === 'containers'; 
     
     var previous;
+    var nodeInsertedBefore = false;
     if ( isStatic && (previous = node.previousSibling) ) {
         var smwPrevious = squire._translateToSmw[ getFullNodeName( previous ) ];
         var prevClassification = squire._allowedContent[ smwPrevious ];
@@ -531,11 +543,13 @@ function fixStaticBlocks( node, squire, doc, config ) {
             case 'blockAtomic':
             case 'containers':
                 //insert between static nodes
-                var defaultBlock = createElement( doc, config.blockTag, config.blockAttributes );
+                var defaultBlock = fixCursor( createElement( doc, config.blockTag, config.blockAttributes ), squire._root );
                 node.parentNode.insertBefore( defaultBlock, node );
+                nodeInsertedBefore = true;
                 break;
         } 
     }
+    return nodeInsertedBefore;
 }
 
 function split ( node, offset, stopNode, root ) {
