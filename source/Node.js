@@ -31,7 +31,7 @@ function isInline ( node ) {
 function isBlock ( node ) {
     var type = node.nodeType;
     return ( type === ELEMENT_NODE || type === DOCUMENT_FRAGMENT_NODE ) &&
-        !isInline( node ) && every( node.childNodes, isInline ) && node.isContentEditable;
+        !isInline( node ) && every( node.childNodes, isInline );
 }
 function isContainer ( node ) {
     var type = node.nodeType;

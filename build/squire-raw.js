@@ -213,7 +213,7 @@ function isInline ( node ) {
 function isBlock ( node ) {
     var type = node.nodeType;
     return ( type === ELEMENT_NODE || type === DOCUMENT_FRAGMENT_NODE ) &&
-        !isInline( node ) && every( node.childNodes, isInline ) && node.isContentEditable;
+        !isInline( node ) && every( node.childNodes, isInline );
 }
 function isContainer ( node ) {
     var type = node.nodeType;
@@ -1217,9 +1217,10 @@ var insertTreeFragmentIntoRange = function ( range, frag, root ) {
 
         // 3. Fix cursor then insert block(s) in the fragment
         node = frag;
-        while ( node = getNextBlock( node, root ) ) {
-            fixCursor( node, root );
-        }
+        // We run fixContainer later instead to not mess with contenteditable=false elements
+//        while ( node = getNextBlock( node, root ) ) {
+//            fixCursor( node, root );
+//        }
         parent.insertBefore( frag, nodeAfterSplit );
 
         // 4. Remove empty nodes created either side of split, then
