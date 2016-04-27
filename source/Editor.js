@@ -2378,12 +2378,16 @@ proto.mergeInlines = function() {
     var range = this._doc.createRange();
     range.selectNode( root )
     mergeInlines( root, range );
-}
+};
+
+proto.fixContainers = function() {
+    fixContainer( this._root, this._root );
+    return this;
+};
 
 //  ================ API specifics  ===========================
 proto.toggleStrong = function () {
     var tag = 'B';
-    fixContainer( this._root, this._root );
     return toggleInlineTag( this, tag );
 };
 
