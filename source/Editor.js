@@ -2219,6 +2219,7 @@ proto.insertPageBreak = function ( ) {
 
     if ( range.collapsed ) {
         var endP = getNearest( range.endContainer, self._root, 'P' );
+        endP.parentNode.insertBefore( self.createDefaultBlock( [ ] ), block.nextSibling );
         endP.parentNode.insertBefore( block, endP.nextSibling );
         endP.parentNode.insertBefore( self.createDefaultBlock( [ ] ), block.nextSibling );
     } else {
@@ -2396,7 +2397,7 @@ proto.toggleEm = function () {
 };
 
 proto.toggleHr = function () {
-    //Only adds 
+    
     this.insertPageBreak();
 };
 

@@ -515,13 +515,14 @@ function fixContainer ( container, root ) {
             fixParagraph( wrapper, container, squire, doc );
             wrapper = null;
         }
-        if ( isContainer( child ) && child.nodeName !== 'LI' && child.isContentEditable ) {
-            if ( fixStaticBlocks( child, squire, doc, config ) ) {
+        if ( fixStaticBlocks( child, squire, doc, config ) ) {
                 i += 1;
                 l += 1;
-            }
+        }
+        if ( isContainer( child ) && child.nodeName !== 'LI' && child.isContentEditable ) {
             fixContainer( child, root );
         }
+        
     }
     if ( container === root || ( isContainer( container ) && !/^[OU]L$/.test( container.nodeName ) ) ) {
         squire._ensureBottomLine( container );
@@ -539,9 +540,9 @@ function fixStaticBlocks( node, squire, doc, config ) {
     var classification = squire._allowedContent[ smwNode ];
     var isStatic = classification === 'blockAtomic' || classification === 'containers'; 
     
-    var previous;
+    var previous = node.previousSibling;
     var nodeInsertedBefore = false;
-    if ( isStatic && (previous = node.previousSibling) ) {
+    if ( isStatic ) {
         var smwPrevious = squire._translateToSmw[ getFullNodeName( previous ) ];
         var prevClassification = squire._allowedContent[ smwPrevious ];
         switch ( prevClassification ) {
