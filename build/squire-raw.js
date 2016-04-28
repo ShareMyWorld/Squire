@@ -429,6 +429,9 @@ function fixCursor ( node, root ) {
     if ( node.nodeType === TEXT_NODE ) {
         return originalNode;
     }
+    if ( node.parentNode && !node.isContentEditable ) {
+        return originalNode;
+    }
 
     if ( isInline( node ) ) {
         child = node.firstChild;
@@ -488,6 +491,7 @@ function fixCursor ( node, root ) {
 }
 
 function fixBlocks( node, squire, doc, config ) {
+    var nodeInsertedBefore = false;
     if ( node.nodeName === 'P' ) {
         fixParagraph( node, node.parentNode, squire, doc );
     } else {
@@ -504,8 +508,10 @@ function fixBlocks( node, squire, doc, config ) {
             var p = filterParagraphs( node, doc, config );
             fixParagraph( p, node, squire, doc );
         }
-        fixStaticBlocks( node, squire, doc, config );
+        nodeInsertedBefore = fixStaticBlocks( node, squire, doc, config );
     }
+
+    return nodeInsertedBefore;
 }
 
 
@@ -538,53 +544,55 @@ function filterParagraphs( node, doc, config ) {
 }
 
 function fixParagraph( node, parent, squire, doc ) {
-    var children = node.childNodes,
-        child;
-
     if ( parent.nodeName === 'LI' ) {
         //Use UL/OL as parent for validity checks
         parent = parent.parentNode;
     }
-    //Remove all brs down the tree (the only inline that may not be allowed)
+
     var smwParent = squire._translateToSmw[ getFullNodeName( parent ) ];
-    // P and BODY doesn't have any translation, luckily we accept br in thoose
-    if ( smwParent && !squire.isAllowedIn( squire, 'br', smwParent ) ){
-        var brs = node.querySelectorAll( 'BR' );
-        for ( var i = 0; i < brs.length; i++ ) {
-            brs[ i ].parentNode.removeChild( brs[ i ] );
-        }
-    }
 
-    for ( var i = 0; i < children.length; i++ ) {
-        child = children[i];
-        var smwChild = squire._translateToSmw[ child.nodeName ];
-        if ( child.nodeType === ELEMENT_NODE && isInline( child ) ) {
-            //All inline are allowed in root
-            var containingP = getNearestCallback( child, parent, isParagraph );
-            var allSameInlines = containingP.querySelectorAll( child.nodeName );
-            //Keep outermost
-            for( var j = 0; j < allSameInlines.length; j++ ) {
-                var sameInline = allSameInlines[ j ];
-                var innerSameInlines = Array.prototype.slice.call( sameInline.querySelectorAll( child.nodeName ) );
-                innerSameInlines.forEach( function( e ) {
-                    var textNode = doc.createTextNode( e.textContent );
-                    e.parentNode.replaceChild( textNode, e );    
-                });
-                
-            }
-
-            //TODO: if is inline, remove all but outermost of same sort if more than one
-            if ( !( parent.nodeName === 'BODY' || 
-                    squire.isAllowedIn( squire, smwChild, smwParent ) ) ) {
-                var textNode = doc.createTextNode( child.textContent );
-                node.replaceChild( textNode, child );
-            } 
-
-        } 
-    }
-
+    fixInlines( node, smwParent, squire, true);
     // Ensure the paragraph is focusable
     fixCursor( node, squire._root );
+}
+
+function fixInlines( node, smwParent, squire, isFirstCascadingChild ) {
+    var child = node.firstChild;
+    var detachChild, smwChild;
+
+    while ( child ) {
+        detachChild = false;
+        if (child.nodeType === ELEMENT_NODE) {
+            smwChild = squire._translateToSmw[ child.nodeName ];
+
+            if ( !isInline( child ) || ( smwParent && !squire.isAllowedIn( squire, smwChild, smwParent ) ) ) {
+                if (!isLeaf(child)) {
+                    node.insertBefore( empty( child ), child.nextSibling);
+                }
+                detachChild = true;
+
+            } else if ( !isLeaf( child ) ){
+                // Remove any nested inlines
+                var innerSameInlines = child.querySelectorAll(child.nodeName);
+
+                for( var j = 0; j < innerSameInlines.length; j++ ) {
+                    var sameInline = innerSameInlines[ j ];
+                    sameInline.parentNode.insertBefore( empty( sameInline ), sameInline);
+                    detach( sameInline );
+                }
+                fixInlines( child, smwParent, squire, isFirstCascadingChild && child === node.firstChild );
+
+            } else if ( isFirstCascadingChild && child === node.firstChild ) {
+                detachChild = true;
+            }
+        }
+
+        var next = child.nextSibling;
+        if (detachChild) {
+            detach( child );
+        }
+        child = next;
+    }
 }
 
 function isBlockAllowedIn( _node, _container, squire, config ) {
@@ -616,8 +624,11 @@ function getFullNodeName( node ) {
 // Recursively examine container nodes and wrap any inline children.
 function fixContainer ( container, root ) {
 
-    if (!container.isContentEditable || container.getAttribute('contenteditable') === 'false') {
+    if ( !container.isContentEditable ) {
         return;
+    }
+    if (container === root) {
+        container.normalize(); // Normalize all text nodes. fixCursor will reinject any empty textNodes where required
     }
 
     var children = container.childNodes,
@@ -643,7 +654,6 @@ function fixContainer ( container, root ) {
                 wrapper = createElement( doc,
                     config.blockTag, config.blockAttributes );
             }
-            fixCursor( wrapper, root );
             if ( isBR ) {
                 container.replaceChild( wrapper, child );
             } else {
@@ -651,6 +661,7 @@ function fixContainer ( container, root ) {
                 i += 1;
                 l += 1;
             }
+            fixParagraph( wrapper, container, squire, doc );
             wrapper = null;
         } else if ( getFullNodeName( child ) === 'BLOCKQUOTE.aside' ) {
             //continue further down the tree
@@ -663,33 +674,39 @@ function fixContainer ( container, root ) {
                     var liWrapper = createElement( doc, 'LI' );
                     var p = createElement( doc,
                         config.blockTag, config.blockAttributes );
-                    var textNode = doc.createTextNode( c.textContent );
-                    p.appendChild( textNode );
+                    p.appendChild( empty( c ));
                     liWrapper.appendChild( p );
                     child.replaceChild( liWrapper, c );
                 }
             });
 
         } else if ( isBlockAllowedIn( child, container, squire, config ) ) {
-            fixBlocks( child, squire, doc, config );
+            if ( fixBlocks( child, squire, doc, config ) ) {
+                i += 1;
+                l += 1;
+            }
         } else {
-            
-            var textNode = doc.createTextNode( child.textContent );
-            container.replaceChild( textNode, child );
-            
+            wrapper = createElement( doc, config.blockTag, config.blockAttributes );
+            wrapper.appendChild( empty( child ) );
+            container.replaceChild( wrapper, child );
+            fixParagraph( wrapper, container, squire, doc );
+            wrapper = null;
         }
-        if ( isContainer( child ) && child.nodeName !== 'LI' && 
-             ( child.isContentEditable || container.getAttribute('contenteditable') !== 'false' ) ) {
-            fixStaticBlocks( child, squire, doc, config );
+        if ( isContainer( child ) && child.nodeName !== 'LI' && child.isContentEditable ) {
+            if ( fixStaticBlocks( child, squire, doc, config ) ) {
+                i += 1;
+                l += 1;
+            }
             fixContainer( child, root );
         }
     }
-    if ( isContainer( container ) && !/^[OU]L$/.test( container.nodeName ) ) {
+    if ( container === root || ( isContainer( container ) && !/^[OU]L$/.test( container.nodeName ) ) ) {
         squire._ensureBottomLine( container );
     }
 
     if ( wrapper ) {
-        container.appendChild( fixCursor( wrapper, root ) );
+        fixParagraph( wrapper, container, squire, doc );
+        container.appendChild( wrapper );
     }
     return container;
 }
@@ -700,6 +717,7 @@ function fixStaticBlocks( node, squire, doc, config ) {
     var isStatic = classification === 'blockAtomic' || classification === 'containers'; 
     
     var previous;
+    var nodeInsertedBefore = false;
     if ( isStatic && (previous = node.previousSibling) ) {
         var smwPrevious = squire._translateToSmw[ getFullNodeName( previous ) ];
         var prevClassification = squire._allowedContent[ smwPrevious ];
@@ -707,11 +725,13 @@ function fixStaticBlocks( node, squire, doc, config ) {
             case 'blockAtomic':
             case 'containers':
                 //insert between static nodes
-                var defaultBlock = createElement( doc, config.blockTag, config.blockAttributes );
+                var defaultBlock = fixCursor( createElement( doc, config.blockTag, config.blockAttributes ), squire._root );
                 node.parentNode.insertBefore( defaultBlock, node );
+                nodeInsertedBefore = true;
                 break;
         } 
     }
+    return nodeInsertedBefore;
 }
 
 function split ( node, offset, stopNode, root ) {
@@ -1197,9 +1217,10 @@ var insertTreeFragmentIntoRange = function ( range, frag, root ) {
 
         // 3. Fix cursor then insert block(s) in the fragment
         node = frag;
-        while ( node = getNextBlock( node, root ) ) {
-            fixCursor( node, root );
-        }
+        // We run fixContainer later instead to not mess with contenteditable=false elements
+//        while ( node = getNextBlock( node, root ) ) {
+//            fixCursor( node, root );
+//        }
         parent.insertBefore( frag, nodeAfterSplit );
 
         // 4. Remove empty nodes created either side of split, then
@@ -1222,7 +1243,7 @@ var insertTreeFragmentIntoRange = function ( range, frag, root ) {
                 nodeBeforeSplit.childNodes.length : 0;
         }
         // Merge inserted containers with edges of split
-        if ( isContainer( next ) && ( next.isContentEditable || container.getAttribute('contenteditable') !== 'false' ) ) {
+        if ( isContainer( next ) && next.isContentEditable ) {
             mergeContainers( next, root );
         }
 
@@ -1244,12 +1265,13 @@ var insertTreeFragmentIntoRange = function ( range, frag, root ) {
             endOffset = prev.childNodes.length;
         }
         // Merge inserted containers with edges of split
-        if ( nodeAfterSplit && isContainer( nodeAfterSplit ) ) {
+        if ( nodeAfterSplit && isContainer( nodeAfterSplit ) && nodeAfterSplit.isContentEditable ) {
             mergeContainers( nodeAfterSplit, root );
         }
 
         range.setStart( startContainer, startOffset );
         range.setEnd( endContainer, endOffset );
+        encapsulateNonEditableElements(range, root);
         moveRangeBoundariesDownTree( range );
     }
 };
@@ -1290,7 +1312,7 @@ var moveRangeBoundariesDownTree = function ( range ) {
 
     while ( startContainer.nodeType !== TEXT_NODE ) {
         child = startContainer.childNodes[ startOffset ];
-        if ( !child || isLeaf( child ) ) {
+        if ( !child || isLeaf( child ) || !child.isContentEditable) {
             break;
         }
         startContainer = child;
@@ -1299,7 +1321,7 @@ var moveRangeBoundariesDownTree = function ( range ) {
     if ( endOffset ) {
         while ( endContainer.nodeType !== TEXT_NODE ) {
             child = endContainer.childNodes[ endOffset - 1 ];
-            if ( !child || isLeaf( child ) ) {
+            if ( !child || isLeaf( child ) || !child.isContentEditable) {
                 break;
             }
             endContainer = child;
@@ -1308,7 +1330,7 @@ var moveRangeBoundariesDownTree = function ( range ) {
     } else {
         while ( endContainer.nodeType !== TEXT_NODE ) {
             child = endContainer.firstChild;
-            if ( !child || isLeaf( child ) ) {
+            if ( !child || isLeaf( child ) || !child.isContentEditable) {
                 break;
             }
             endContainer = child;
@@ -1532,11 +1554,11 @@ var onKey = function ( event ) {
         if ( event.altKey  ) { modifiers += 'alt-'; }
         if ( event.ctrlKey ) { modifiers += 'ctrl-'; }
         if ( event.metaKey ) { modifiers += 'meta-'; }
+        if ( event.shiftKey ) { modifiers += 'shift-'; }
     }
     // However, on Windows, shift-delete is apparently "cut" (WTF right?), so
     // we want to let the browser handle shift-delete.
-    if ( event.shiftKey ) { modifiers += 'shift-'; }
-
+    //if ( event.shiftKey ) { modifiers += 'shift-'; }
     key = modifiers + key;
 
     if ( this._keyHandlers[ key ] ) {
@@ -2795,7 +2817,7 @@ proto.createDefaultBlock = function ( children, node ) {
 };
 
 proto.didError = function ( error ) {
-    console.log( error );
+    console.error( error );
 };
 
 proto.getDocument = function () {
@@ -4113,19 +4135,18 @@ proto.setHTML = function ( html, skipUndo ) {
 
     // Parse HTML into DOM tree
     div.innerHTML = html;
-    div.normalize();
     frag.appendChild( empty( div ) );
 
     cleanTree( frag );
     cleanupBRs( frag, root );
 
-    fixContainer( frag, root );
+//    fixContainer( frag, root );
 
     // Fix cursor
-    var node = frag;
-    while ( node = getNextBlock( node, root ) ) {
-        fixCursor( node, root );
-    }
+//    var node = frag;
+//    while ( node = getNextBlock( node, root ) ) {
+//        fixCursor( node, root );
+//    }
 
     // Don't fire an input event
     this._ignoreChange = true;
@@ -4137,7 +4158,7 @@ proto.setHTML = function ( html, skipUndo ) {
 
     // And insert new content
     root.appendChild( frag );
-    fixCursor( root, root );
+    fixContainer( root, root );
 
     if ( !skipUndo ) {
         // Reset the undo stack
