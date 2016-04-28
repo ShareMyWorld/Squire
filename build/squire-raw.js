@@ -741,7 +741,7 @@ function fixStaticBlocks( node, squire, doc, config ) {
 function getStaticClassification( node, squire ) {
     var name = getFullNodeName( node );
     var smwNode = squire._translateToSmw[ name ];
-    var classification = squire._allowedContent[ smwPrevious ];
+    var classification = squire._allowedContent[ smwNode ];
 
     if ( !classification && 
          ( name === 'BODY' || name === 'P.page-break-container' ) ) {
