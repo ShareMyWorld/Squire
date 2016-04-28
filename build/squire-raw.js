@@ -1818,7 +1818,7 @@ var keyHandlers = {
             afterDelete( self, range );
         }
         // If at beginning of block, merge with previous
-        else if ( rangeDoesStartAtBlockBoundary( range, root ) && range.startOffset === 0) {
+        else if ( rangeDoesStartAtBlockBoundary( range, root ) ) {
             event.preventDefault();
             var current = getStartBlockOfRange( range, root ),
                 previous;
