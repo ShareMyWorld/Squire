@@ -543,9 +543,13 @@ function fixStaticBlocks( node, squire, doc, config ) {
     var previous = node.previousSibling || node.parentNode;
     var nodeInsertedBefore = false;
     if ( isStatic ) {
-        var smwPrevious = squire._translateToSmw[ getFullNodeName( previous ) ];
+        var prevName = getFullNodeName( previous );
+        var smwPrevious = squire._translateToSmw[ prevName ];
         var prevClassification = squire._allowedContent[ smwPrevious ];
-        if ( !prevClassification && previous.nodeName === 'BODY' ) {
+
+        if ( !prevClassification && 
+             ( prevName === 'BODY' || prevName === 'P.page-break-container' ) ) {
+            //the hr container is not classified as hr, lets fake that it should be fixed
             prevClassification = 'containers';
         }
         switch ( prevClassification ) {
