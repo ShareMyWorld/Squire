@@ -403,6 +403,14 @@ function fixInlines( node, smwParent, squire, isFirstCascadingChild ) {
             } else if ( isFirstCascadingChild && child === node.firstChild ) {
                 detachChild = true;
             }
+        } else if (child.nodeType === TEXT_NODE) {
+            // Merge adjacent textnodes
+            var previousSibling = child.previousSibling;
+            if (previousSibling && previousSibling.nodeType === TEXT_NODE) {
+                previousSibling.data += child.data;
+                detach( child );
+                child = previousSibling;
+            }
         }
 
         var next = child.nextSibling;
@@ -444,9 +452,6 @@ function fixContainer ( container, root ) {
 
     if ( !container.isContentEditable ) {
         return;
-    }
-    if (container === root) {
-        container.normalize(); // Normalize all text nodes. fixCursor will reinject any empty textNodes where required
     }
 
     var children = container.childNodes,
