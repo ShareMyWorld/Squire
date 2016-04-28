@@ -718,13 +718,13 @@ function fixContainer ( container, root ) {
 }
 
 function fixStaticBlocks( node, squire, doc, config ) {
-    var classification = getStaticClassification( node );
+    var classification = getStaticClassification( node, squire );
     var isStatic = classification === 'blockAtomic' || classification === 'containers'; 
     
     var previous = node.previousSibling || node.parentNode;
     var nodeInsertedBefore = false;
     if ( isStatic ) {
-        var prevClassification = getStaticClassification( previous );
+        var prevClassification = getStaticClassification( previous, squire );
         switch ( prevClassification ) {
             case 'blockAtomic':
             case 'containers':
@@ -738,7 +738,7 @@ function fixStaticBlocks( node, squire, doc, config ) {
     return nodeInsertedBefore;
 }
 
-function getStaticClassification( node ) {
+function getStaticClassification( node, squire ) {
     var name = getFullNodeName( node );
     var smwNode = squire._translateToSmw[ name ];
     var classification = squire._allowedContent[ smwPrevious ];
