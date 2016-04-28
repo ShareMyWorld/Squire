@@ -585,6 +585,14 @@ function fixInlines( node, smwParent, squire, isFirstCascadingChild ) {
             } else if ( isFirstCascadingChild && child === node.firstChild ) {
                 detachChild = true;
             }
+        } else if (child.nodeType === TEXT_NODE) {
+            // Merge adjacent textnodes
+            var previousSibling = child.previousSibling;
+            if (previousSibling && previousSibling.nodeType === TEXT_NODE) {
+                previousSibling.data += child.data;
+                detach( child );
+                child = previousSibling;
+            }
         }
 
         var next = child.nextSibling;
@@ -626,9 +634,6 @@ function fixContainer ( container, root ) {
 
     if ( !container.isContentEditable ) {
         return;
-    }
-    if (container === root) {
-        container.normalize(); // Normalize all text nodes. fixCursor will reinject any empty textNodes where required
     }
 
     var children = container.childNodes,
@@ -1630,6 +1635,10 @@ var afterDelete = function ( self, range ) {
             // Move cursor into text node
             moveRangeBoundariesDownTree( range );
         }
+        if (isBlock(parent) && parent.nodeName !== self._config.blockTag) {
+            fixContainer(self._root, self._root);
+            moveRangeBoundariesDownTree( range );
+        }
         // If you delete the last character in the sole <div> in Chrome,
         // it removes the div and replaces it with just a <br> inside the
         // root. Detach the <br>; the _ensureBottomLine call will insert a new
@@ -1815,72 +1824,82 @@ var keyHandlers = {
             event.preventDefault();
             deleteContentsOfRange( range, root );
             afterDelete( self, range );
-        }
-        // If at beginning of block, merge with previous
-        else if ( rangeDoesStartAtBlockBoundary( range, root ) ) {
-            event.preventDefault();
-            var current = getStartBlockOfRange( range, root ),
-                previous;
-            if ( !current ) {
-                return;
-            }
-            // In case inline data has somehow got between blocks.
-            fixContainer( current.parentNode, root );
-            // Now get previous block (p tag)
-            previous = getPreviousBlock( current, root );
-
-            var currentBlock = current.parentNode;
-            var currentContainer;
-            if (currentBlock === root || isAside(currentBlock)) {
-                currentContainer = currentBlock;
-                currentBlock = current;
-            } else {
-                currentContainer = currentBlock.parentNode;
-            }
-
-            // Replace the blockquote with a p, i.e. unset blockquote
-            if (isBlockquote(currentBlock)) {
-                self.modifyBlocks( decreaseBlockQuoteLevel, range );
-            } 
-            // If the block is the first block within the container, or if the previous sibling is a container
-            else if ( currentContainer.firstElementChild === currentBlock || isAside(currentBlock.previousElementSibling)) {
-                if (isListItem(currentBlock)) {
-                    self.modifyBlocks(decreaseListLevel, range);
-                }
-            }
-            else if ( previous ) {
-                // The rest of the actions we need to merge with previous node or delete previous node
-
-                var previousBlock;
-                if (previous.parentNode === root || isAside(previous.parentNode)) {
-                    previousBlock = previous;
-                } else {
-                    previousBlock = previous.parentNode;
-                }
-
-                if ( isWidget(previousBlock) ) {
-                    self.confirmDeleteWidget(previousBlock.getAttribute('widget-id'), previousBlock.getAttribute('widget-type')).then(function() {
-                        detach( previousBlock );
-                    });
-                }
-                else if ( isPagebreak(previousBlock) || (isParagraph(previousBlock) && !previous.textContent.trim()) || !previousBlock.isContentEditable) {
-                    // We prefer removing previous block in this case to keep header formatting for currentBlock example
-                    detach( previousBlock );
-                }
-                else {
-                    mergeWithBlock( previous, current, range );
-                }
-            }
-            fixContainer( root, root );
-            self.setSelection( range );
-            self._updatePath( range, true );
+        } else {
             
-        }
-        // Otherwise, leave to browser but check afterwards whether it has
-        // left behind an empty inline tag.
-        else {
-            self.setSelection( range );
-            setTimeout( function () { afterDelete( self ); }, 0 );
+            var start = range.startContainer;
+            while (start.nodeType === ELEMENT_NODE && start.firstChild && !isInline(start) && !isBlock(start)) {
+                // Try diving down until we find a block
+                range.setStart(start.childNodes[range.startOffset], 0);
+                range.setEnd(start.childNodes[range.startOffset], 0);
+                start = range.startContainer;
+            }
+
+            // If at beginning of block, merge with previous
+            if ( rangeDoesStartAtBlockBoundary( range, root ) ) {
+                event.preventDefault();
+                var current = getStartBlockOfRange( range, root ),
+                    previous;
+                if ( !current ) {
+                    return;
+                }
+                // In case inline data has somehow got between blocks.
+                fixContainer( current.parentNode, root );
+                // Now get previous block (p tag)
+                previous = getPreviousBlock( current, root );
+
+                var currentBlock = current.parentNode;
+                var currentContainer;
+                if (currentBlock === root || isAside(currentBlock)) {
+                    currentContainer = currentBlock;
+                    currentBlock = current;
+                } else {
+                    currentContainer = currentBlock.parentNode;
+                }
+
+                // Replace the blockquote with a p, i.e. unset blockquote
+                if (isBlockquote(currentBlock)) {
+                    self.modifyBlocks( decreaseBlockQuoteLevel, range );
+                }
+                // If the block is the first block within the container, or if the previous sibling is a container
+                else if ( currentContainer.firstElementChild === currentBlock || isAside(currentBlock.previousElementSibling)) {
+                    if (isListItem(currentBlock)) {
+                        self.modifyBlocks(decreaseListLevel, range);
+                    }
+                }
+                else if ( previous ) {
+                    // The rest of the actions we need to merge with previous node or delete previous node
+
+                    var previousBlock;
+                    if (previous.parentNode === root || isAside(previous.parentNode)) {
+                        previousBlock = previous;
+                    } else {
+                        previousBlock = previous.parentNode;
+                    }
+
+                    if ( isWidget(previousBlock) ) {
+                        self.confirmDeleteWidget(previousBlock.getAttribute('widget-id'), previousBlock.getAttribute('widget-type')).then(function() {
+                            detach( previousBlock );
+                        });
+                    }
+                    else if ( isPagebreak(previousBlock) || (isParagraph(previousBlock) && !previous.textContent.trim()) || !previousBlock.isContentEditable) {
+                        // We prefer removing previous block in this case to keep header formatting for currentBlock example
+                        detach( previousBlock );
+                    }
+                    else {
+                        mergeWithBlock( previous, current, range );
+                    }
+                }
+                fixContainer( root, root );
+                self.setSelection( range );
+                self._updatePath( range, true );
+
+            }
+            // Otherwise, leave to browser but check afterwards whether it has
+            // left behind an empty inline tag.
+            else {
+                self.setSelection( range );
+                setTimeout( function () { afterDelete( self ); }, 0 );
+            }
         }
     },
     'delete': function ( self, event, range ) {
