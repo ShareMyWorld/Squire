@@ -536,22 +536,13 @@ function fixContainer ( container, root ) {
 }
 
 function fixStaticBlocks( node, squire, doc, config ) {
-    var smwNode = squire._translateToSmw[ getFullNodeName( node ) ];
-    var classification = squire._allowedContent[ smwNode ];
+    var classification = getStaticClassification( node );
     var isStatic = classification === 'blockAtomic' || classification === 'containers'; 
     
     var previous = node.previousSibling || node.parentNode;
     var nodeInsertedBefore = false;
     if ( isStatic ) {
-        var prevName = getFullNodeName( previous );
-        var smwPrevious = squire._translateToSmw[ prevName ];
-        var prevClassification = squire._allowedContent[ smwPrevious ];
-
-        if ( !prevClassification && 
-             ( prevName === 'BODY' || prevName === 'P.page-break-container' ) ) {
-            //the hr container is not classified as hr, lets fake that it should be fixed
-            prevClassification = 'containers';
-        }
+        var prevClassification = getStaticClassification( previous );
         switch ( prevClassification ) {
             case 'blockAtomic':
             case 'containers':
@@ -563,6 +554,20 @@ function fixStaticBlocks( node, squire, doc, config ) {
         } 
     }
     return nodeInsertedBefore;
+}
+
+function getStaticClassification( node ) {
+    var name = getFullNodeName( node );
+    var smwNode = squire._translateToSmw[ name ];
+    var classification = squire._allowedContent[ smwPrevious ];
+
+    if ( !classification && 
+         ( name === 'BODY' || name === 'P.page-break-container' ) ) {
+            //the hr container is not classified as hr, lets fake that it should be fixed
+            classification = 'containers';
+    }
+    return classification;
+
 }
 
 function split ( node, offset, stopNode, root ) {
