@@ -725,9 +725,11 @@ function fixStaticBlocks( node, squire, doc, config ) {
     var previous = node.previousSibling || node.parentNode;
     var nodeInsertedBefore = false;
     if ( isStatic ) {
-        var translatedPrevious = squire._translateToSmw[ getFullNodeName( previous ) ];
-        var smwPrevious = translatedPrevious !== undefined ? translatedPrevious : previous.nodeName.toLowerCase();
+        var smwPrevious = squire._translateToSmw[ getFullNodeName( previous ) ];
         var prevClassification = squire._allowedContent[ smwPrevious ];
+        if ( !prevClassification && previous.nodeName === 'BODY' ) {
+            prevClassification = 'containers';
+        }
         switch ( prevClassification ) {
             case 'blockAtomic':
             case 'containers':
