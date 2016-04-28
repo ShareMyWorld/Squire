@@ -1323,7 +1323,7 @@ var makeList = function ( self, frag, type, variant ) {
     var walker = getBlockWalker( frag, self._root ),
         node, tag, prev, newLi,
         tagAttributes = self._config.tagAttributes,
-        listAttrs = tagAttributes[ tagAttributeType ],
+        listAttrs = tagAttributes[ tagAttributeType ] || {class: ''},
         listItemAttrs = tagAttributes.li;
 
     while ( node = walker.nextNode() ) {
