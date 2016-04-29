@@ -1840,11 +1840,19 @@ var keyHandlers = {
         } else {
             
             var start = range.startContainer;
-            while (start.nodeType === ELEMENT_NODE && start.firstChild && !isInline(start) && !isBlock(start)) {
+            if (start.nodeType === ELEMENT_NODE && start.firstChild && !isInline(start)) {
                 // Try diving down until we find a block
-                range.setStart(start.childNodes[range.startOffset], 0);
-                range.setEnd(start.childNodes[range.startOffset], 0);
-                start = range.startContainer;
+                if (range.startOffset >= start.childNodes.length) {
+                    if (start.lastChild.nodeType === ELEMENT_NODE) {
+                        range.setStart(start.lastChild, start.lastChild.childNodes.length);
+                        range.setEnd(start.lastChild, start.lastChild.childNodes.length);
+                    } else {
+                        range.setStart(start.lastChild, start.lastChild.data.length);
+                        range.setEnd(start.lastChild, start.lastChild.data.length);
+                    }
+                } else {
+                    moveRangeBoundariesDownTree(range);
+                }
             }
 
             // If at beginning of block, merge with previous
@@ -3966,7 +3974,7 @@ var makeList = function ( self, frag, type, variant ) {
     var walker = getBlockWalker( frag, self._root ),
         node, tag, prev, newLi,
         tagAttributes = self._config.tagAttributes,
-        listAttrs = tagAttributes[ tagAttributeType ],
+        listAttrs = tagAttributes[ tagAttributeType ] || {class: ''},
         listItemAttrs = tagAttributes.li;
 
     while ( node = walker.nextNode() ) {
