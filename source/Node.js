@@ -440,7 +440,9 @@ function isBlockAllowedIn( _node, _container, squire, config ) {
 
 function getFullNodeName( node ) {
     var c;
-    if ( c = node.getAttribute( 'class' ) ){
+    if ( !node ) {
+        return '';
+    } else if ( c = node.getAttribute( 'class' ) ){
         return node.nodeName + '.' + c;
     } else {
         return node.nodeName;
