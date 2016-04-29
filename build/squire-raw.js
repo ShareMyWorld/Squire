@@ -5031,17 +5031,19 @@ proto.fixContainers = function() {
 //  ================ API specifics  ===========================
 proto.toggleStrong = function () {
     var tag = 'B';
-    return toggleInlineTag( this, tag );
+    toggleInlineTag( this, tag );
+    return this.focus();
 };
 
 proto.toggleEm = function () {
     var tag = 'I';
-    return toggleInlineTag( this, tag );
+    toggleInlineTag( this, tag );
+    return this.focus();
 };
 
 proto.toggleHr = function () {
-    
     this.insertPageBreak();
+    return this.focus();
 };
 
 proto.toggleBlockquote = function () {
@@ -5049,7 +5051,8 @@ proto.toggleBlockquote = function () {
     var blockqouteAttributes = self._config.tagAttributes.blockquote;
     var addCallback = function(){ return self.createBlockQuote(); };
     var removeCallback = function(){ return self.removeBlockquotes(); };
-    return toggleTag( self, 'BLOCKQUOTE', blockqouteAttributes, addCallback, removeCallback );
+    toggleTag( self, 'BLOCKQUOTE', blockqouteAttributes, addCallback, removeCallback );
+    return this.focus();
 };
 
 proto.toggleAside = function () {
@@ -5057,7 +5060,8 @@ proto.toggleAside = function () {
     var asideAttributes = self._config.tagAttributes.aside;
     var addCallback = function(){ return self.createAside(); };
     var removeCallback = function(){ return self.removeAsides(); };
-    return toggleTag( self, 'BLOCKQUOTE', asideAttributes, addCallback, removeCallback );
+    toggleTag( self, 'BLOCKQUOTE', asideAttributes, addCallback, removeCallback );
+    return this.focus();
 };
 
 proto.setHeading = function ( level ) {
@@ -5066,7 +5070,7 @@ proto.setHeading = function ( level ) {
     } else {
         return this.modifyBlocks( createHeader(level) );
     }
-    //return this.focus();
+    return this.focus();
 };
 
 proto.setLink = function ( url, title ) {
@@ -5098,7 +5102,6 @@ proto.setLink = function ( url, title ) {
         insertNodeInRange( range, a );
     } 
     
-  
     return this.focus();
 };
 
