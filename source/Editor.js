@@ -2305,6 +2305,10 @@ var isSmwInline = function ( self, tag ) {
     return self._config.inlineMarkedTypes.indexOf( tag ) !== -1;
 };
 
+proto.isRangeInsideWidget = function( range ) {
+    var block = expandRangeToBlockBoundaries(range);
+};
+
 // Tags must be in SMW form
 proto.isAllowedIn = function ( self, tag, containerTag ) {
     var tags = [];
