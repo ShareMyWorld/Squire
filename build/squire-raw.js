@@ -4951,7 +4951,7 @@ var isSmwInline = function ( self, tag ) {
     return self._config.inlineMarkedTypes.indexOf( tag ) !== -1;
 };
 
-proto.isRangeInsideWidget = function( range ) {
+proto.widgetRangeSelectNextParagraph = function( range ) {
     var widget; 
     if ( widget = getNearestCallback(range.startContainer, this._root, isWidget) ) {
         var node = widget.nextSibling;
