@@ -33,9 +33,6 @@ function isBlock ( node ) {
     return ( type === ELEMENT_NODE || type === DOCUMENT_FRAGMENT_NODE ) &&
         !isInline( node ) && every( node.childNodes, isInline );
 }
-function isParagraphBlock ( node ) {
-    return isBlock( node ) && isParagraph( node );
-}
 
 function isContainer ( node ) {
     var type = node.nodeType;
@@ -82,22 +79,12 @@ function getBlockWalker ( node, root ) {
     return walker;
 }
 
-function getParagraphWalker ( node, root ) {
-    var walker = new TreeWalker( root, SHOW_ELEMENT, isParagraphBlock );
-    walker.currentNode = node;
-    return walker;
-}
-
 function getPreviousBlock ( node, root ) {
     node = getBlockWalker( node, root ).previousNode();
     return node !== root ? node : null;
 }
 function getNextBlock ( node, root ) {
     node = getBlockWalker( node, root ).nextNode();
-    return node !== root ? node : null;
-}
-function getNextParagraphBlock( node, root ) {
-    node = getParagraphWalker( node, root ).nextNode();
     return node !== root ? node : null;
 }
 

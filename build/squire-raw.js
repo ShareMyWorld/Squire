@@ -215,9 +215,6 @@ function isBlock ( node ) {
     return ( type === ELEMENT_NODE || type === DOCUMENT_FRAGMENT_NODE ) &&
         !isInline( node ) && every( node.childNodes, isInline );
 }
-function isParagraphBlock ( node ) {
-    return isBlock( node ) && isParagraph( node );
-}
 
 function isContainer ( node ) {
     var type = node.nodeType;
@@ -264,22 +261,12 @@ function getBlockWalker ( node, root ) {
     return walker;
 }
 
-function getParagraphWalker ( node, root ) {
-    var walker = new TreeWalker( root, SHOW_ELEMENT, isParagraphBlock );
-    walker.currentNode = node;
-    return walker;
-}
-
 function getPreviousBlock ( node, root ) {
     node = getBlockWalker( node, root ).previousNode();
     return node !== root ? node : null;
 }
 function getNextBlock ( node, root ) {
     node = getBlockWalker( node, root ).nextNode();
-    return node !== root ? node : null;
-}
-function getNextParagraphBlock( node, root ) {
-    node = getParagraphWalker( node, root ).nextNode();
     return node !== root ? node : null;
 }
 
@@ -4952,16 +4939,7 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
         expandWord( range );
         
         self.changeFormat( add, remove, range );
-        
-        //Reset cursor
-        /*try {
-            range.setStart( _startNode, _startOffset );
-            range.setEnd( _endNode, _startOffset );
-            range.collapse( true );
-            self.setSelection( range );
-        } catch(e) {
-            console.error('Squire.changeFormatExpandToWord()', e);
-        }*/
+      
     } else {
         self.changeFormat( add, remove, range );
     }
@@ -4974,7 +4952,18 @@ var isSmwInline = function ( self, tag ) {
 };
 
 proto.isRangeInsideWidget = function( range ) {
-    var block = expandRangeToBlockBoundaries(range);
+    var widget; 
+    if ( widget = getNearestCallback(range.startContainer, this._root, isWidget) ) {
+        var node = widget.nextSibling;
+        // Find next paragraph
+        while ( node && !isParagraph( node ) ) {
+            node = getNextBlock( node, this._root )
+        }
+        range.selectNode( node );
+        range.collapse( true );
+        this.setSelection( range );
+    }
+    return this.focus();
 };
 
 // Tags must be in SMW form
@@ -5008,14 +4997,6 @@ proto.isAllowedIn = function ( self, tag, containerTag ) {
     }
 
     return tags.indexOf( tag ) !== -1;
-    /*var allowedClass = self._allowedContent[ containerTag ];
-    if ( allowedClass === 'none' ) {
-        return false;
-    } else if ( allowedClass === 'inline' ) {
-        return isSmwInline( self, tag );
-    } else if ( allowedClass === 'all' ) {
-        return true;
-    }*/
 };
 
 var getSmwTagType = function ( smwTagTypes, tag ) {

@@ -2284,16 +2284,7 @@ var changeFormatExpandToWord = function ( self, add, remove, range ) {
         expandWord( range );
         
         self.changeFormat( add, remove, range );
-        
-        //Reset cursor
-        /*try {
-            range.setStart( _startNode, _startOffset );
-            range.setEnd( _endNode, _startOffset );
-            range.collapse( true );
-            self.setSelection( range );
-        } catch(e) {
-            console.error('Squire.changeFormatExpandToWord()', e);
-        }*/
+      
     } else {
         self.changeFormat( add, remove, range );
     }
@@ -2305,8 +2296,19 @@ var isSmwInline = function ( self, tag ) {
     return self._config.inlineMarkedTypes.indexOf( tag ) !== -1;
 };
 
-proto.isRangeInsideWidget = function( range ) {
-    var block = expandRangeToBlockBoundaries(range);
+proto.widgetRangeSelectNextParagraph = function( range ) {
+    var widget; 
+    if ( widget = getNearestCallback(range.startContainer, this._root, isWidget) ) {
+        var node = widget.nextSibling;
+        // Find next paragraph
+        while ( node && !isParagraph( node ) ) {
+            node = getNextBlock( node, this._root )
+        }
+        range.selectNode( node );
+        range.collapse( true );
+        this.setSelection( range );
+    }
+    return this.focus();
 };
 
 // Tags must be in SMW form
@@ -2340,14 +2342,6 @@ proto.isAllowedIn = function ( self, tag, containerTag ) {
     }
 
     return tags.indexOf( tag ) !== -1;
-    /*var allowedClass = self._allowedContent[ containerTag ];
-    if ( allowedClass === 'none' ) {
-        return false;
-    } else if ( allowedClass === 'inline' ) {
-        return isSmwInline( self, tag );
-    } else if ( allowedClass === 'all' ) {
-        return true;
-    }*/
 };
 
 var getSmwTagType = function ( smwTagTypes, tag ) {
