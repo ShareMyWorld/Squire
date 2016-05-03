@@ -1914,7 +1914,7 @@ var keyHandlers = {
                             self._blockKeyEvents = false;
                         });
                     }
-                    else if ( isPagebreak(previousBlock) || (isParagraph(previousBlock) && !previous.textContent.trim()) || !previousBlock.isContentEditable) {
+                    else if ( isPagebreak(previousBlock) || ((isParagraph(previousBlock) || isHeading(previousBlock)) && !previous.textContent.trim()) || !previousBlock.isContentEditable) {
                         // We prefer removing previous block in this case to keep header formatting for currentBlock example
                         detach( previousBlock );
                     }
