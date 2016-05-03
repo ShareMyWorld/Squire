@@ -95,10 +95,6 @@ var stylesRewriters = {
         }
     },
     A: function ( node, parent ) {
-        /*var text = node.textContent.replace(/[\[\]]/gim, function(i) {
-           return '&#'+i.charCodeAt(0)+';';
-        });
-        node.innerHTML = text;*/
         return node;
     },
     LI: function ( node, parent ) {
@@ -109,9 +105,14 @@ var stylesRewriters = {
             parent.replaceChild( li, node );
         } else {
             li = node;
-            //node.firstChild.innerHTML = node.textContent;
         }
         return li;
+    },
+    BLOCKQUOTE: function( node ) {
+        if ( node.className !== 'aside' ){
+            node.clasName = 'blockquote';
+        }
+        return node;
     }
 };
 
