@@ -310,57 +310,37 @@ function fixCursor ( node, root ) {
     return originalNode;
 }
 
-function fixBlocks( node, squire, doc, config ) {
-    var nodeInsertedBefore = false;
-    if ( node.nodeName === 'P' ) {
-        fixParagraph( node, node.parentNode, squire, doc );
+/**
+ * Ensures a node only contains a single paragraph.
+ * The paragraph itself is not checked for correctness. This is fixed later with fixParagraph() from fixContainer()
+ *
+ * @param {Element} node - The element which should only contain a single P node.
+ * @param {Document} doc
+ * @param {Object} config - The squire config
+ */
+function fixChildrenToSingleParagraph( node, doc, config ) {
+    var p, child, next;
+
+    if (isParagraph(node.firstChild)) {
+        p = node.firstChild;
     } else {
-        var smwNode = squire._translateToSmw[ getFullNodeName( node ) ];
-        var classification = squire._allowedContent[ smwNode ];
-                
-        if ( classification === 'blockAtomic' ) {
-            //No children allowed, remove all children
-            while ( node.firstChild ) {
-                node.removeChild( node.firstChild );
-            }
-        } else {
-            //Only one p allowed! 
-            var p = filterParagraphs( node, doc, config );
-            fixParagraph( p, node, squire, doc );
-        }
-        nodeInsertedBefore = fixStaticBlocks( node, squire, doc, config );
-    }
-
-    return nodeInsertedBefore;
-}
-
-
-function filterParagraphs( node, doc, config ) {
-    var children = Array.prototype.slice.call(node.childNodes),
-            child;
-
-    var p = node.querySelector('P');
-    if ( !p ) {
         p = createElement( doc, config.blockTag, config.blockAttributes );
-        var textNode = doc.createTextNode( node.textContent );
-        p.appendChild( textNode );
-        while ( node.firstChild ) {
-            node.removeChild( node.firstChild );
-        }
-        node.appendChild( p );
-
-    } else {
-        var text = children.reduce( function( acc, child ){
-            if ( child !== p ) {
-                acc += child.textContent;
-                detach( child );
-            } 
-            return acc
-        }, "");
-        var textNode = doc.createTextNode( text );
-        p.appendChild( textNode );
+        node.insertBefore(p, node.firstChild);
     }
-    return p;
+
+    var child = p.nextSibling;
+
+    while (child) {
+        next = child.nextSibling;
+        if (isInline(child)) {
+            p.appendChild( child );
+        } else if ( child.nodeType === ELEMENT_NODE ) {
+            detach( child );
+            p.appendChild( empty( child ) );
+        }
+
+        child = next;
+    }
 }
 
 function fixParagraph( node, parent, squire, doc ) {
@@ -385,7 +365,7 @@ function fixInlines( node, smwParent, squire, isFirstCascadingChild ) {
         if (child.nodeType === ELEMENT_NODE) {
             smwChild = squire._translateToSmw[ child.nodeName ];
 
-            if ( !isInline( child ) || ( smwParent && !squire.isAllowedIn( squire, smwChild, smwParent ) ) ) {
+            if ( !smwChild || !isInline( child ) || ( smwParent && !isInlineAllowedIn( smwChild, smwParent, squire ) ) ) {
                 if (!isLeaf(child)) {
                     node.insertBefore( empty( child ), child.nextSibling);
                 }
@@ -402,7 +382,8 @@ function fixInlines( node, smwParent, squire, isFirstCascadingChild ) {
                 }
                 fixInlines( child, smwParent, squire, isFirstCascadingChild && child === node.firstChild );
 
-            } else if ( isFirstCascadingChild && child === node.firstChild ) {
+            } else if ( isFirstCascadingChild && child === node.firstChild  && child.nodeName === 'BR') {
+                // Dont allow paragraphs to start with BR
                 detachChild = true;
             }
         } else if (child.nodeType === TEXT_NODE) {
@@ -423,21 +404,40 @@ function fixInlines( node, smwParent, squire, isFirstCascadingChild ) {
     }
 }
 
-function isBlockAllowedIn( _node, _container, squire, config ) {
-    var smwNode = squire._translateToSmw[ getFullNodeName( _node ) ];
-    var smwContainer = squire._translateToSmw[ getFullNodeName( _container ) ];
-    var containerTag = smwContainer !== undefined ? smwContainer : _container.nodeName.toLowerCase();
-    var allowed = squire._allowedBlocksForContainers[ containerTag ];
-    
-    if ( _node.nodeName === 'P' ) {
-        return true;
-    } else if ( _node.nodeName === 'LI' ) {
-        return /^[OU]L$/.test( _container.nodeName );
-    } else if ( allowed ) {
-        return allowed.indexOf( smwNode ) !== -1;
+/**
+ * Check if a node is allowed in the specified container
+ *
+ * @param {Element} node
+ * @param {Element} container
+ * @param {Squire} squire
+ * @returns {Boolean|RegExp}
+ */
+function isBlockAllowedIn( node, container, squire ) {
+    if ( isListItem( node ) ) {
+        return isList( container );
+    } else if ( isParagraph( node ) ) {
+        var classification = getSmwClassification( container, squire );
+        return classification === 'containers' || classification === 'blockWithText';
     } else {
-        return false;
-    }
+        var smwNode = squire._translateToSmw[ getFullNodeName( node ) ];
+        if (!smwNode) {
+            // FIXME: page-break should map to P.page-break-container, not IMG.page-break
+            if ( isPagebreak(node) ) {
+                smwNode = 'hr';
+            } else {
+                return false;
+            }
+        }
+        var smwContainer = squire._translateToSmw[ getFullNodeName( container ) ];
+        var containerTag = smwContainer || container.nodeName.toLowerCase();
+        var allowed = squire._allowedBlocksForContainers[ containerTag ];
+        return allowed && allowed.indexOf( smwNode ) !== -1;
+    } 
+}
+
+function isInlineAllowedIn( smwNode, smwBlockContainer, squire ) {
+    var allowed = squire._allowedInlineContentForBlocks[ smwBlockContainer ];
+    return allowed && allowed.indexOf( smwNode ) !== -1;
 }
 
 function getFullNodeName( node ) {
@@ -460,93 +460,117 @@ function fixContainer ( container, root ) {
 
     var children = container.childNodes,
         doc = container.ownerDocument,
-        wrapper = null,
-        i, l, child, isBR,
         squire = getSquireInstance( doc ),
-        config = squire._config;
+        config = squire._config,
+        containerClassification = getSmwClassification(container, squire),
+        wrapper, finalWrapper, i, l, child, isBR, childClassification;
+
+    if (containerClassification === 'blockWithText' && !isList(container)) {
+        fixChildrenToSingleParagraph( container, doc, config );
+    }
 
     for ( i = 0, l = children.length; i < l; i += 1 ) {
         child = children[i];
         isBR = child.nodeName === 'BR';
         if ( !isBR && isInline( child ) ) {
             if ( !wrapper ) {
-                 wrapper = createElement( doc,
-                    config.blockTag, config.blockAttributes );
+                 wrapper = createElement( doc, config.blockTag, config.blockAttributes );
             }
             wrapper.appendChild( child );
             i -= 1;
             l -= 1;
         } else if ( isBR || wrapper ) {
             if ( !wrapper ) {
-                wrapper = createElement( doc,
-                    config.blockTag, config.blockAttributes );
+                wrapper = createElement( doc, config.blockTag, config.blockAttributes );
             }
-            if ( isBR ) {
-                container.replaceChild( wrapper, child );
-            } else {
-                container.insertBefore( wrapper, child );
-                i += 1;
-                l += 1;
-            }
-            fixParagraph( wrapper, container, squire, doc );
-            wrapper = null;
-        } else if ( getFullNodeName( child ) === 'BLOCKQUOTE.aside' ) {
-            //continue further down the tree
-        } else if ( !child.isContentEditable || container.getAttribute('contenteditable') === 'false' ) {
-            //Don't check this child
-        } else if ( /^[OU]L$/.test( child.nodeName ) ) {
-            var listChildren = Array.prototype.slice.call( child.childNodes );
-            listChildren.forEach(function(c){
-                if ( c.nodeName !== 'LI' ) {
-                    var liWrapper = createElement( doc, 'LI' );
-                    var p = createElement( doc,
-                        config.blockTag, config.blockAttributes );
-                    p.appendChild( empty( c ));
-                    liWrapper.appendChild( p );
-                    child.replaceChild( liWrapper, c );
-                }
-            });
 
-        } else if ( isBlockAllowedIn( child, container, squire, config ) ) {
-            if ( fixBlocks( child, squire, doc, config ) ) {
+            if ( isList(container) ) {
+                finalWrapper = createElement( doc, 'LI', [wrapper] );
+            } else {
+                finalWrapper = wrapper;
+            }
+
+            if ( isBR ) {
+                container.replaceChild( finalWrapper, child );
+            } else {
+                container.insertBefore( finalWrapper, child );
                 i += 1;
                 l += 1;
             }
-        } else {
-            wrapper = createElement( doc, config.blockTag, config.blockAttributes );
-            wrapper.appendChild( empty( child ) );
-            container.replaceChild( wrapper, child );
+
+            // No need to check the possible li with fixContainer, we created all content here so we know it's right!
             fixParagraph( wrapper, container, squire, doc );
-            wrapper = null;
+            wrapper = finalWrapper = null;
+
+        } else {
+            childClassification = getSmwClassification( child, squire );
+            
+            if ( isBlockAllowedIn( child , container, squire ) ) {
+                if (childClassification !== 'paragraph' && fixStaticBlocks( child, squire, doc, config ) ) {
+                    i += 1;
+                    l += 1;
+                }
+
+                switch (childClassification) {
+                    case 'containers':
+                    case 'blockWithText':
+                        fixContainer( child, root );
+                        break;
+
+                    case 'paragraph':
+                        fixParagraph( child, container, squire, doc );
+                        break;
+                }
+
+            } else { // Block not allowed here! remove or unwind
+                if (childClassification === 'blockAtomic' || (child.nodeType !== ELEMENT_NODE && child.nodeType !== TEXT_NODE) || !/\S/.test(child.textContent)) {
+                    detach( child );
+                    i -= 1;
+                    l -= 1;
+                } else {
+                    // Force it to paragraph and use fixParagraph do unwind its content to pure inline content
+                    wrapper = createElement( doc, config.blockTag, config.blockAttributes );
+                    if ( isList(container) ) {
+                        finalWrapper = createElement( doc, 'LI', [wrapper] );
+                    } else {
+                        finalWrapper = wrapper;
+                    }
+
+                    container.replaceChild( finalWrapper, child );
+                    wrapper.appendChild(child);
+                    fixParagraph( wrapper, container, squire, doc );
+                    
+                    wrapper = finalWrapper = null;
+                }
+            }
         }
-        if ( fixStaticBlocks( child, squire, doc, config ) ) {
-                i += 1;
-                l += 1;
-        }
-        if ( isContainer( child ) && child.nodeName !== 'LI' && child.isContentEditable ) {
-            fixContainer( child, root );
-        }
-        
-    }
-    if ( container === root || ( isContainer( container ) && !/^[OU]L$/.test( container.nodeName ) ) ) {
-        squire._ensureBottomLine( container );
     }
 
     if ( wrapper ) {
+        if ( isList(container) ) {
+            finalWrapper = createElement( doc, 'LI', [wrapper] );
+        } else {
+            finalWrapper = wrapper;
+        }
+        container.appendChild( finalWrapper );
         fixParagraph( wrapper, container, squire, doc );
-        container.appendChild( wrapper );
     }
+
+    if ( containerClassification === 'containers' ) {
+        squire._ensureBottomLine( container );
+    }
+
     return container;
 }
 
 function fixStaticBlocks( node, squire, doc, config ) {
-    var classification = getStaticClassification( node, squire );
-    var isStatic = classification === 'blockAtomic' || classification === 'containers'; 
-    
-    var previous = node.previousSibling || node.parentNode;
+    var classification = getSmwClassification( node, squire );
     var nodeInsertedBefore = false;
-    if ( isStatic ) {
-        var prevClassification = getStaticClassification( previous, squire );
+    var isStatic = classification === 'blockAtomic' || classification === 'containers'; 
+
+    if ( isStatic || isBlockquote(node) || isList(node)) {
+        var previous = node.previousSibling || node.parentNode;
+        var prevClassification = getSmwClassification( previous, squire );
         switch ( prevClassification ) {
             case 'blockAtomic':
             case 'containers':
@@ -560,15 +584,32 @@ function fixStaticBlocks( node, squire, doc, config ) {
     return nodeInsertedBefore;
 }
 
-function getStaticClassification( node, squire ) {
-    var name = getFullNodeName( node );
-    var smwNode = squire._translateToSmw[ name ];
-    var classification = squire._allowedContent[ smwNode ];
-
-    if ( !classification && 
-         ( name === 'BODY' || name === 'P.page-break-container' ) ) {
-            //the hr container is not classified as hr, lets fake that it should be fixed
-            classification = 'containers';
+/**
+ * Returns the SMW classification for a node.
+ * The following classifications exists for squire container nodes:
+ * - 'containers'
+ * - 'blockWithText'
+ * - 'blockAtomic'
+ *
+ * @param {Element} node
+ * @param {Squire} squire
+ * @returns {String|undefined} The classification string or undefined if node does not have any classification
+ */
+function getSmwClassification( node, squire ) {
+    var classification;
+    if (node === squire._root) {
+        classification = 'containers';
+    } else if (isParagraph(node)) {
+        classification = 'paragraph';
+    } else if (isListItem(node)) {
+        classification = 'blockWithText';
+    } else if (isPagebreak(node)) {
+        // FIXME: HR should be mapped with P.page-break-container so we dont need this extra check
+        classification = 'blockAtomic';
+    } else {
+        var name = getFullNodeName( node );
+        var smwNode = squire._translateToSmw[ name ];
+        classification = squire._allowedContent[ smwNode ];
     }
     return classification;
 

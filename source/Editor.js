@@ -120,6 +120,7 @@ function Squire ( root, config ) {
     this._allowedBlocks = config.allowedBlocksForContainers;
     
     this._allowedBlocksForContainers = config.allowedBlocksForContainers;
+    this._allowedInlineContentForBlocks = config.allowedInlineContentForBlocks;
     
     this._translateToSmw = 
         createTranslationMap( config.tagAttributes, config.allowedTags );
@@ -1715,7 +1716,7 @@ proto.insertHTML = function ( html, isPaste ) {
                 this._docWasChanged();
             }
             range.collapse( false );
-            this._ensureBottomLine();
+            fixContainer(root, root);
         }
 
         this.setSelection( range );

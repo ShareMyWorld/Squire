@@ -20,11 +20,12 @@ var onCut = function ( event ) {
         clipboardData.setData( 'text/plain',
             node.innerText || node.textContent );
         event.preventDefault();
+        fixContainer(root, root);
     } else {
         setTimeout( function () {
             try {
                 // If all content removed, ensure div at start of root.
-                self._ensureBottomLine();
+                fixContainer(root, root);
             } catch ( error ) {
                 self.didError( error );
             }
