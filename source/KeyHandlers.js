@@ -25,6 +25,11 @@ var onKey = function ( event ) {
         return;
     }
 
+    if (this._blockKeyEvents) {
+        event.preventDefault();
+        return;
+    }
+
     if ( !key ) {
         key = String.fromCharCode( code ).toLowerCase();
         // Only reliable for letters and numbers
@@ -376,8 +381,11 @@ var keyHandlers = {
                     }
 
                     if ( isWidget(previousBlock) ) {
+                        self._blockKeyEvents = true;
                         self.confirmDeleteWidget(previousBlock.getAttribute('widget-id'), previousBlock.getAttribute('widget-type')).then(function() {
                             detach( previousBlock );
+                        }).finally(function() {
+                            self._blockKeyEvents = false;
                         });
                     }
                     else if ( isPagebreak(previousBlock) || (isParagraph(previousBlock) && !previous.textContent.trim()) || !previousBlock.isContentEditable) {
@@ -447,8 +455,11 @@ var keyHandlers = {
                 }
 
                 if ( isWidget(nextBlock) ) {
+                    self._blockKeyEvents = true;
                     self.confirmDeleteWidget(nextBlock.getAttribute('widget-id'), nextBlock.getAttribute('widget-type')).then(function() {
                         detach( nextBlock );
+                    }).finally(function() {
+                        self._blockKeyEvents = false;
                     });
                 }
                 else if ( isPagebreak(nextBlock) || !nextBlock.isContentEditable) {

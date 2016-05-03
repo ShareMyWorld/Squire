@@ -105,6 +105,9 @@ function Squire ( root, config ) {
 
     // Add key handlers
     this._keyHandlers = Object.create( keyHandlers );
+    
+    // Used to block all keyevents when showing confirm dialogs
+    this._blockKeyEvents = false;
 
     // Override default properties
     this.setConfig( config );
