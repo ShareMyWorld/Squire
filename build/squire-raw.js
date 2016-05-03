@@ -2779,6 +2779,7 @@ function Squire ( root, config ) {
     this._validTags = Object.keys( this._translateToSmw );
 
     this._onPasteErrorCallback = config.onPasteErrorCallback;
+    this._onPasteCallback = config.onPasteCallback;
 
     this.confirmDeleteWidget = config.confirmDeleteWidget;
 
@@ -4355,6 +4356,8 @@ proto.insertHTML = function ( html, isPaste ) {
         }
 
         if ( isPaste ) {
+            if ( this._onPasteCallback )
+                this._onPasteCallback();
             this.fireEvent( 'willPaste', event );
         }
 
