@@ -4959,9 +4959,10 @@ proto.widgetRangeSelectNextParagraph = function( range ) {
         while ( node && !isParagraph( node ) ) {
             node = getNextBlock( node, this._root )
         }
-        range.selectNode( node );
-        range.collapse( true );
-        this.setSelection( range );
+        var newRange = this._createRange( node, 0 );
+        moveRangeBoundariesDownTree( newRange );
+        newRange.collapse( true );
+        this.setSelection( newRange );
     }
     return this.focus();
 };
