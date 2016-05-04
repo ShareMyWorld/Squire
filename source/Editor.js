@@ -62,6 +62,7 @@ function Squire ( root, config ) {
 
     this._undoIndex = -1;
     this._undoStack = [];
+    this._undoScrollTopStack = [];
     this._undoStackLength = 0;
     this._isInUndoState = false;
     this._ignoreChange = false;
@@ -708,11 +709,13 @@ proto._recordUndoState = function ( range ) {
     if ( !this._isInUndoState ) {
         // Advance pointer to new position
         var undoIndex = this._undoIndex += 1,
-            undoStack = this._undoStack;
+            undoStack = this._undoStack,
+            undoScrollTopStack = this._undoScrollTopStack;
 
         // Truncate stack if longer (i.e. if has been previously undone)
         if ( undoIndex < this._undoStackLength ) {
             undoStack.length = this._undoStackLength = undoIndex;
+            undoScrollTopStack.length = this._undoStackLength = undoIndex;
         }
 
         // Write out data
@@ -720,6 +723,7 @@ proto._recordUndoState = function ( range ) {
             this._saveRangeToBookmark( range );
         }
         undoStack[ undoIndex ] = this._getHTML();
+        undoScrollTopStack[ undoIndex ] = this._doc.documentElement.scrollTop || this._doc.body.scrollTop;
         this._undoStackLength += 1;
         this._isInUndoState = true;
     }
@@ -743,7 +747,9 @@ proto.undo = function () {
         this._recordUndoState( this.getSelection() );
 
         this._undoIndex -= 1;
+        var scrollTop = this._undoScrollTopStack[ this._undoIndex ];
         this._setHTML( this._undoStack[ this._undoIndex ] );
+
         var range = this._getRangeAndRemoveBookmark();
         if ( range ) {
             this.setSelection( range );
@@ -759,6 +765,15 @@ proto.undo = function () {
             canRedo: true
         });
         this.fireEvent( 'input' );
+        this._doc.documentElement.scrollTop = scrollTop;
+        this._doc.body.scrollTop = scrollTop;
+        var self = this;
+        setTimeout(function() {
+            if (self._doc && self._doc.documentElement) {
+                self._doc.documentElement.scrollTop = scrollTop;
+                self._doc.body.scrollTop = scrollTop;
+            }
+        }, 16);
     }
     return this.focus();
 };
@@ -770,6 +785,7 @@ proto.redo = function () {
         undoStackLength = this._undoStackLength;
     if ( undoIndex + 1 < undoStackLength && this._isInUndoState ) {
         this._undoIndex += 1;
+        var scrollTop = this._undoScrollTopStack[ this._undoIndex ];
         this._setHTML( this._undoStack[ this._undoIndex ] );
         var range = this._getRangeAndRemoveBookmark();
         if ( range ) {
@@ -780,6 +796,15 @@ proto.redo = function () {
             canRedo: undoIndex + 2 < undoStackLength
         });
         this.fireEvent( 'input' );
+        this._doc.documentElement.scrollTop = scrollTop;
+        this._doc.body.scrollTop = scrollTop;
+        var self = this;
+        setTimeout(function() {
+            if (self._doc && self._doc.documentElement) {
+                self._doc.documentElement.scrollTop = scrollTop;
+                self._doc.body.scrollTop = scrollTop;
+            }
+        }, 16);
     }
     return this.focus();
 };
@@ -1558,6 +1583,7 @@ proto.setHTML = function ( html, skipUndo ) {
         // Reset the undo stack
         this._undoIndex = -1;
         this._undoStack.length = 0;
+        this._undoScrollTopStack.length = 0;
         this._undoStackLength = 0;
         this._isInUndoState = false;
 
