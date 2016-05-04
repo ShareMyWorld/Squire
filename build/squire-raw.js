@@ -2294,7 +2294,7 @@ var stylesRewriters = {
     },
     BLOCKQUOTE: function( node ) {
         if ( node.className !== 'aside' ){
-            node.clasName = 'blockquote';
+            node.className = 'blockquote';
         }
         return node;
     }
