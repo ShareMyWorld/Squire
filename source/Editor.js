@@ -174,7 +174,7 @@ function Squire ( root, config ) {
 
     // Need to register instance before calling setHTML, so that the fixCursor
     // function can lookup any default block tag options set.
-    this.setHTML( '' );
+    this.setHTML( config.html || '' );
 }
 
 var proto = Squire.prototype;
@@ -718,6 +718,8 @@ proto._recordUndoState = function ( range ) {
             undoScrollTopStack.length = this._undoStackLength = undoIndex;
         }
 
+        // Ensure we save a fully functional html
+        fixContainer(this._root, this._root);
         // Write out data
         if ( range ) {
             this._saveRangeToBookmark( range );
@@ -753,11 +755,6 @@ proto.undo = function () {
         var range = this._getRangeAndRemoveBookmark();
         if ( range ) {
             this.setSelection( range );
-            var startNode = range.startContainer;
-            if ( startNode.nodeType != ELEMENT_NODE ) {
-                startNode = startNode.parentNode;
-            }
-            startNode.scrollIntoView();
         }
         this._isInUndoState = true;
         this.fireEvent( 'undoStateChange', {

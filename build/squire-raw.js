@@ -38,7 +38,9 @@ var useTextFixer = isIElt11 || isPresto;
 var cantFocusEmptyTextNodes = isIElt11 || isWebKit;
 var losesSelectionOnBlur = isIElt11;
 
-var canObserveMutations = typeof MutationObserver !== 'undefined';
+// Due to how angular works and how we inject content widgets, we cannot use the MutationObserver.
+// The widgets can inject data at a later stage after an undo and thus trigger multiple mutation events, effectively canceling the undo state.
+var canObserveMutations = false; //typeof MutationObserver !== 'undefined';
 
 // Use [^ \t\r\n] instead of \S so that nbsp does not count as white-space
 var notWS = /[^ \t\r\n]/;
@@ -2883,7 +2885,7 @@ function Squire ( root, config ) {
 
     // Need to register instance before calling setHTML, so that the fixCursor
     // function can lookup any default block tag options set.
-    this.setHTML( '' );
+    this.setHTML( config.html || '' );
 }
 
 var proto = Squire.prototype;
@@ -3427,12 +3429,14 @@ proto._recordUndoState = function ( range ) {
             undoScrollTopStack.length = this._undoStackLength = undoIndex;
         }
 
+        // Ensure we save a fully functional html
+        fixContainer(this._root, this._root);
         // Write out data
         if ( range ) {
             this._saveRangeToBookmark( range );
         }
         undoStack[ undoIndex ] = this._getHTML();
-        undoScrollTopStack[ undoIndex ] = this._doc.documentElement.scrollTop;
+        undoScrollTopStack[ undoIndex ] = this._doc.documentElement.scrollTop || this._doc.body.scrollTop;
         this._undoStackLength += 1;
         this._isInUndoState = true;
     }
@@ -3462,11 +3466,6 @@ proto.undo = function () {
         var range = this._getRangeAndRemoveBookmark();
         if ( range ) {
             this.setSelection( range );
-            var startNode = range.startContainer;
-            if ( startNode.nodeType != ELEMENT_NODE ) {
-                startNode = startNode.parentNode;
-            }
-            startNode.scrollIntoView();
         }
         this._isInUndoState = true;
         this.fireEvent( 'undoStateChange', {
@@ -3475,12 +3474,14 @@ proto.undo = function () {
         });
         this.fireEvent( 'input' );
         this._doc.documentElement.scrollTop = scrollTop;
+        this._doc.body.scrollTop = scrollTop;
         var self = this;
         setTimeout(function() {
             if (self._doc && self._doc.documentElement) {
                 self._doc.documentElement.scrollTop = scrollTop;
+                self._doc.body.scrollTop = scrollTop;
             }
-        }, 0);
+        }, 16);
     }
     return this.focus();
 };
@@ -3504,12 +3505,14 @@ proto.redo = function () {
         });
         this.fireEvent( 'input' );
         this._doc.documentElement.scrollTop = scrollTop;
+        this._doc.body.scrollTop = scrollTop;
         var self = this;
         setTimeout(function() {
             if (self._doc && self._doc.documentElement) {
                 self._doc.documentElement.scrollTop = scrollTop;
+                self._doc.body.scrollTop = scrollTop;
             }
-        }, 0);
+        }, 16);
     }
     return this.focus();
 };

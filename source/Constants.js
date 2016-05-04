@@ -34,7 +34,9 @@ var useTextFixer = isIElt11 || isPresto;
 var cantFocusEmptyTextNodes = isIElt11 || isWebKit;
 var losesSelectionOnBlur = isIElt11;
 
-var canObserveMutations = typeof MutationObserver !== 'undefined';
+// Due to how angular works and how we inject content widgets, we cannot use the MutationObserver.
+// The widgets can inject data at a later stage after an undo and thus trigger multiple mutation events, effectively canceling the undo state.
+var canObserveMutations = false; //typeof MutationObserver !== 'undefined';
 
 // Use [^ \t\r\n] instead of \S so that nbsp does not count as white-space
 var notWS = /[^ \t\r\n]/;
