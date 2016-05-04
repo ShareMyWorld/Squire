@@ -4414,8 +4414,6 @@ proto.insertHTML = function ( html, isPaste ) {
         }
 
         if ( isPaste ) {
-            if ( this._onPasteCallback )
-                this._onPasteCallback();
             this.fireEvent( 'willPaste', event );
         }
 
@@ -4426,6 +4424,12 @@ proto.insertHTML = function ( html, isPaste ) {
             }
             range.collapse( false );
             fixContainer(root, root);
+
+            if ( isPaste ) {
+                if ( this._onPasteCallback ) {
+                    this._onPasteCallback();
+                }
+            }
         }
 
         this.setSelection( range );
