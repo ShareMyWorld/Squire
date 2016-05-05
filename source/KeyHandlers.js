@@ -135,9 +135,13 @@ var afterDelete = function ( self, range ) {
             // Move cursor into text node
             moveRangeBoundariesDownTree( range );
         }
-        if (isBlock(parent) && parent.nodeName !== self._config.blockTag) {
-            fixContainer(self._root, self._root);
-            moveRangeBoundariesDownTree( range );
+        if (isBlock(parent)) {
+            if (parent.nodeName !== self._config.blockTag) {
+                fixContainer(self._root, self._root);
+                moveRangeBoundariesDownTree( range );
+            } else {
+                mergeInlines( parent, range );
+            }
         }
         // If you delete the last character in the sole <div> in Chrome,
         // it removes the div and replaces it with just a <br> inside the
@@ -157,35 +161,8 @@ var afterDelete = function ( self, range ) {
 
 var keyHandlers = {
     'shift-enter': function ( self, event, range) {
-        if (range.collapsed) {
-            var currentNode = range.startContainer;
-            var previousNode, nextNode;
-            if (getNearestCallback(currentNode, self._root, isHeading)) {
-                event.preventDefault();
-            }
-            else if (currentNode.nodeType === TEXT_NODE) {
-                // If empty, and there is a br before or after, DENY!
-                previousNode = currentNode.previousSibling;
-                nextNode = currentNode.nextSibling;
-
-                if (
-                    (!currentNode.data.slice(0, range.startOffset).trim() && (!previousNode || previousNode.nodeName === 'BR')) ||
-                    (!currentNode.data.slice(range.endOffset).trim() && nextNode && nextNode.parentNode.lastChild !== nextNode && nextNode.nodeName === 'BR')
-                ) {
-                    event.preventDefault();
-                }
-            } else {
-                currentNode = currentNode.childNodes[range.startOffset];
-                if (currentNode) {
-                    previousNode = currentNode.previousSibling;
-                    nextNode = currentNode.nextSibling;
-                    
-                    if (currentNode.nodeName === 'BR' && (!previousNode || previousNode.nodeName === 'BR' || (nextNode && nextNode.parentNode.lastChild !== nextNode && nextNode.nodeName === 'BR') )) {
-                        event.preventDefault();
-                    }
-                }
-
-            }
+        if (!canInsertLineBreak(self, range)) {
+            event.preventDefault();
         }
     },
     enter: function ( self, event, range ) {

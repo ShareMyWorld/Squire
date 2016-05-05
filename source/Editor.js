@@ -2221,6 +2221,12 @@ proto.insertSoftBreak = function ( ) {
     var self = this;
 
     var range = self.getSelection();
+
+    if (!canInsertLineBreak(self, range)) {
+        self.focus();
+        return;
+    }
+
     var br = self.createElement( 'BR' );
 
     self._recordUndoState( range );
@@ -2234,6 +2240,43 @@ proto.insertSoftBreak = function ( ) {
     self.setSelection( range );
     self._updatePath( range, true );
     return self.focus();
+};
+
+var canInsertLineBreak = function(self, range) {
+    var result = true;
+    if (range.collapsed) {
+        var currentNode = range.startContainer;
+        var previousNode, nextNode;
+        if (getNearestCallback(currentNode, self._root, isHeading)) {
+            result = false;
+        }
+        else if (currentNode.nodeType === TEXT_NODE) {
+            // If empty, and there is a br before or after, DENY!
+            previousNode = currentNode.previousSibling;
+            nextNode = currentNode.nextSibling;
+
+            if (
+                (!currentNode.data.slice(0, range.startOffset).trim() && (!previousNode || previousNode.nodeName === 'BR')) ||
+                (!currentNode.data.slice(range.endOffset).trim() && nextNode && nextNode.parentNode.lastChild !== nextNode && nextNode.nodeName === 'BR')
+            ) {
+                result = false;
+            }
+        } else {
+            currentNode = currentNode.childNodes[range.startOffset];
+            if (currentNode) {
+                previousNode = currentNode.previousSibling;
+                nextNode = currentNode.nextSibling;
+
+                if (currentNode.nodeName === 'BR' && (!previousNode || previousNode.nodeName === 'BR' || (nextNode && nextNode.parentNode.lastChild !== nextNode && nextNode.nodeName === 'BR') )) {
+                    result = false;
+                }
+            }
+
+        }
+    } else {
+        result = false;
+    }
+    return result;
 };
 
 proto.insertPageBreak = function ( ) {
