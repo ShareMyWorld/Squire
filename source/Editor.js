@@ -130,6 +130,7 @@ function Squire ( root, config ) {
 
     this._onPasteErrorCallback = config.onPasteErrorCallback;
     this._onPasteCallback = config.onPasteCallback;
+    this._inlineMode =  config.inlineMode;
 
     this.confirmDeleteWidget = config.confirmDeleteWidget;
 
@@ -174,7 +175,7 @@ function Squire ( root, config ) {
 
     // Need to register instance before calling setHTML, so that the fixCursor
     // function can lookup any default block tag options set.
-    this.setHTML( config.html || '' );
+    this.setHTML( config.html || '', false, true );
 }
 
 var proto = Squire.prototype;
@@ -1549,7 +1550,7 @@ proto.getHTML = function ( withBookMark ) {
     return html;
 };
 
-proto.setHTML = function ( html, skipUndo ) {
+proto.setHTML = function ( html, skipUndo, skipClean ) {
     var frag = this._doc.createDocumentFragment();
     var div = this.createElement( 'DIV' );
     var root = this._root;
@@ -1558,9 +1559,10 @@ proto.setHTML = function ( html, skipUndo ) {
     // Parse HTML into DOM tree
     div.innerHTML = html;
     frag.appendChild( empty( div ) );
-
-    cleanTree( frag );
-    cleanupBRs( frag, root );
+    if (!skipClean) {
+        cleanTree( frag );
+        cleanupBRs( frag, root );
+    }
 
 //    fixContainer( frag, root );
 

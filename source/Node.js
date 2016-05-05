@@ -288,6 +288,9 @@ function fixCursor ( node, root ) {
                 node.parentNode.insertBefore( doc.createTextNode( '' ), node );
             }
         }
+        else if ( isBlock(node) && node.lastChild && node.lastChild.nodeName !== 'BR' ) {
+            fixer = createElement( doc, 'BR' );
+        }
         else if ( !node.querySelector( 'BR' ) ) {
             fixer = createElement( doc, 'BR' );
             while ( ( child = node.lastElementChild ) && !isInline( child ) ) {
@@ -598,7 +601,7 @@ function fixStaticBlocks( node, squire, doc, config ) {
 function getSmwClassification( node, squire ) {
     var classification;
     if (node === squire._root) {
-        classification = 'containers';
+        classification = squire._inlineMode ? 'blockWithText' : 'containers';
     } else if (isParagraph(node)) {
         classification = 'paragraph';
     } else if (isListItem(node)) {

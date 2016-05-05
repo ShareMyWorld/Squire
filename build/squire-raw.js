@@ -472,6 +472,9 @@ function fixCursor ( node, root ) {
                 node.parentNode.insertBefore( doc.createTextNode( '' ), node );
             }
         }
+        else if ( isBlock(node) && node.lastChild && node.lastChild.nodeName !== 'BR' ) {
+            fixer = createElement( doc, 'BR' );
+        }
         else if ( !node.querySelector( 'BR' ) ) {
             fixer = createElement( doc, 'BR' );
             while ( ( child = node.lastElementChild ) && !isInline( child ) ) {
@@ -782,7 +785,7 @@ function fixStaticBlocks( node, squire, doc, config ) {
 function getSmwClassification( node, squire ) {
     var classification;
     if (node === squire._root) {
-        classification = 'containers';
+        classification = squire._inlineMode ? 'blockWithText' : 'containers';
     } else if (isParagraph(node)) {
         classification = 'paragraph';
     } else if (isListItem(node)) {
@@ -1728,13 +1731,14 @@ var keyHandlers = {
     'shift-enter': function ( self, event, range) {
         if (range.collapsed) {
             var currentNode = range.startContainer;
+            var previousNode, nextNode;
             if (getNearestCallback(currentNode, self._root, isHeading)) {
                 event.preventDefault();
             }
             else if (currentNode.nodeType === TEXT_NODE) {
                 // If empty, and there is a br before or after, DENY!
-                var previousNode = currentNode.previousSibling;
-                var nextNode = currentNode.nextSibling;
+                previousNode = currentNode.previousSibling;
+                nextNode = currentNode.nextSibling;
 
                 if (
                     (!currentNode.data.slice(0, range.startOffset).trim() && (!previousNode || previousNode.nodeName === 'BR')) ||
@@ -1744,9 +1748,15 @@ var keyHandlers = {
                 }
             } else {
                 currentNode = currentNode.childNodes[range.startOffset];
-                if (currentNode.nodeName === 'BR' && (!previousNode || previousNode.nodeName === 'BR' || (nextNode && nextNode.parentNode.lastChild !== nextNode && nextNode.nodeName === 'BR') )) {
-                    event.preventDefault();
+                if (currentNode) {
+                    previousNode = currentNode.previousSibling;
+                    nextNode = currentNode.nextSibling;
+                    
+                    if (currentNode.nodeName === 'BR' && (!previousNode || previousNode.nodeName === 'BR' || (nextNode && nextNode.parentNode.lastChild !== nextNode && nextNode.nodeName === 'BR') )) {
+                        event.preventDefault();
+                    }
                 }
+
             }
         }
     },
@@ -1790,90 +1800,98 @@ var keyHandlers = {
         } else {
             currentContainer = currentBlock.parentNode;
         }
-        // We need a reference to the link so we can figure out which of the two to keep after split
-        var linkBeforeSplit = getNearest(range.startContainer, root, 'A');
 
-        if ( isHeading(currentBlock) ) {
-            if (!current.textContent.trim()) {
-                // Empty headings becomes P instead
-                currentContainer.insertBefore( self.createDefaultBlock(), currentBlock );
-                detach( currentBlock );
-                nodeAfterSplit = splitBlock( self, current, range.startContainer, range.startOffset );
-            } else  {
-                if (range.startOffset === 0) {
+        if (self._inlineMode) {
+            var br = createElement( self._doc, 'br' );
+            insertNodeInRange(range, br);
+            range.setStartAfter(br);
+            range.setEndAfter(br);
+        } else {
+            // We need a reference to the link so we can figure out which of the two to keep after split
+            var linkBeforeSplit = getNearest(range.startContainer, root, 'A');
+
+            if ( isHeading(currentBlock) ) {
+                if (!current.textContent.trim()) {
+                    // Empty headings becomes P instead
                     currentContainer.insertBefore( self.createDefaultBlock(), currentBlock );
+                    detach( currentBlock );
+                    nodeAfterSplit = splitBlock( self, current, range.startContainer, range.startOffset );
+                } else  {
+                    if (range.startOffset === 0) {
+                        currentContainer.insertBefore( self.createDefaultBlock(), currentBlock );
+                        nodeAfterSplit = current;
+                    } else {
+                        nodeAfterSplit = splitBlockAndUnwrapAfter( self, currentBlock, range );
+                    }
+                }
+
+            } else if (isBlockquote(currentBlock)) {
+                nodeAfterSplit = splitBlockAndUnwrapAfter( self, currentBlock, range );
+
+            } else if (isListItem(currentBlock)) {
+                if (currentContainer.lastElementChild === currentBlock && !current.textContent.trim()) {
+                    self.modifyBlocks( decreaseListLevel, range );
                     nodeAfterSplit = current;
                 } else {
-                    nodeAfterSplit = splitBlockAndUnwrapAfter( self, currentBlock, range );
+                    blockAfterSplit = splitBlock( self, currentBlock, range.startContainer, range.startOffset );
+                    nodeAfterSplit = blockAfterSplit.firstElementChild;
                 }
-            }
-            
-        } else if (isBlockquote(currentBlock)) {
-            nodeAfterSplit = splitBlockAndUnwrapAfter( self, currentBlock, range );
-            
-        } else if (isListItem(currentBlock)) {
-            if (currentContainer.lastElementChild === currentBlock && !current.textContent.trim()) {
-                self.modifyBlocks( decreaseListLevel, range );
-                nodeAfterSplit = current;
             } else {
-                blockAfterSplit = splitBlock( self, currentBlock, range.startContainer, range.startOffset );
-                nodeAfterSplit = blockAfterSplit.firstElementChild;
+                nodeAfterSplit = splitBlock( self, current, range.startContainer, range.startOffset );
             }
-        } else {
-            nodeAfterSplit = splitBlock( self, current, range.startContainer, range.startOffset );
-        }
 
-        // Ensure the P before split is still focusable
-        removeZWS( current );
-        removeEmptyInlines( current );
-        fixCursor( current, root );
+            // Ensure the P before split is still focusable
+            removeZWS( current );
+            removeEmptyInlines( current );
+            fixCursor( current, root );
 
-        // Focus cursor
-        // If there's a <b>/<i> etc. at the beginning of the split
-        // make sure we focus inside it.
-        while ( nodeAfterSplit.nodeType === ELEMENT_NODE ) {
-            var child = nodeAfterSplit.firstChild,
-                next;
+            // Focus cursor
+            // If there's a <b>/<i> etc. at the beginning of the split
+            // make sure we focus inside it.
+            while ( nodeAfterSplit.nodeType === ELEMENT_NODE ) {
+                var child = nodeAfterSplit.firstChild,
+                    next;
 
-            // Don't continue links over a block break; unlikely to be the
-            // desired outcome.
-            if ( nodeAfterSplit.nodeName === 'A') {
-                var nodeTextContent = nodeAfterSplit.textContent;
-                if (nodeTextContent === ZWS) {
-                    nodeTextContent = '';
+                // Don't continue links over a block break; unlikely to be the
+                // desired outcome.
+                if ( nodeAfterSplit.nodeName === 'A') {
+                    var nodeTextContent = nodeAfterSplit.textContent;
+                    if (nodeTextContent === ZWS) {
+                        nodeTextContent = '';
+                    }
+                    if ( !nodeTextContent || ( linkBeforeSplit && linkBeforeSplit.textContent && linkBeforeSplit.href === nodeAfterSplit.href )) {
+                        child = self._doc.createTextNode(nodeTextContent);
+                        replaceWith( nodeAfterSplit, child );
+                        nodeAfterSplit = child;
+                        break;
+                    } else if ( linkBeforeSplit && !linkBeforeSplit.textContent ) {
+                        detach( linkBeforeSplit );
+                        linkBeforeSplit = null;
+                    }
                 }
-                if ( !nodeTextContent || ( linkBeforeSplit && linkBeforeSplit.textContent && linkBeforeSplit.href === nodeAfterSplit.href )) {
-                    child = self._doc.createTextNode(nodeTextContent);
-                    replaceWith( nodeAfterSplit, child );
-                    nodeAfterSplit = child;
+
+                while ( child && child.nodeType === TEXT_NODE && !child.data ) {
+                    next = child.nextSibling;
+                    detach( child );
+                    child = next;
+                }
+
+                if ( child && child.nodeName === 'BR') {
+                    // Remove BR in the beginning of the splitted node, they are confusing after pressing return just before a br
+                    next = child.nextSibling;
+                    detach( child );
+                    child = next;
+                }
+
+                // 'BR's essentially don't count; they're a browser hack.
+                // If you try to select the contents of a 'BR', FF will not let
+                // you type anything!
+                if ( !child || ( child.nodeType === TEXT_NODE && !isPresto ) ) {
                     break;
-                } else if ( linkBeforeSplit && !linkBeforeSplit.textContent ) {
-                    detach( linkBeforeSplit );
-                    linkBeforeSplit = null;
                 }
-            }
 
-            while ( child && child.nodeType === TEXT_NODE && !child.data ) {
-                next = child.nextSibling;
-                detach( child );
-                child = next;
+                nodeAfterSplit = child;
             }
-
-            if ( child && child.nodeName === 'BR') {
-                // Remove BR in the beginning of the splitted node, they are confusing after pressing return just before a br
-                next = child.nextSibling;
-                detach( child );
-                child = next;
-            }
-
-            // 'BR's essentially don't count; they're a browser hack.
-            // If you try to select the contents of a 'BR', FF will not let
-            // you type anything!
-            if ( !child || ( child.nodeType === TEXT_NODE && !isPresto ) ) {
-                break;
-            }
-
-            nodeAfterSplit = child;
         }
 
         if (nodeAfterSplit) {
@@ -2845,6 +2863,7 @@ function Squire ( root, config ) {
 
     this._onPasteErrorCallback = config.onPasteErrorCallback;
     this._onPasteCallback = config.onPasteCallback;
+    this._inlineMode =  config.inlineMode;
 
     this.confirmDeleteWidget = config.confirmDeleteWidget;
 
@@ -2889,7 +2908,7 @@ function Squire ( root, config ) {
 
     // Need to register instance before calling setHTML, so that the fixCursor
     // function can lookup any default block tag options set.
-    this.setHTML( config.html || '' );
+    this.setHTML( config.html || '', false, true );
 }
 
 var proto = Squire.prototype;
@@ -4264,7 +4283,7 @@ proto.getHTML = function ( withBookMark ) {
     return html;
 };
 
-proto.setHTML = function ( html, skipUndo ) {
+proto.setHTML = function ( html, skipUndo, skipClean ) {
     var frag = this._doc.createDocumentFragment();
     var div = this.createElement( 'DIV' );
     var root = this._root;
@@ -4273,9 +4292,10 @@ proto.setHTML = function ( html, skipUndo ) {
     // Parse HTML into DOM tree
     div.innerHTML = html;
     frag.appendChild( empty( div ) );
-
-    cleanTree( frag );
-    cleanupBRs( frag, root );
+    if (!skipClean) {
+        cleanTree( frag );
+        cleanupBRs( frag, root );
+    }
 
 //    fixContainer( frag, root );
 
