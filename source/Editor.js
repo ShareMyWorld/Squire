@@ -1245,18 +1245,19 @@ proto.forEachBlock = function ( fn, mutates, range ) {
  * @param {String=} expandToPattern - A Regexp string identifying the tag name of parent block the range should try to expand to
  * @param {Object} expandToAttrs - Extra attributes that must also match for expandToPattern to match the node.
  * @param {Boolean=} forceModifyFromRoot - If set to true, the document fragment will be relative to root instead of nearest block container.
+ * @param {Range} selectionRange - Alternate range to use for selection
  * @returns {Squire} 
  */
-proto.modifyBlocks = function ( modify, range, expandToPattern, expandToAttrs, forceModifyFromRoot ) {
+proto.modifyBlocks = function ( modify, range, expandToPattern, expandToAttrs, forceModifyFromRoot, selectionRange ) {
     if ( !range && !( range = this.getSelection() ) ) {
         return this;
     }
 
     // 1. Save undo checkpoint and bookmark selection
     if ( this._isInUndoState ) {
-        this._saveRangeToBookmark( range );
+        this._saveRangeToBookmark( selectionRange || range );
     } else {
-        this._recordUndoState( range );
+        this._recordUndoState( selectionRange || range );
     }
 
     var root = this._root;
@@ -1317,15 +1318,10 @@ var increaseBlockQuoteLevel = function ( frag ) {
 };
 
 var decreaseBlockQuoteLevel = function ( frag ) {
-    var root = this._root;
     var blockquotes = frag.querySelectorAll( 'blockquote' );
     var lastBlockquote = blockquotes[ blockquotes.length - 1 ];
     replaceWith( lastBlockquote, empty( lastBlockquote ) );
-    /*Array.prototype.filter.call( blockquotes, function ( el ) {
-        return !getNearest( el.parentNode, root, 'BLOCKQUOTE' );
-    }).forEach( function ( el ) {
-        replaceWith( el, empty( el ) );
-    });*/
+
     return frag;
 };
 
@@ -2146,21 +2142,12 @@ var createOrReplaceHeader = function ( self, frag, tag ) {
     var header, headers, children,
         tagAttributes = self._config.tagAttributes,
         headerAttrs = tagAttributes[ tag ];
-    
-    var aside = frag.querySelector('blockquote.aside');
 
     headers = frag.querySelectorAll( 'h1, h2, h3, h4' );
     if ( !headers || headers.length === 0 ) {
-        if ( aside ) {
-            children = Array.prototype.slice.call(aside.childNodes);
-            header = self.createElement( tag, headerAttrs, children );
-            aside.appendChild( header );
-            return frag;
-        } else {
-            children = [ frag ];
-            header = self.createElement( tag, headerAttrs, children );
-            return header;
-        }
+        children = [ frag ];
+        header = self.createElement( tag, headerAttrs, children );
+        return header;
     } else {
         for ( var i = 0; i < headers.length; i++ ) {
             header = headers[i];
@@ -2269,13 +2256,11 @@ proto.insertPageBreak = function ( ) {
     self.setSelection( range );
     self._updatePath( range );
 
-    return self;
-};
+    if ( !canObserveMutations ) {
+        this._docWasChanged();
+    }
 
-var isDefaultBlockElement = function ( self, node ) {
-    var isDefaultNode = node.nodeName === self._config.blockTag && node.className === self._config.blockAttributes.class;
-    var containsOnlyBr = node.children && node.children.length === 1 && node.children[0].nodeName === 'BR';
-    return isDefaultNode && containsOnlyBr;
+    return self;
 };
 
 proto.bold = function () { return changeFormatExpandToWord( this, { tag : 'B' }, { tag : 'B' } ); };
@@ -2400,7 +2385,29 @@ proto.removeHeader = command( 'modifyBlocks', removeHeader );
 proto.makeUnlabeledList = command( 'modifyBlocks', makeUnlabeledList );
 
 proto.createBlockQuote = command( 'modifyBlocks', createBlockQuote );
-proto.createAside = command( 'modifyBlocks', createAside );
+
+proto.createAside = function() {
+    // Ensure we capture the complete list
+    var orgRange = this.getSelection();
+    var range = orgRange.cloneRange();
+    var listNode, expanded = false;
+
+    listNode = getNearestCallback(range.startContainer, this._root, isList);
+    if (listNode) {
+        range.setStartBefore(listNode);
+        expanded = true;
+    }
+
+    listNode = getNearestCallback(range.endContainer, this._root, isList);
+    if (listNode) {
+        range.setEndAfter(listNode);
+        expanded = true;
+    }
+
+    this.modifyBlocks(createAside, range, null, null, true, expanded && orgRange);
+    this.focus();
+}
+//proto.createAside = command( 'modifyBlocks', createAside );
 
 proto.addDefaultBlock = function () {
     this._ensureBottomLine();
@@ -2465,8 +2472,7 @@ proto.setHeading = function ( level ) {
 
 proto.setLink = function ( url, title ) {
     var range = this.getSelection();
-    this._recordUndoState( range );
-    this._getRangeAndRemoveBookmark( range );
+    this.saveUndoState( range );
 
     var links = getElementsInRange(this._root, 'A', null, range );
 
@@ -2490,7 +2496,11 @@ proto.setLink = function ( url, title ) {
         //Asumes that all children are allowed inside an a-tag
         var a = this.createElement( 'A', attributes, Array.prototype.slice.call( contents.childNodes ) );
         insertNodeInRange( range, a );
-    } 
+    }
+
+    if ( !canObserveMutations ) {
+        this._docWasChanged();
+    }
     
     return this.focus();
 };
