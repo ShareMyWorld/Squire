@@ -700,6 +700,9 @@ proto._docWasChanged = function () {
             canRedo: false
         });
     }
+    if (this._undoIndex === -1) {
+        this.saveUndoState();
+    }
     this.fireEvent( 'input' );
 };
 
@@ -725,7 +728,11 @@ proto._recordUndoState = function ( range ) {
             this._saveRangeToBookmark( range );
         }
         undoStack[ undoIndex ] = this._getHTML();
-        undoScrollTopStack[ undoIndex ] = this._doc.documentElement.scrollTop || this._doc.body.scrollTop;
+        if (undoIndex === 0) {
+            undoScrollTopStack[ undoIndex ] = null;
+        } else {
+            undoScrollTopStack[ undoIndex ] = this._doc.documentElement.scrollTop || this._doc.body.scrollTop;
+        }
         this._undoStackLength += 1;
         this._isInUndoState = true;
     }
@@ -744,12 +751,15 @@ proto.saveUndoState = function ( range ) {
 
 proto.undo = function () {
     // Sanity check: must not be at beginning of the history stack
-    if ( this._undoIndex !== 0 || !this._isInUndoState ) {
+    if ( this._undoIndex > 0 || !this._isInUndoState ) {
         // Make sure any changes since last checkpoint are saved.
         this._recordUndoState( this.getSelection() );
 
         this._undoIndex -= 1;
         var scrollTop = this._undoScrollTopStack[ this._undoIndex ];
+        if (scrollTop === null) {
+            scrollTop = this._doc.documentElement.scrollTop || this._doc.body.scrollTop;
+        }
         this._setHTML( this._undoStack[ this._undoIndex ] );
 
         var range = this._getRangeAndRemoveBookmark();
@@ -1583,7 +1593,7 @@ proto.setHTML = function ( html, skipUndo ) {
         // Record undo state
         var range = this._getRangeAndRemoveBookmark() ||
             this._createRange( root.firstChild, 0 );
-        this.saveUndoState( range );
+//        this.saveUndoState( range );
         // IE will also set focus when selecting text so don't use
         // setSelection. Instead, just store it in lastSelection, so if
         // anything calls getSelection before first focus, we have a range

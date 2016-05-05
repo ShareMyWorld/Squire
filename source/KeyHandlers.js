@@ -62,6 +62,10 @@ var onKey = function ( event ) {
     //if ( event.shiftKey ) { modifiers += 'shift-'; }
     key = modifiers + key;
 
+    if (this._undoIndex === -1) {
+        this.saveUndoState( range );
+    }
+
     if ( this._keyHandlers[ key ] ) {
         this._keyHandlers[ key ]( this, event, range );
     } else if ( key.length === 1 && !range.collapsed ) {
