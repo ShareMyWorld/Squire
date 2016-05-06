@@ -2270,8 +2270,7 @@ var stylesRewriters = {
         } else {
             var p = createElement( doc, 'P', { 'class': 'smw-missing-image' });
             var imageInfo = [ img.src, img.alt, img.title ].filter( function(e){ return e !== undefined || e !== ""; } );
-            var text = 'Missing image: ' + imageInfo.join('<br>');
-            p.innerHTML = text;
+            p.innerHTML = '<br><b>Missing image: ' + imageInfo.join('<br>') + '</b><br>';
             parent.replaceChild( p, img );
             if ( errorCallback ) {
                 errorCallback( img );
