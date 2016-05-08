@@ -30,8 +30,13 @@ function isInline ( node ) {
 }
 function isBlock ( node ) {
     var type = node.nodeType;
-    return ( type === ELEMENT_NODE || type === DOCUMENT_FRAGMENT_NODE ) &&
-        !isInline( node ) && every( node.childNodes, isInline );
+    if ( type === ELEMENT_NODE ) {
+        return isParagraph(node);
+    }
+    if ( type === DOCUMENT_FRAGMENT_NODE ) {
+        return !isInline( node ) && every( node.childNodes, isInline );
+    }
+    return false;
 }
 
 function isContainer ( node ) {

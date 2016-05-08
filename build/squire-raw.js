@@ -214,8 +214,13 @@ function isInline ( node ) {
 }
 function isBlock ( node ) {
     var type = node.nodeType;
-    return ( type === ELEMENT_NODE || type === DOCUMENT_FRAGMENT_NODE ) &&
-        !isInline( node ) && every( node.childNodes, isInline );
+    if ( type === ELEMENT_NODE ) {
+        return isParagraph(node);
+    }
+    if ( type === DOCUMENT_FRAGMENT_NODE ) {
+        return !isInline( node ) && every( node.childNodes, isInline );
+    }
+    return false;
 }
 
 function isContainer ( node ) {
@@ -2802,6 +2807,8 @@ function Squire ( root, config ) {
     this.addEventListener( 'mousedown', disableRestoreSelection );
     this.addEventListener( 'touchstart', disableRestoreSelection );
     this.addEventListener( 'focus', restoreSelection );
+    this._onSelectionChange = onSelectionChange.bind( this );
+    doc.addEventListener( 'selectionchange', this._onSelectionChange, true );
 
     // IE sometimes fires the beforepaste event twice; make sure it is not run
     // again before our after paste function is called.
@@ -2984,6 +2991,7 @@ proto.destroy = function () {
     if ( this._mutation ) {
         this._mutation.disconnect();
     }
+    this._doc.removeEventListener( 'selectionchange', this._onSelectionChange, true );
     var l = instances.length;
     while ( l-- ) {
         if ( instances[l] === this ) {
@@ -5128,6 +5136,38 @@ proto.isAllowedIn = function ( self, tag, containerTag ) {
     return tags.indexOf( tag ) !== -1;
 };
 
+function onSelectionChange ( event ) {
+    var range = this.getSelection();
+
+    if (range.startContainer && range.collapsed && !isInline(range.startContainer) && !isBlock(range.startContainer)) {
+        var childNodes = range.startContainer.childNodes;
+        var node;
+        if (childNodes.length > 0) {
+            node = childNodes[Math.min(childNodes.length - 1, range.startOffset)];
+        } else {
+            node = range.startContainer;
+        }
+        var block = getNextBlock(node, this._root);
+        var startOfBlock = true;
+        if (!block) {
+            block = getPreviousBlock(node, this._root);
+            startOfBlock = false;
+        }
+
+        if (block) {
+            if (startOfBlock) {
+                range.setStart(block, 0);
+            } else {
+                range.setStart(block, getLength(block));
+            }
+            range.collapse(true);
+            moveRangeBoundariesDownTree(range);
+            this.setSelection(range);
+        }
+    }
+
+}
+
 var getSmwTagType = function ( smwTagTypes, tag ) {
     return smwTagTypes.reduce(function ( resultType, typeObj ) { 
         return typeObj.tags.indexOf( tag ) >= 0 ? typeObj.type : null;
@@ -5341,6 +5381,9 @@ proto.canRedo = function () {
 proto.setListFormatting = function ( listType ) {
     var range = this.getSelection();
     var pattern = "[OU]L";
+
+    var rangeCollapsed = range.collapsed;
+
     if ( !listType ) {
         this.modifyBlocks( removeList, range, pattern );
     } else if ( listType === 'ordered' ) {
@@ -5350,6 +5393,18 @@ proto.setListFormatting = function ( listType ) {
     } else if ( listType === 'noLabels' ) {
         this.modifyBlocks( makeUnlabeledList, range, pattern );
     }
+
+    var selection = this.getSelection();
+    if ( rangeCollapsed && !selection.collapsed ) {
+        var startBlock = getStartBlockOfRange( selection, this._root );
+        if (startBlock) {
+            var newRange = this._doc.createRange();
+            newRange.setStart( startBlock, 0 );
+            newRange.collapse( true );
+            this.setSelection( newRange );
+        }
+    }
+
     return this.focus();
 };
 
