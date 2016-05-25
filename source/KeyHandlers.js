@@ -69,13 +69,19 @@ var onKey = function ( event ) {
     if ( this._keyHandlers[ key ] ) {
         this._keyHandlers[ key ]( this, event, range );
     } else if ( key.length === 1 && !range.collapsed ) {
-        // Record undo checkpoint.
-        this.saveUndoState( range );
-        // Delete the selection
-        deleteContentsOfRange( range, this._root );
-        this._ensureBottomLine();
-        this.setSelection( range );
-        this._updatePath( range, true );
+        if ( range.commonAncestorContainer && getNearestCallback( range.commonAncestorContainer, this._root, isWidget ) ) {
+            event.preventDefault();
+
+        } else {
+            // Record undo checkpoint.
+            this.saveUndoState( range );
+            // Delete the selection
+            deleteContentsOfRange( range, this._root );
+            this._ensureBottomLine();
+            this.setSelection( range );
+            this._updatePath( range, true );
+        }
+
     }
 };
 

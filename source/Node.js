@@ -432,6 +432,8 @@ function isBlockAllowedIn( node, container, squire ) {
             // FIXME: page-break should map to P.page-break-container, not IMG.page-break
             if ( isPagebreak(node) ) {
                 smwNode = 'hr';
+            } else if ( isWidget(node) ) {
+                smwNode = 'smwWidget';
             } else {
                 return false;
             }
@@ -611,7 +613,7 @@ function getSmwClassification( node, squire ) {
         classification = 'paragraph';
     } else if (isListItem(node)) {
         classification = 'blockWithText';
-    } else if (isPagebreak(node)) {
+    } else if (isPagebreak(node) || isWidget(node)) {
         // FIXME: HR should be mapped with P.page-break-container so we dont need this extra check
         classification = 'blockAtomic';
     } else {

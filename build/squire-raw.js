@@ -616,6 +616,8 @@ function isBlockAllowedIn( node, container, squire ) {
             // FIXME: page-break should map to P.page-break-container, not IMG.page-break
             if ( isPagebreak(node) ) {
                 smwNode = 'hr';
+            } else if ( isWidget(node) ) {
+                smwNode = 'smwWidget';
             } else {
                 return false;
             }
@@ -795,7 +797,7 @@ function getSmwClassification( node, squire ) {
         classification = 'paragraph';
     } else if (isListItem(node)) {
         classification = 'blockWithText';
-    } else if (isPagebreak(node)) {
+    } else if (isPagebreak(node) || isWidget(node)) {
         // FIXME: HR should be mapped with P.page-break-container so we dont need this extra check
         classification = 'blockAtomic';
     } else {
@@ -1646,13 +1648,19 @@ var onKey = function ( event ) {
     if ( this._keyHandlers[ key ] ) {
         this._keyHandlers[ key ]( this, event, range );
     } else if ( key.length === 1 && !range.collapsed ) {
-        // Record undo checkpoint.
-        this.saveUndoState( range );
-        // Delete the selection
-        deleteContentsOfRange( range, this._root );
-        this._ensureBottomLine();
-        this.setSelection( range );
-        this._updatePath( range, true );
+        if ( range.commonAncestorContainer && getNearestCallback( range.commonAncestorContainer, this._root, isWidget ) ) {
+            event.preventDefault();
+
+        } else {
+            // Record undo checkpoint.
+            this.saveUndoState( range );
+            // Delete the selection
+            deleteContentsOfRange( range, this._root );
+            this._ensureBottomLine();
+            this.setSelection( range );
+            this._updatePath( range, true );
+        }
+
     }
 };
 
@@ -5162,6 +5170,7 @@ function onSelectionChange ( event ) {
             }
             range.collapse(true);
             moveRangeBoundariesDownTree(range);
+            console.log('fixing selection', range);
             this.setSelection(range);
         }
     }
@@ -5402,6 +5411,7 @@ proto.setListFormatting = function ( listType ) {
             newRange.setStart( startBlock, 0 );
             newRange.collapse( true );
             this.setSelection( newRange );
+            console.log('Fixing selection', newRange);
         }
     }
 
