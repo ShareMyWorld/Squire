@@ -5558,7 +5558,7 @@ proto.getFormattingInfoFromCurrentSelection = function () {
                     break;
 
                 case 'link':
-                    info.href = obj.elements[0].href;
+                    info.href = obj.elements[0].getAttribute('href');
                     info.title = obj.elements[0].title;
                     break;
             }
