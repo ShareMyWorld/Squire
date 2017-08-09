@@ -73,17 +73,40 @@ var onKey = function ( event ) {
             event.preventDefault();
 
         } else {
-            // Record undo checkpoint.
-            this.saveUndoState( range );
-            // Delete the selection
-            deleteContentsOfRange( range, this._root );
-            this._ensureBottomLine();
-            this.setSelection( range );
-            this._updatePath( range, true );
+
+            var widgetNode = findNodeInRange(range, function(node) {
+                return isWidget(node);
+            });
+            var self = this;
+
+            if (widgetNode) {
+                event.preventDefault();
+                this._blockKeyEvents = true;
+                this.confirmDeleteWidget(widgetNode.getAttribute('widget-id'), widgetNode.getAttribute('widget-type')).then(function() {
+                    replaceRangeWithInput(self, range)
+                }).finally(function() {
+                    self._blockKeyEvents = false;
+                    self.focus();
+                });
+            } else {
+                replaceRangeWithInput(self, range);
+            }
+
+
         }
 
     }
 };
+
+function replaceRangeWithInput(self, range) {
+    // Record undo checkpoint.
+    self.saveUndoState( range );
+    // Delete the selection
+    deleteContentsOfRange( range, self._root );
+    self._ensureBottomLine();
+    self.setSelection( range );
+    self._updatePath( range, true );
+}
 
 var mapKeyTo = function ( method ) {
     return function ( self, event ) {
@@ -388,6 +411,7 @@ var keyHandlers = {
                             detach( previousBlock );
                         }).finally(function() {
                             self._blockKeyEvents = false;
+                            self.focus();
                         });
                     }
                     else if ( isPagebreak(previousBlock) || ((isParagraph(previousBlock) || isHeading(previousBlock)) && !previous.textContent.trim()) || !previousBlock.isContentEditable) {
@@ -462,6 +486,7 @@ var keyHandlers = {
                         detach( nextBlock );
                     }).finally(function() {
                         self._blockKeyEvents = false;
+                        self.focus();
                     });
                 }
                 else if ( isPagebreak(nextBlock) || !nextBlock.isContentEditable) {

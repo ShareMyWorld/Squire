@@ -13,7 +13,7 @@ var onCut = function ( event ) {
     // Edge only seems to support setting plain text as of 2016-03-11.
     // Mobile Safari flat out doesn't work:
     // https://bugs.webkit.org/show_bug.cgi?id=143776
-    if ( !isEdge && !isIOS && clipboardData ) {
+    if ( /*!isEdge &&*/ !isIOS && clipboardData ) {
         moveRangeBoundariesUpTree( range, root );
         node.appendChild( deleteContentsOfRange( range, root ) );
         clipboardData.setData( 'text/html', node.innerHTML );
@@ -32,6 +32,7 @@ var onCut = function ( event ) {
         }, 0 );
     }
 
+    this._docWasChanged();
     this.setSelection( range );
 };
 
@@ -43,7 +44,7 @@ var onCopy = function ( event ) {
     // Edge only seems to support setting plain text as of 2016-03-11.
     // Mobile Safari flat out doesn't work:
     // https://bugs.webkit.org/show_bug.cgi?id=143776
-    if ( !isEdge && !isIOS && clipboardData ) {
+    if ( /*!isEdge &&*/ !isIOS && clipboardData ) {
         node.appendChild( range.cloneContents() );
         clipboardData.setData( 'text/html', node.innerHTML );
         clipboardData.setData( 'text/plain',
@@ -66,7 +67,8 @@ var onPaste = function ( event ) {
     // https://html.spec.whatwg.org/multipage/interaction.html
 
     // Edge only provides access to plain text as of 2016-03-11.
-    if ( !isEdge && items ) {
+    if ( /*!isEdge &&*/ items ) {
+
         event.preventDefault();
         l = items.length;
         while ( l-- ) {
@@ -106,7 +108,7 @@ var onPaste = function ( event ) {
                 });
             }
         } else if ( plainItem ) {
-            item.getAsString( function ( text ) {
+            plainItem.getAsString( function ( text ) {
                 self.insertPlainText( text, true );
             });
         }
@@ -126,7 +128,7 @@ var onPaste = function ( event ) {
     // let the browser insert the content. I've filed
     // https://bugzilla.mozilla.org/show_bug.cgi?id=1254028
     types = clipboardData && clipboardData.types;
-    if ( !isEdge && types && (
+    if ( /*!isEdge &&*/ types && (
             indexOf.call( types, 'text/html' ) > -1 || (
                 !isGecko &&
                 indexOf.call( types, 'text/plain' ) > -1 &&

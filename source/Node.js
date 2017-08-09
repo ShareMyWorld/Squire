@@ -19,6 +19,35 @@ function every ( nodeList, fn ) {
     return true;
 }
 
+/**
+ *
+ * @param {Range} range
+ */
+function findNodeInRange(range, callback) {
+    var treeWalker = range.commonAncestorContainer.ownerDocument.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    if (range.startContainer.nodeType === 1) {
+        treeWalker.currentNode = range.startContainer.childNodes[range.startOffset];
+    } else {
+        treeWalker.currentNode = range.startContainer;
+    }
+
+    var endNode;
+    if (range.endContainer.nodeType === 1) {
+        endNode = range.endContainer.childNodes[range.endOffset];
+    } else {
+        endNode = range.endContainer;
+    }
+
+    var result = null;
+    do {
+        if (callback(treeWalker.currentNode)) {
+            result = treeWalker.currentNode;
+        }
+    } while (!result && treeWalker.currentNode !== endNode && treeWalker.nextNode());
+
+    return result;
+}
+
 // ---
 
 function isLeaf ( node ) {
@@ -678,7 +707,7 @@ function split ( node, offset, stopNode, root ) {
     return offset;
 }
 
-function mergeInlines ( node, range ) {
+function _mergeInlines ( node, fakeRange ) {
     if ( node.nodeType !== ELEMENT_NODE ) {
         return;
     }
@@ -691,30 +720,30 @@ function mergeInlines ( node, range ) {
         prev = l && children[ l - 1 ];
         if ( l && isInline( child ) && areAlike( child, prev ) &&
                 !leafNodeNames[ child.nodeName ] ) {
-            if ( range.startContainer === child ) {
-                range.startContainer = prev;
-                range.startOffset += getLength( prev );
+            if ( fakeRange.startContainer === child ) {
+                fakeRange.startContainer = prev;
+                fakeRange.startOffset += getLength( prev );
             }
-            if ( range.endContainer === child ) {
-                range.endContainer = prev;
-                range.endOffset += getLength( prev );
+            if ( fakeRange.endContainer === child ) {
+                fakeRange.endContainer = prev;
+                fakeRange.endOffset += getLength( prev );
             }
-            if ( range.startContainer === node ) {
-                if ( range.startOffset > l ) {
-                    range.startOffset -= 1;
+            if ( fakeRange.startContainer === node ) {
+                if ( fakeRange.startOffset > l ) {
+                    fakeRange.startOffset -= 1;
                 }
-                else if ( range.startOffset === l ) {
-                    range.startContainer = prev;
-                    range.startOffset = getLength( prev );
+                else if ( fakeRange.startOffset === l ) {
+                    fakeRange.startContainer = prev;
+                    fakeRange.startOffset = getLength( prev );
                 }
             }
-            if ( range.endContainer === node ) {
-                if ( range.endOffset > l ) {
-                    range.endOffset -= 1;
+            if ( fakeRange.endContainer === node ) {
+                if ( fakeRange.endOffset > l ) {
+                    fakeRange.endOffset -= 1;
                 }
-                else if ( range.endOffset === l ) {
-                    range.endContainer = prev;
-                    range.endOffset = getLength( prev );
+                else if ( fakeRange.endOffset === l ) {
+                    fakeRange.endContainer = prev;
+                    fakeRange.endOffset = getLength( prev );
                 }
             }
             detach( child );
@@ -730,8 +759,25 @@ function mergeInlines ( node, range ) {
             while ( len-- ) {
                 child.appendChild( frags.pop() );
             }
-            mergeInlines( child, range );
+            _mergeInlines( child, fakeRange );
         }
+    }
+}
+
+function mergeInlines ( node, range ) {
+    if ( node.nodeType === TEXT_NODE ) {
+        node = node.parentNode;
+    }
+    if ( node.nodeType === ELEMENT_NODE ) {
+        var fakeRange = {
+            startContainer: range.startContainer,
+            startOffset: range.startOffset,
+            endContainer: range.endContainer,
+            endOffset: range.endOffset
+        };
+        _mergeInlines( node, fakeRange );
+        range.setStart( fakeRange.startContainer, fakeRange.startOffset );
+        range.setEnd( fakeRange.endContainer, fakeRange.endOffset );
     }
 }
 
@@ -760,7 +806,7 @@ function mergeWithBlock ( block, next, range ) {
     };
 
     block.appendChild( empty( next ) );
-    mergeInlines( block, _range );
+    _mergeInlines( block, _range );
 
     range.setStart( _range.startContainer, _range.startOffset );
     range.collapse( true );

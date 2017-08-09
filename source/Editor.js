@@ -284,6 +284,11 @@ proto.destroy = function () {
             instances.splice( l, 1 );
         }
     }
+
+    // Destroy undo stack
+    this._undoIndex = -1;
+    this._undoStack = [];
+    this._undoStackLength = 0;
 };
 
 proto.handleEvent = function ( event ) {
@@ -362,7 +367,7 @@ proto.getCursorPosition = function ( range ) {
         rect = node.getBoundingClientRect();
         parent = node.parentNode;
         parent.removeChild( node );
-        mergeInlines( parent, {
+        _mergeInlines( parent, {
             startContainer: range.startContainer,
             endContainer: range.endContainer,
             startOffset: range.startOffset,
@@ -546,6 +551,9 @@ proto._removeZWS = function () {
 // --- Path change events ---
 
 proto._updatePath = function ( range, force ) {
+    if ( !range ) {
+        return;
+    }
     var anchor = range.startContainer,
         focus = range.endContainer,
         newPath;
@@ -627,8 +635,7 @@ proto._getRangeAndRemoveBookmark = function ( range ) {
 
     if ( start && end ) {
         var startContainer = start.parentNode,
-            endContainer = end.parentNode,
-            collapsed;
+            endContainer = end.parentNode;
 
         var _range = {
             startContainer: startContainer,
@@ -644,22 +651,21 @@ proto._getRangeAndRemoveBookmark = function ( range ) {
         detach( start );
         detach( end );
 
-        // Merge any text nodes we split
-        mergeInlines( startContainer, _range );
-        if ( startContainer !== endContainer ) {
-            mergeInlines( endContainer, _range );
-        }
-
         if ( !range ) {
             range = this._doc.createRange();
         }
         range.setStart( _range.startContainer, _range.startOffset );
         range.setEnd( _range.endContainer, _range.endOffset );
-        collapsed = range.collapsed;
+
+        // Merge any text nodes we split
+        mergeInlines( startContainer, range );
+        if ( startContainer !== endContainer ) {
+            mergeInlines( endContainer, range );
+        }
 
         // If we didn't split a text node, we should move into any adjacent
         // text node to current selection point
-        if ( collapsed ) {
+        if ( range.collapsed ) {
             startContainer = range.startContainer;
             if ( startContainer.nodeType === TEXT_NODE ) {
                 endContainer = startContainer.childNodes[ range.startOffset ];
@@ -711,9 +717,9 @@ proto._docWasChanged = function () {
 };
 
 // Leaves bookmark
-proto._recordUndoState = function ( range ) {
+proto._recordUndoState = function ( range, replace ) {
     // Don't record if we're already in an undo state
-    if ( !this._isInUndoState ) {
+    if ( !this._isInUndoState || replace) {
         // Advance pointer to new position
         var undoIndex = this._undoIndex += 1,
             undoStack = this._undoStack,
@@ -747,7 +753,7 @@ proto.saveUndoState = function ( range ) {
         range = this.getSelection();
     }
     if ( !this._isInUndoState ) {
-        this._recordUndoState( range );
+        this._recordUndoState( range, this._isInUndoState );
         this._getRangeAndRemoveBookmark( range );
     }
     return this;
@@ -772,7 +778,7 @@ proto.undo = function () {
         }
         this._isInUndoState = true;
         this.fireEvent( 'undoStateChange', {
-            canUndo: this._undoIndex !== 0,
+            canUndo: this._undoIndex > 0,
             canRedo: true
         });
         this.fireEvent( 'input' );
@@ -1139,7 +1145,7 @@ proto._removeFormat = function ( tag, attributes, range, partial ) {
         endContainer: range.endContainer,
         endOffset: range.endOffset
     };
-    mergeInlines( root, _range );
+    _mergeInlines( root, _range );
     range.setStart( _range.startContainer, _range.startOffset );
     range.setEnd( _range.endContainer, _range.endOffset );
 
@@ -1598,7 +1604,7 @@ proto.setHTML = function ( html, skipUndo, skipClean ) {
         // Record undo state
         var range = this._getRangeAndRemoveBookmark() ||
             this._createRange( root.firstChild, 0 );
-//        this.saveUndoState( range );
+        // this.saveUndoState( range );
         // IE will also set focus when selecting text so don't use
         // setSelection. Instead, just store it in lastSelection, so if
         // anything calls getSelection before first focus, we have a range
@@ -2016,7 +2022,7 @@ proto.removeAllFormatting = function ( range ) {
         endContainer: stopNode,
         endOffset: endOffset
     };
-    mergeInlines( stopNode, _range );
+    _mergeInlines( stopNode, _range );
     range.setStart( _range.startContainer, _range.startOffset );
     range.setEnd( _range.endContainer, _range.endOffset );
 

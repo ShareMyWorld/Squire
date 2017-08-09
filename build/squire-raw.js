@@ -203,6 +203,35 @@ function every ( nodeList, fn ) {
     return true;
 }
 
+/**
+ *
+ * @param {Range} range
+ */
+function findNodeInRange(range, callback) {
+    var treeWalker = range.commonAncestorContainer.ownerDocument.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    if (range.startContainer.nodeType === 1) {
+        treeWalker.currentNode = range.startContainer.childNodes[range.startOffset];
+    } else {
+        treeWalker.currentNode = range.startContainer;
+    }
+
+    var endNode;
+    if (range.endContainer.nodeType === 1) {
+        endNode = range.endContainer.childNodes[range.endOffset];
+    } else {
+        endNode = range.endContainer;
+    }
+
+    var result = null;
+    do {
+        if (callback(treeWalker.currentNode)) {
+            result = treeWalker.currentNode;
+        }
+    } while (!result && treeWalker.currentNode !== endNode && treeWalker.nextNode());
+
+    return result;
+}
+
 // ---
 
 function isLeaf ( node ) {
@@ -862,7 +891,7 @@ function split ( node, offset, stopNode, root ) {
     return offset;
 }
 
-function mergeInlines ( node, range ) {
+function _mergeInlines ( node, fakeRange ) {
     if ( node.nodeType !== ELEMENT_NODE ) {
         return;
     }
@@ -875,30 +904,30 @@ function mergeInlines ( node, range ) {
         prev = l && children[ l - 1 ];
         if ( l && isInline( child ) && areAlike( child, prev ) &&
                 !leafNodeNames[ child.nodeName ] ) {
-            if ( range.startContainer === child ) {
-                range.startContainer = prev;
-                range.startOffset += getLength( prev );
+            if ( fakeRange.startContainer === child ) {
+                fakeRange.startContainer = prev;
+                fakeRange.startOffset += getLength( prev );
             }
-            if ( range.endContainer === child ) {
-                range.endContainer = prev;
-                range.endOffset += getLength( prev );
+            if ( fakeRange.endContainer === child ) {
+                fakeRange.endContainer = prev;
+                fakeRange.endOffset += getLength( prev );
             }
-            if ( range.startContainer === node ) {
-                if ( range.startOffset > l ) {
-                    range.startOffset -= 1;
+            if ( fakeRange.startContainer === node ) {
+                if ( fakeRange.startOffset > l ) {
+                    fakeRange.startOffset -= 1;
                 }
-                else if ( range.startOffset === l ) {
-                    range.startContainer = prev;
-                    range.startOffset = getLength( prev );
+                else if ( fakeRange.startOffset === l ) {
+                    fakeRange.startContainer = prev;
+                    fakeRange.startOffset = getLength( prev );
                 }
             }
-            if ( range.endContainer === node ) {
-                if ( range.endOffset > l ) {
-                    range.endOffset -= 1;
+            if ( fakeRange.endContainer === node ) {
+                if ( fakeRange.endOffset > l ) {
+                    fakeRange.endOffset -= 1;
                 }
-                else if ( range.endOffset === l ) {
-                    range.endContainer = prev;
-                    range.endOffset = getLength( prev );
+                else if ( fakeRange.endOffset === l ) {
+                    fakeRange.endContainer = prev;
+                    fakeRange.endOffset = getLength( prev );
                 }
             }
             detach( child );
@@ -914,8 +943,25 @@ function mergeInlines ( node, range ) {
             while ( len-- ) {
                 child.appendChild( frags.pop() );
             }
-            mergeInlines( child, range );
+            _mergeInlines( child, fakeRange );
         }
+    }
+}
+
+function mergeInlines ( node, range ) {
+    if ( node.nodeType === TEXT_NODE ) {
+        node = node.parentNode;
+    }
+    if ( node.nodeType === ELEMENT_NODE ) {
+        var fakeRange = {
+            startContainer: range.startContainer,
+            startOffset: range.startOffset,
+            endContainer: range.endContainer,
+            endOffset: range.endOffset
+        };
+        _mergeInlines( node, fakeRange );
+        range.setStart( fakeRange.startContainer, fakeRange.startOffset );
+        range.setEnd( fakeRange.endContainer, fakeRange.endOffset );
     }
 }
 
@@ -944,7 +990,7 @@ function mergeWithBlock ( block, next, range ) {
     };
 
     block.appendChild( empty( next ) );
-    mergeInlines( block, _range );
+    _mergeInlines( block, _range );
 
     range.setStart( _range.startContainer, _range.startOffset );
     range.collapse( true );
@@ -1652,17 +1698,40 @@ var onKey = function ( event ) {
             event.preventDefault();
 
         } else {
-            // Record undo checkpoint.
-            this.saveUndoState( range );
-            // Delete the selection
-            deleteContentsOfRange( range, this._root );
-            this._ensureBottomLine();
-            this.setSelection( range );
-            this._updatePath( range, true );
+
+            var widgetNode = findNodeInRange(range, function(node) {
+                return isWidget(node);
+            });
+            var self = this;
+
+            if (widgetNode) {
+                event.preventDefault();
+                this._blockKeyEvents = true;
+                this.confirmDeleteWidget(widgetNode.getAttribute('widget-id'), widgetNode.getAttribute('widget-type')).then(function() {
+                    replaceRangeWithInput(self, range)
+                }).finally(function() {
+                    self._blockKeyEvents = false;
+                    self.focus();
+                });
+            } else {
+                replaceRangeWithInput(self, range);
+            }
+
+
         }
 
     }
 };
+
+function replaceRangeWithInput(self, range) {
+    // Record undo checkpoint.
+    self.saveUndoState( range );
+    // Delete the selection
+    deleteContentsOfRange( range, self._root );
+    self._ensureBottomLine();
+    self.setSelection( range );
+    self._updatePath( range, true );
+}
 
 var mapKeyTo = function ( method ) {
     return function ( self, event ) {
@@ -1967,6 +2036,7 @@ var keyHandlers = {
                             detach( previousBlock );
                         }).finally(function() {
                             self._blockKeyEvents = false;
+                            self.focus();
                         });
                     }
                     else if ( isPagebreak(previousBlock) || ((isParagraph(previousBlock) || isHeading(previousBlock)) && !previous.textContent.trim()) || !previousBlock.isContentEditable) {
@@ -2041,6 +2111,7 @@ var keyHandlers = {
                         detach( nextBlock );
                     }).finally(function() {
                         self._blockKeyEvents = false;
+                        self.focus();
                     });
                 }
                 else if ( isPagebreak(nextBlock) || !nextBlock.isContentEditable) {
@@ -2524,7 +2595,7 @@ var onCut = function ( event ) {
     // Edge only seems to support setting plain text as of 2016-03-11.
     // Mobile Safari flat out doesn't work:
     // https://bugs.webkit.org/show_bug.cgi?id=143776
-    if ( !isEdge && !isIOS && clipboardData ) {
+    if ( /*!isEdge &&*/ !isIOS && clipboardData ) {
         moveRangeBoundariesUpTree( range, root );
         node.appendChild( deleteContentsOfRange( range, root ) );
         clipboardData.setData( 'text/html', node.innerHTML );
@@ -2543,6 +2614,7 @@ var onCut = function ( event ) {
         }, 0 );
     }
 
+    this._docWasChanged();
     this.setSelection( range );
 };
 
@@ -2554,7 +2626,7 @@ var onCopy = function ( event ) {
     // Edge only seems to support setting plain text as of 2016-03-11.
     // Mobile Safari flat out doesn't work:
     // https://bugs.webkit.org/show_bug.cgi?id=143776
-    if ( !isEdge && !isIOS && clipboardData ) {
+    if ( /*!isEdge &&*/ !isIOS && clipboardData ) {
         node.appendChild( range.cloneContents() );
         clipboardData.setData( 'text/html', node.innerHTML );
         clipboardData.setData( 'text/plain',
@@ -2577,7 +2649,8 @@ var onPaste = function ( event ) {
     // https://html.spec.whatwg.org/multipage/interaction.html
 
     // Edge only provides access to plain text as of 2016-03-11.
-    if ( !isEdge && items ) {
+    if ( /*!isEdge &&*/ items ) {
+
         event.preventDefault();
         l = items.length;
         while ( l-- ) {
@@ -2617,7 +2690,7 @@ var onPaste = function ( event ) {
                 });
             }
         } else if ( plainItem ) {
-            item.getAsString( function ( text ) {
+            plainItem.getAsString( function ( text ) {
                 self.insertPlainText( text, true );
             });
         }
@@ -2637,7 +2710,7 @@ var onPaste = function ( event ) {
     // let the browser insert the content. I've filed
     // https://bugzilla.mozilla.org/show_bug.cgi?id=1254028
     types = clipboardData && clipboardData.types;
-    if ( !isEdge && types && (
+    if ( /*!isEdge &&*/ types && (
             indexOf.call( types, 'text/html' ) > -1 || (
                 !isGecko &&
                 indexOf.call( types, 'text/plain' ) > -1 &&
@@ -3006,6 +3079,11 @@ proto.destroy = function () {
             instances.splice( l, 1 );
         }
     }
+
+    // Destroy undo stack
+    this._undoIndex = -1;
+    this._undoStack = [];
+    this._undoStackLength = 0;
 };
 
 proto.handleEvent = function ( event ) {
@@ -3084,7 +3162,7 @@ proto.getCursorPosition = function ( range ) {
         rect = node.getBoundingClientRect();
         parent = node.parentNode;
         parent.removeChild( node );
-        mergeInlines( parent, {
+        _mergeInlines( parent, {
             startContainer: range.startContainer,
             endContainer: range.endContainer,
             startOffset: range.startOffset,
@@ -3268,6 +3346,9 @@ proto._removeZWS = function () {
 // --- Path change events ---
 
 proto._updatePath = function ( range, force ) {
+    if ( !range ) {
+        return;
+    }
     var anchor = range.startContainer,
         focus = range.endContainer,
         newPath;
@@ -3349,8 +3430,7 @@ proto._getRangeAndRemoveBookmark = function ( range ) {
 
     if ( start && end ) {
         var startContainer = start.parentNode,
-            endContainer = end.parentNode,
-            collapsed;
+            endContainer = end.parentNode;
 
         var _range = {
             startContainer: startContainer,
@@ -3366,22 +3446,21 @@ proto._getRangeAndRemoveBookmark = function ( range ) {
         detach( start );
         detach( end );
 
-        // Merge any text nodes we split
-        mergeInlines( startContainer, _range );
-        if ( startContainer !== endContainer ) {
-            mergeInlines( endContainer, _range );
-        }
-
         if ( !range ) {
             range = this._doc.createRange();
         }
         range.setStart( _range.startContainer, _range.startOffset );
         range.setEnd( _range.endContainer, _range.endOffset );
-        collapsed = range.collapsed;
+
+        // Merge any text nodes we split
+        mergeInlines( startContainer, range );
+        if ( startContainer !== endContainer ) {
+            mergeInlines( endContainer, range );
+        }
 
         // If we didn't split a text node, we should move into any adjacent
         // text node to current selection point
-        if ( collapsed ) {
+        if ( range.collapsed ) {
             startContainer = range.startContainer;
             if ( startContainer.nodeType === TEXT_NODE ) {
                 endContainer = startContainer.childNodes[ range.startOffset ];
@@ -3433,9 +3512,9 @@ proto._docWasChanged = function () {
 };
 
 // Leaves bookmark
-proto._recordUndoState = function ( range ) {
+proto._recordUndoState = function ( range, replace ) {
     // Don't record if we're already in an undo state
-    if ( !this._isInUndoState ) {
+    if ( !this._isInUndoState || replace) {
         // Advance pointer to new position
         var undoIndex = this._undoIndex += 1,
             undoStack = this._undoStack,
@@ -3469,7 +3548,7 @@ proto.saveUndoState = function ( range ) {
         range = this.getSelection();
     }
     if ( !this._isInUndoState ) {
-        this._recordUndoState( range );
+        this._recordUndoState( range, this._isInUndoState );
         this._getRangeAndRemoveBookmark( range );
     }
     return this;
@@ -3494,7 +3573,7 @@ proto.undo = function () {
         }
         this._isInUndoState = true;
         this.fireEvent( 'undoStateChange', {
-            canUndo: this._undoIndex !== 0,
+            canUndo: this._undoIndex > 0,
             canRedo: true
         });
         this.fireEvent( 'input' );
@@ -3861,7 +3940,7 @@ proto._removeFormat = function ( tag, attributes, range, partial ) {
         endContainer: range.endContainer,
         endOffset: range.endOffset
     };
-    mergeInlines( root, _range );
+    _mergeInlines( root, _range );
     range.setStart( _range.startContainer, _range.startOffset );
     range.setEnd( _range.endContainer, _range.endOffset );
 
@@ -4320,7 +4399,7 @@ proto.setHTML = function ( html, skipUndo, skipClean ) {
         // Record undo state
         var range = this._getRangeAndRemoveBookmark() ||
             this._createRange( root.firstChild, 0 );
-//        this.saveUndoState( range );
+        // this.saveUndoState( range );
         // IE will also set focus when selecting text so don't use
         // setSelection. Instead, just store it in lastSelection, so if
         // anything calls getSelection before first focus, we have a range
@@ -4738,7 +4817,7 @@ proto.removeAllFormatting = function ( range ) {
         endContainer: stopNode,
         endOffset: endOffset
     };
-    mergeInlines( stopNode, _range );
+    _mergeInlines( stopNode, _range );
     range.setStart( _range.startContainer, _range.startOffset );
     range.setEnd( _range.endContainer, _range.endOffset );
 
