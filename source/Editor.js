@@ -2425,7 +2425,14 @@ proto.isAllowedIn = function ( self, tag, containerTag ) {
 function onSelectionChange ( event ) {
     var range = this.getSelection();
 
-    if (range.startContainer && range.collapsed && !isInline(range.startContainer) && !isBlock(range.startContainer)) {
+    var currentParent = range.commonAncestorContainer;
+    while (currentParent && currentParent.nodeName !== 'BODY' && !isWidget(currentParent)) {
+        currentParent = currentParent.parentNode;
+    }
+    if (isWidget(currentParent)) {
+        range.selectNode(currentParent);
+        this.setSelection(range);
+    } else if (range.startContainer && range.collapsed && !isInline(range.startContainer) && !isBlock(range.startContainer)) {
         var childNodes = range.startContainer.childNodes;
         var node;
         if (childNodes.length > 0) {
