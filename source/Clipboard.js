@@ -2,6 +2,7 @@
 
 
 var fakeClipboardContent = null;
+var fakeClipboardKey = null;
 
 var FAKECLIPBOARD_CONSTANT = '___MYWO_CLIPBOARD___: ';
 
@@ -14,9 +15,6 @@ var onCut = function ( event ) {
 
     // Save undo checkpoint
     this.saveUndoState( range );
-
-
-    fakeClipboardContent = null;
 
     // Edge only seems to support setting plain text as of 2016-03-11.
     // Mobile Safari flat out doesn't work:
@@ -37,6 +35,7 @@ var onCut = function ( event ) {
         // Remove selected range
         node.appendChild(range.cloneContents());
         fakeClipboardContent = node.innerHTML;
+        fakeClipboardKey = clipboardData.getData('text/plain');
 
         setTimeout( function () {
             try {
@@ -47,10 +46,14 @@ var onCut = function ( event ) {
             }
         }, 0 );
     } else if ( clipboardData ) {
+        fakeClipboardContent = node.innerHTML;
         node.appendChild( deleteContentsOfRange( range, root ) );
         clipboardData.setData( 'text/html', node.innerHTML );
-        clipboardData.setData( 'text/plain',
-            node.innerText || node.textContent );
+        if (clipboardData.types.indexOf('text/html') === -1) {
+            clipboardData.setData('text/plain', FAKECLIPBOARD_CONSTANT + (node.innerText || node.textContent));
+        } else {
+            clipboardData.setData('text/plain', (node.innerText || node.textContent));
+        }
         event.preventDefault();
     } else {
         event.preventDefault();
@@ -69,23 +72,28 @@ var onCopy = function ( event ) {
 
     moveRangeBoundariesUpTree( range, root );
     node.appendChild( range.cloneContents() );
-    fakeClipboardContent = null;
 
     // Edge only seems to support setting plain text as of 2016-03-11.
     // Mobile Safari flat out doesn't work:
     // https://bugs.webkit.org/show_bug.cgi?id=143776
     if (isEdge) {
-        clipboardData.setData( 'text/plain', FAKECLIPBOARD_CONSTANT + (node.innerText || node.textContent) );
         fakeClipboardContent = node.innerHTML;
+        clipboardData.setData( 'text/plain', FAKECLIPBOARD_CONSTANT + (node.innerText || node.textContent) );
         event.preventDefault();
 
     } else if (isIOS) {
-        clipboardData.setData( 'text/plain', FAKECLIPBOARD_CONSTANT + (node.innerText || node.textContent) );
         fakeClipboardContent = node.innerHTML;
+        fakeClipboardKey = clipboardData.getData('text/plain');
     } else if (clipboardData) {
+        fakeClipboardContent = node.innerHTML;
         clipboardData.setData( 'text/html', node.innerHTML );
-        clipboardData.setData( 'text/plain',
-            node.innerText || node.textContent );
+        if (clipboardData.types.indexOf('text/html') === -1) {
+            clipboardData.setData('text/plain', FAKECLIPBOARD_CONSTANT + (node.innerText || node.textContent));
+        } else {
+            clipboardData.setData('text/plain', (node.innerText || node.textContent));
+        }
+        event.preventDefault();
+    } else {
         event.preventDefault();
     }
 };
@@ -104,7 +112,7 @@ var onPaste = function ( event ) {
     // https://html.spec.whatwg.org/multipage/interaction.html
 
     // Edge only provides access to plain text as of 2016-03-11.
-    if ( /*!isEdge &&*/ items ) {
+    if ( !isIOS && items ) {
 
         event.preventDefault();
         l = items.length;
@@ -146,8 +154,7 @@ var onPaste = function ( event ) {
             }
         } else if ( plainItem ) {
             plainItem.getAsString( function ( text ) {
-                if (fakeClipboardContent && (isIOS || text.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
-                    console.log('Paste API 1');
+                if (fakeClipboardContent && (fakeClipboardKey === text || text.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
                     self.insertHTML(fakeClipboardContent, true);
                 } else {
                     fakeClipboardContent = null;
@@ -188,14 +195,12 @@ var onPaste = function ( event ) {
         } else if (
                 ( data = clipboardData.getData( 'text/plain' ) ) ||
                 ( data = clipboardData.getData( 'text/uri-list' ) ) ) {
-            if (fakeClipboardContent && (isIOS || text.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
-                console.log('Paste API 2');
+            if (fakeClipboardContent && ((fakeClipboardKey === data) || data.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
                 self.insertHTML(fakeClipboardContent, true);
             } else {
                 fakeClipboardContent = null;
                 self.insertPlainText( data, true );
             }
-            this.insertPlainText( data, true );
         }
         return;
     }
