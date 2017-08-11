@@ -2582,6 +2582,11 @@ var cleanupBRs = function ( node, root ) {
     }
 };
 
+
+var fakeClipboardContent = null;
+
+var FAKECLIPBOARD_CONSTANT = '___MYWO_CLIPBOARD___: ';
+
 var onCut = function ( event ) {
     var clipboardData = event.clipboardData;
     var range = this.getSelection();
@@ -2592,18 +2597,29 @@ var onCut = function ( event ) {
     // Save undo checkpoint
     this.saveUndoState( range );
 
+
+    fakeClipboardContent = null;
+
     // Edge only seems to support setting plain text as of 2016-03-11.
     // Mobile Safari flat out doesn't work:
     // https://bugs.webkit.org/show_bug.cgi?id=143776
-    if ( /*!isEdge &&*/ !isIOS && clipboardData ) {
-        moveRangeBoundariesUpTree( range, root );
+    if (isEdge) {
         node.appendChild( deleteContentsOfRange( range, root ) );
-        clipboardData.setData( 'text/html', node.innerHTML );
-        clipboardData.setData( 'text/plain',
-            node.innerText || node.textContent );
+        fakeClipboardContent = node.innerHTML;
+        clipboardData.setData('text/plain', FAKECLIPBOARD_CONSTANT + (node.innerText || node.textContent));
         event.preventDefault();
-        fixContainer(root, root);
-    } else {
+    } else if ( isIOS ) {
+        encapsulateNonEditableElements(range, root);
+        // Move boundaries up as much as possible to reduce need to split.
+        // But we need to check whether we've moved the boundary outside of a
+        // block. If so, the entire block will be removed, so we shouldn't merge
+        // later.
+        moveRangeBoundariesUpTree( range );
+
+        // Remove selected range
+        node.appendChild(range.cloneContents());
+        fakeClipboardContent = node.innerHTML;
+
         setTimeout( function () {
             try {
                 // If all content removed, ensure div at start of root.
@@ -2612,8 +2628,16 @@ var onCut = function ( event ) {
                 self.didError( error );
             }
         }, 0 );
+    } else if ( clipboardData ) {
+        clipboardData.setData( 'text/html', node.innerHTML );
+        clipboardData.setData( 'text/plain',
+            node.innerText || node.textContent );
+        event.preventDefault();
+    } else {
+        event.preventDefault();
     }
 
+    fixContainer(root, root);
     this._docWasChanged();
     this.setSelection( range );
 };
@@ -2622,12 +2646,24 @@ var onCopy = function ( event ) {
     var clipboardData = event.clipboardData;
     var range = this.getSelection();
     var node = this.createElement( 'div' );
+    var root = this._root;
+
+    moveRangeBoundariesUpTree( range, root );
+    node.appendChild( range.cloneContents() );
+    fakeClipboardContent = null;
 
     // Edge only seems to support setting plain text as of 2016-03-11.
     // Mobile Safari flat out doesn't work:
     // https://bugs.webkit.org/show_bug.cgi?id=143776
-    if ( /*!isEdge &&*/ !isIOS && clipboardData ) {
-        node.appendChild( range.cloneContents() );
+    if (isEdge) {
+        clipboardData.setData( 'text/plain', FAKECLIPBOARD_CONSTANT + (node.innerText || node.textContent) );
+        fakeClipboardContent = node.innerHTML;
+        event.preventDefault();
+
+    } else if (isIOS) {
+        clipboardData.setData( 'text/plain', FAKECLIPBOARD_CONSTANT + (node.innerText || node.textContent) );
+        fakeClipboardContent = node.innerHTML;
+    } else if (clipboardData) {
         clipboardData.setData( 'text/html', node.innerHTML );
         clipboardData.setData( 'text/plain',
             node.innerText || node.textContent );
@@ -2691,7 +2727,13 @@ var onPaste = function ( event ) {
             }
         } else if ( plainItem ) {
             plainItem.getAsString( function ( text ) {
-                self.insertPlainText( text, true );
+                if (fakeClipboardContent && (isIOS || text.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
+                    console.log('Paste API 1');
+                    self.insertHTML(fakeClipboardContent, true);
+                } else {
+                    fakeClipboardContent = null;
+                    self.insertPlainText( text, true );
+                }
             });
         }
         return;
@@ -2727,6 +2769,13 @@ var onPaste = function ( event ) {
         } else if (
                 ( data = clipboardData.getData( 'text/plain' ) ) ||
                 ( data = clipboardData.getData( 'text/uri-list' ) ) ) {
+            if (fakeClipboardContent && (isIOS || text.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
+                console.log('Paste API 2');
+                self.insertHTML(fakeClipboardContent, true);
+            } else {
+                fakeClipboardContent = null;
+                self.insertPlainText( data, true );
+            }
             this.insertPlainText( data, true );
         }
         return;
@@ -2895,6 +2944,7 @@ function Squire ( root, config ) {
     // again before our after paste function is called.
     this._awaitingPaste = false;
     this.addEventListener( isIElt11 ? 'beforecut' : 'cut', onCut );
+    this._onCut = onCut.bind(this);
     this.addEventListener( 'copy', onCopy );
     this.addEventListener( isIElt11 ? 'beforepaste' : 'paste', onPaste );
 

@@ -100,6 +100,7 @@ function Squire ( root, config ) {
     // again before our after paste function is called.
     this._awaitingPaste = false;
     this.addEventListener( isIElt11 ? 'beforecut' : 'cut', onCut );
+    this._onCut = onCut.bind(this);
     this.addEventListener( 'copy', onCopy );
     this.addEventListener( isIElt11 ? 'beforepaste' : 'paste', onPaste );
 
