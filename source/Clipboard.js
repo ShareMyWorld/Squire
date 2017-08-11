@@ -2,7 +2,7 @@
 
 
 var fakeClipboardContent = null;
-var fakeClipboardKey = null;
+var iosFakeClipboardKey = null;
 
 var FAKECLIPBOARD_CONSTANT = '___MYWO_CLIPBOARD___: ';
 
@@ -35,7 +35,7 @@ var onCut = function ( event ) {
         // Remove selected range
         node.appendChild(range.cloneContents());
         fakeClipboardContent = node.innerHTML;
-        fakeClipboardKey = clipboardData.getData('text/plain');
+        iosFakeClipboardKey = clipboardData.getData('text/plain').trim();
 
         setTimeout( function () {
             try {
@@ -83,7 +83,7 @@ var onCopy = function ( event ) {
 
     } else if (isIOS) {
         fakeClipboardContent = node.innerHTML;
-        fakeClipboardKey = clipboardData.getData('text/plain');
+        iosFakeClipboardKey = clipboardData.getData('text/plain').trim();
     } else if (clipboardData) {
         fakeClipboardContent = node.innerHTML;
         clipboardData.setData( 'text/html', node.innerHTML );
@@ -154,7 +154,7 @@ var onPaste = function ( event ) {
             }
         } else if ( plainItem ) {
             plainItem.getAsString( function ( text ) {
-                if (fakeClipboardContent && (fakeClipboardKey === text || text.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
+                if (fakeClipboardContent && text.indexOf(FAKECLIPBOARD_CONSTANT) === 0) {
                     self.insertHTML(fakeClipboardContent, true);
                 } else {
                     fakeClipboardContent = null;
@@ -195,7 +195,7 @@ var onPaste = function ( event ) {
         } else if (
                 ( data = clipboardData.getData( 'text/plain' ) ) ||
                 ( data = clipboardData.getData( 'text/uri-list' ) ) ) {
-            if (fakeClipboardContent && ((fakeClipboardKey === data) || data.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
+            if (fakeClipboardContent && ((iosFakeClipboardKey === data.trim()) || data.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
                 self.insertHTML(fakeClipboardContent, true);
             } else {
                 fakeClipboardContent = null;
