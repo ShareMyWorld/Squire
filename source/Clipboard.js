@@ -47,6 +47,7 @@ var onCut = function ( event ) {
             }
         }, 0 );
     } else if ( clipboardData ) {
+        node.appendChild( deleteContentsOfRange( range, root ) );
         clipboardData.setData( 'text/html', node.innerHTML );
         clipboardData.setData( 'text/plain',
             node.innerText || node.textContent );
