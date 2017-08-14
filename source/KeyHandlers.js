@@ -69,9 +69,8 @@ var onKey = function ( event ) {
     if ( this._keyHandlers[ key ] ) {
         this._keyHandlers[ key ]( this, event, range );
     } else if ( key.length === 1 && !range.collapsed ) {
-        if ( range.commonAncestorContainer && getNearestCallback( range.commonAncestorContainer, this._root, isWidget ) ) {
+        if ( isRangeSelectingWidget(this._root, range)) {
             event.preventDefault();
-
         } else {
 
             var widgetNode = findNodeInRange(range, function(node) {
@@ -97,6 +96,22 @@ var onKey = function ( event ) {
 
     }
 };
+
+function isRangeSelectingWidget(root, range) {
+    if (!range.startContainer || !range.endContainer) {
+        return false;
+    }
+    var start = range.startContainer.nodeType === 1 ? range.startContainer.childNodes[range.startOffset] : range.startContainer;
+    var end;
+    if (range.endOffset === 0) {
+        end = range.endContainer;
+    } else {
+        end = range.endContainer.nodeType === 1 ? range.endContainer.childNodes[range.endOffset - 1] : range.endContainer;
+    }
+
+
+    return getNearestCallback(start, root, isWidget) && getNearestCallback(end, root, isWidget);
+}
 
 function replaceRangeWithInput(self, range) {
     // Record undo checkpoint.
