@@ -48,6 +48,44 @@ function findNodeInRange(range, callback) {
     return result;
 }
 
+function cloneRootWithRange(root, range) {
+    var clonedRoot = root.cloneNode(true);
+
+    var startContainerPath = [];
+    var currentContainer = range.startContainer;
+    while (currentContainer !== root) {
+        startContainerPath.push(getNodeIndex(currentContainer));
+        currentContainer = currentContainer.parentNode;
+    }
+
+    var endContainerPath = [];
+
+    currentContainer = range.endContainer;
+    while (currentContainer !== root) {
+        endContainerPath.push(getNodeIndex(currentContainer));
+        currentContainer = currentContainer.parentNode;
+    }
+
+    // Now lets find the cloned start and end
+    var clonedRange = clonedRoot.ownerDocument.createRange();
+    currentContainer = clonedRoot;
+    while (startContainerPath.length > 0) {
+        currentContainer = currentContainer.childNodes[startContainerPath.pop()];
+    }
+    clonedRange.setStart(currentContainer, range.startOffset);
+
+    currentContainer = clonedRoot;
+    while (endContainerPath.length > 0) {
+        currentContainer = currentContainer.childNodes[endContainerPath.pop()];
+    }
+    clonedRange.setEnd(currentContainer, range.endOffset);
+
+    return {
+        root: clonedRoot,
+        range: clonedRange
+    };
+}
+
 // ---
 
 function isLeaf ( node ) {
@@ -439,6 +477,16 @@ function fixInlines( node, smwParent, squire, isFirstCascadingChild ) {
         }
         child = next;
     }
+}
+
+
+function getNodeIndex(child) {
+    var i = 0;
+    while( (child = child.previousSibling) != null ) {
+        i++;
+    }
+
+    return i;
 }
 
 /**

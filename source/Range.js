@@ -175,8 +175,10 @@ var encapsulateNonEditableElements = function ( range, root ) {
 }
 
 
-var deleteContentsOfRange = function ( range, root ) {
-    encapsulateNonEditableElements(range, root);
+var deleteContentsOfRange = function ( range, root, skipEncapsulateNonEditables ) {
+    if (!skipEncapsulateNonEditables) {
+        encapsulateNonEditableElements(range, root);
+    }
     // Move boundaries up as much as possible to reduce need to split.
     // But we need to check whether we've moved the boundary outside of a
     // block. If so, the entire block will be removed, so we shouldn't merge

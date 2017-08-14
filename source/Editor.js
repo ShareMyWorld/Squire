@@ -2462,7 +2462,6 @@ function onSelectionChange ( event ) {
             }
             range.collapse(true);
             moveRangeBoundariesDownTree(range);
-            console.log('fixing selection', range);
             this.setSelection(range);
         }
     }

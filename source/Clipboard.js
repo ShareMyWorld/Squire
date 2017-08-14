@@ -26,19 +26,16 @@ var onCut = function ( event ) {
         event.preventDefault();
     } else if ( isIOS ) {
         encapsulateNonEditableElements(range, root);
-        // Move boundaries up as much as possible to reduce need to split.
-        // But we need to check whether we've moved the boundary outside of a
-        // block. If so, the entire block will be removed, so we shouldn't merge
-        // later.
-        moveRangeBoundariesUpTree( range );
+        var clone = cloneRootWithRange(this._root, range);
 
-        // Remove selected range
-        node.appendChild(range.cloneContents());
+        // cut selected range
+        node.appendChild(deleteContentsOfRange(clone.range, clone.root, true));
         fakeClipboardContent = node.innerHTML;
         iosFakeClipboardKey = clipboardData.getData('text/plain').trim();
 
         setTimeout( function () {
             try {
+                self._setHTML(clone.root.innerHTML);
                 // If all content removed, ensure div at start of root.
                 fixContainer(root, root);
             } catch ( error ) {

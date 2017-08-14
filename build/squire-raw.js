@@ -232,6 +232,44 @@ function findNodeInRange(range, callback) {
     return result;
 }
 
+function cloneRootWithRange(root, range) {
+    var clonedRoot = root.cloneNode(true);
+
+    var startContainerPath = [];
+    var currentContainer = range.startContainer;
+    while (currentContainer !== root) {
+        startContainerPath.push(getNodeIndex(currentContainer));
+        currentContainer = currentContainer.parentNode;
+    }
+
+    var endContainerPath = [];
+
+    currentContainer = range.endContainer;
+    while (currentContainer !== root) {
+        endContainerPath.push(getNodeIndex(currentContainer));
+        currentContainer = currentContainer.parentNode;
+    }
+
+    // Now lets find the cloned start and end
+    var clonedRange = clonedRoot.ownerDocument.createRange();
+    currentContainer = clonedRoot;
+    while (startContainerPath.length > 0) {
+        currentContainer = currentContainer.childNodes[startContainerPath.pop()];
+    }
+    clonedRange.setStart(currentContainer, range.startOffset);
+
+    currentContainer = clonedRoot;
+    while (endContainerPath.length > 0) {
+        currentContainer = currentContainer.childNodes[endContainerPath.pop()];
+    }
+    clonedRange.setEnd(currentContainer, range.endOffset);
+
+    return {
+        root: clonedRoot,
+        range: clonedRange
+    };
+}
+
 // ---
 
 function isLeaf ( node ) {
@@ -623,6 +661,16 @@ function fixInlines( node, smwParent, squire, isFirstCascadingChild ) {
         }
         child = next;
     }
+}
+
+
+function getNodeIndex(child) {
+    var i = 0;
+    while( (child = child.previousSibling) != null ) {
+        i++;
+    }
+
+    return i;
 }
 
 /**
@@ -1221,8 +1269,10 @@ var encapsulateNonEditableElements = function ( range, root ) {
 }
 
 
-var deleteContentsOfRange = function ( range, root ) {
-    encapsulateNonEditableElements(range, root);
+var deleteContentsOfRange = function ( range, root, skipEncapsulateNonEditables ) {
+    if (!skipEncapsulateNonEditables) {
+        encapsulateNonEditableElements(range, root);
+    }
     // Move boundaries up as much as possible to reduce need to split.
     // But we need to check whether we've moved the boundary outside of a
     // block. If so, the entire block will be removed, so we shouldn't merge
@@ -2584,7 +2634,7 @@ var cleanupBRs = function ( node, root ) {
 
 
 var fakeClipboardContent = null;
-var fakeClipboardKey = null;
+var iosFakeClipboardKey = null;
 
 var FAKECLIPBOARD_CONSTANT = '___MYWO_CLIPBOARD___: ';
 
@@ -2608,19 +2658,16 @@ var onCut = function ( event ) {
         event.preventDefault();
     } else if ( isIOS ) {
         encapsulateNonEditableElements(range, root);
-        // Move boundaries up as much as possible to reduce need to split.
-        // But we need to check whether we've moved the boundary outside of a
-        // block. If so, the entire block will be removed, so we shouldn't merge
-        // later.
-        moveRangeBoundariesUpTree( range );
+        var clone = cloneRootWithRange(this._root, range);
 
-        // Remove selected range
-        node.appendChild(range.cloneContents());
+        // cut selected range
+        node.appendChild(deleteContentsOfRange(clone.range, clone.root, true));
         fakeClipboardContent = node.innerHTML;
-        fakeClipboardKey = clipboardData.getData('text/plain');
+        iosFakeClipboardKey = clipboardData.getData('text/plain').trim();
 
         setTimeout( function () {
             try {
+                self._setHTML(clone.root.innerHTML);
                 // If all content removed, ensure div at start of root.
                 fixContainer(root, root);
             } catch ( error ) {
@@ -2665,7 +2712,7 @@ var onCopy = function ( event ) {
 
     } else if (isIOS) {
         fakeClipboardContent = node.innerHTML;
-        fakeClipboardKey = clipboardData.getData('text/plain');
+        iosFakeClipboardKey = clipboardData.getData('text/plain').trim();
     } else if (clipboardData) {
         fakeClipboardContent = node.innerHTML;
         clipboardData.setData( 'text/html', node.innerHTML );
@@ -2736,7 +2783,7 @@ var onPaste = function ( event ) {
             }
         } else if ( plainItem ) {
             plainItem.getAsString( function ( text ) {
-                if (fakeClipboardContent && (fakeClipboardKey === text || text.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
+                if (fakeClipboardContent && text.indexOf(FAKECLIPBOARD_CONSTANT) === 0) {
                     self.insertHTML(fakeClipboardContent, true);
                 } else {
                     fakeClipboardContent = null;
@@ -2777,7 +2824,7 @@ var onPaste = function ( event ) {
         } else if (
                 ( data = clipboardData.getData( 'text/plain' ) ) ||
                 ( data = clipboardData.getData( 'text/uri-list' ) ) ) {
-            if (fakeClipboardContent && ((fakeClipboardKey === data) || data.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
+            if (fakeClipboardContent && ((iosFakeClipboardKey === data.trim()) || data.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
                 self.insertHTML(fakeClipboardContent, true);
             } else {
                 fakeClipboardContent = null;
@@ -5312,7 +5359,6 @@ function onSelectionChange ( event ) {
             }
             range.collapse(true);
             moveRangeBoundariesDownTree(range);
-            console.log('fixing selection', range);
             this.setSelection(range);
         }
     }
