@@ -51,6 +51,11 @@ function findNodeInRange(range, callback) {
 function cloneRootWithRange(root, range) {
     var clonedRoot = root.cloneNode(true);
 
+    // On iOS 9, range methods throw weird exceptions when used on nodes that are not attached to the document.
+    // The workaround is to attach it to a document fragment.
+    var fragment = root.ownerDocument.createDocumentFragment();
+    fragment.appendChild(clonedRoot);
+
     var startContainerPath = [];
     var currentContainer = range.startContainer;
     while (currentContainer !== root) {
@@ -81,6 +86,7 @@ function cloneRootWithRange(root, range) {
     clonedRange.setEnd(currentContainer, range.endOffset);
 
     return {
+        fragment: fragment,
         root: clonedRoot,
         range: clonedRange
     };
