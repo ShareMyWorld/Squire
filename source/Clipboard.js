@@ -2,9 +2,16 @@
 
 
 var fakeClipboardContent = null;
-var iosFakeClipboardKey = null;
-
 var FAKECLIPBOARD_CONSTANT = '___MYWO_CLIPBOARD___: ';
+
+/**
+ * used on ios to decide if we should clear our fake clipboard or not.
+ *
+ * @param event
+ */
+var onVisibilityChange = function( event ) {
+    fakeClipboardContent = null;
+};
 
 var onCut = function ( event ) {
     var clipboardData = event.clipboardData;
@@ -31,7 +38,6 @@ var onCut = function ( event ) {
         // cut selected range
         node.appendChild(deleteContentsOfRange(clone.range, clone.root, true));
         fakeClipboardContent = node.innerHTML;
-        iosFakeClipboardKey = clipboardData.getData('text/plain').trim();
 
         setTimeout( function () {
             try {
@@ -80,7 +86,6 @@ var onCopy = function ( event ) {
 
     } else if (isIOS) {
         fakeClipboardContent = node.innerHTML;
-        iosFakeClipboardKey = clipboardData.getData('text/plain').trim();
     } else if (clipboardData) {
         fakeClipboardContent = node.innerHTML;
         clipboardData.setData( 'text/html', node.innerHTML );
@@ -192,7 +197,7 @@ var onPaste = function ( event ) {
         } else if (
                 ( data = clipboardData.getData( 'text/plain' ) ) ||
                 ( data = clipboardData.getData( 'text/uri-list' ) ) ) {
-            if (fakeClipboardContent && ((iosFakeClipboardKey === data.trim()) || data.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
+            if (fakeClipboardContent && (isIOS || data.indexOf(FAKECLIPBOARD_CONSTANT) === 0)) {
                 self.insertHTML(fakeClipboardContent, true);
             } else {
                 fakeClipboardContent = null;

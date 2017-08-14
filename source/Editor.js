@@ -96,6 +96,11 @@ function Squire ( root, config ) {
     this._onSelectionChange = onSelectionChange.bind( this );
     doc.addEventListener( 'selectionchange', this._onSelectionChange, true );
 
+    if (isIOS) {
+        this._onVisibilityChange = onVisibilityChange.bind(this);
+        doc.addEventListener('visibilitychange', this._onVisibilityChange, true);
+    }
+
     // IE sometimes fires the beforepaste event twice; make sure it is not run
     // again before our after paste function is called.
     this._awaitingPaste = false;
@@ -279,6 +284,10 @@ proto.destroy = function () {
         this._mutation.disconnect();
     }
     this._doc.removeEventListener( 'selectionchange', this._onSelectionChange, true );
+
+    if (isIOS) {
+        this._doc.removeEventListener('visibilitychange', this._onVisibilityChange, true);
+    }
     var l = instances.length;
     while ( l-- ) {
         if ( instances[l] === this ) {
