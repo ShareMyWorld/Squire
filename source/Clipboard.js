@@ -31,6 +31,9 @@ var onCut = function ( event ) {
         fakeClipboardContent = node.innerHTML;
         clipboardData.setData('text/plain', FAKECLIPBOARD_CONSTANT + (node.innerText || node.textContent));
         event.preventDefault();
+        fixContainer(root, root);
+        this._docWasChanged();
+        this.setSelection( range );
     } else if ( isIOS ) {
         encapsulateNonEditableElements(range, root);
         var clone = cloneRootWithRange(this._root, range);
@@ -44,6 +47,7 @@ var onCut = function ( event ) {
                 self._setHTML(clone.root.innerHTML);
                 // If all content removed, ensure div at start of root.
                 fixContainer(root, root);
+                self._docWasChanged();
             } catch ( error ) {
                 self.didError( error );
             }
@@ -58,13 +62,12 @@ var onCut = function ( event ) {
             clipboardData.setData('text/plain', (node.innerText || node.textContent));
         }
         event.preventDefault();
+        fixContainer(root, root);
+        this._docWasChanged();
+        this.setSelection( range );
     } else {
         event.preventDefault();
     }
-
-    fixContainer(root, root);
-    this._docWasChanged();
-    this.setSelection( range );
 };
 
 var onCopy = function ( event ) {

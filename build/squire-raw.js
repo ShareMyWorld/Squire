@@ -31,6 +31,7 @@ var isIElt11 = /Trident\/[456]\./.test( ua );
 var isPresto = !!win.opera;
 var isEdge = /Edge\//.test( ua );
 var isWebKit = !isEdge && /WebKit\//.test( ua );
+var isAndroid = /Android/.test( ua );
 
 var ctrlKey = isMac ? 'meta-' : 'ctrl-';
 
@@ -1741,40 +1742,45 @@ var onKey = function ( event ) {
     // However, on Windows, shift-delete is apparently "cut" (WTF right?), so
     // we want to let the browser handle shift-delete.
     //if ( event.shiftKey ) { modifiers += 'shift-'; }
-    key = modifiers + key;
+    var keyWithModifiers = modifiers + key;
 
     if (this._undoIndex === -1) {
         this.saveUndoState( range );
+        this._isInUndoState = false
     }
 
-    if ( this._keyHandlers[ key ] ) {
-        this._keyHandlers[ key ]( this, event, range );
-    } else if ( key.length === 1 && !range.collapsed ) {
-        if ( isRangeSelectingWidget(this._root, range)) {
-            event.preventDefault();
-        } else {
+    if ( this._keyHandlers[ keyWithModifiers ] ) {
+        this._keyHandlers[keyWithModifiers](this, event, range);
+    } else if (!event.ctrlKey && !event.metaKey && isRangeSelectingWidget(this._root, range)) {
+        event.preventDefault();
+    } else if (!range.collapsed) {
+        // Android
+        var widgetNode = findNodeInRange(range, function(node) {
+             return isWidget(node);
+        });
+        var self = this;
 
-            var widgetNode = findNodeInRange(range, function(node) {
-                return isWidget(node);
-            });
-            var self = this;
-
-            if (widgetNode) {
-                event.preventDefault();
-                this._blockKeyEvents = true;
-                this.confirmDeleteWidget(widgetNode.getAttribute('widget-id'), widgetNode.getAttribute('widget-type')).then(function() {
-                    replaceRangeWithInput(self, range)
-                }).finally(function() {
-                    self._blockKeyEvents = false;
-                    self.focus();
-                });
-            } else {
-                replaceRangeWithInput(self, range);
-            }
-
-
+        if (widgetNode && !event.metaKey && ((event.ctrlKey && event.altKey) || (!event.ctrlKey && !event.altKey))) {
+            self.saveUndoState(range);
         }
 
+        if (keyWithModifiers.length === 1 ) {
+            replaceRangeWithInput(self, range);
+        }
+
+        //
+        // if (widgetNode) {
+        //     event.preventDefault();
+        //     this._blockKeyEvents = true;
+        //     this.confirmDeleteWidget(widgetNode.getAttribute('widget-id'), widgetNode.getAttribute('widget-type')).then(function() {
+        //         replaceRangeWithInput(self, range)
+        //     }).finally(function() {
+        //         self._blockKeyEvents = false;
+        //         self.focus();
+        //     });
+        // } else {
+        // replaceRangeWithInput(self, range);
+        // }
     }
 };
 
@@ -2684,6 +2690,9 @@ var onCut = function ( event ) {
         fakeClipboardContent = node.innerHTML;
         clipboardData.setData('text/plain', FAKECLIPBOARD_CONSTANT + (node.innerText || node.textContent));
         event.preventDefault();
+        fixContainer(root, root);
+        this._docWasChanged();
+        this.setSelection( range );
     } else if ( isIOS ) {
         encapsulateNonEditableElements(range, root);
         var clone = cloneRootWithRange(this._root, range);
@@ -2697,6 +2706,7 @@ var onCut = function ( event ) {
                 self._setHTML(clone.root.innerHTML);
                 // If all content removed, ensure div at start of root.
                 fixContainer(root, root);
+                self._docWasChanged();
             } catch ( error ) {
                 self.didError( error );
             }
@@ -2711,13 +2721,12 @@ var onCut = function ( event ) {
             clipboardData.setData('text/plain', (node.innerText || node.textContent));
         }
         event.preventDefault();
+        fixContainer(root, root);
+        this._docWasChanged();
+        this.setSelection( range );
     } else {
         event.preventDefault();
     }
-
-    fixContainer(root, root);
-    this._docWasChanged();
-    this.setSelection( range );
 };
 
 var onCopy = function ( event ) {
@@ -3176,9 +3185,8 @@ proto.fireEvent = function ( type, event ) {
         }
         // Clone handlers array, so any handlers added/removed do not affect it.
         handlers = handlers.slice();
-        l = handlers.length;
-        while ( l-- ) {
-            obj = handlers[l];
+        while (handlers.length > 0 ) {
+            obj = handlers.shift();
             try {
                 if ( obj.handleEvent ) {
                     obj.handleEvent( event );
@@ -3624,7 +3632,7 @@ proto._keyUpDetectChange = function ( event ) {
     // 1. A modifier key (other than shift) wasn't held down
     // 2. The key pressed is not in range 16<=x<=20 (control keys)
     // 3. The key pressed is not in range 33<=x<=45 (navigation keys)
-    if ( !event.ctrlKey && !event.metaKey && !event.altKey &&
+    if ( !event.metaKey && ((!event.altKey && !event.ctrlKey) || (event.altKey && event.ctrlKey)) &&
             ( code < 16 || code > 20 ) &&
             ( code < 33 || code > 45 ) ) {
         this._docWasChanged();
@@ -3645,6 +3653,7 @@ proto._docWasChanged = function () {
     }
     if (this._undoIndex === -1) {
         this.saveUndoState();
+        this._isInUndoState = false;
     }
     this.fireEvent( 'input' );
 };
@@ -3678,6 +3687,10 @@ proto._recordUndoState = function ( range, replace ) {
         }
         this._undoStackLength += 1;
         this._isInUndoState = true;
+        this.fireEvent( 'undoStateChange', {
+            canUndo: this._undoIndex > 0,
+            canRedo: false
+        });
     }
 };
 
@@ -3694,7 +3707,7 @@ proto.saveUndoState = function ( range ) {
 
 proto.undo = function () {
     // Sanity check: must not be at beginning of the history stack
-    if ( this._undoIndex > 0 || !this._isInUndoState ) {
+    if ( this._undoIndex > 0 || (!this._isInUndoState && this._undoIndex >= 0) ) {
         // Make sure any changes since last checkpoint are saved.
         this._recordUndoState( this.getSelection() );
 

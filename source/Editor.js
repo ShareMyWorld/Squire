@@ -253,9 +253,8 @@ proto.fireEvent = function ( type, event ) {
         }
         // Clone handlers array, so any handlers added/removed do not affect it.
         handlers = handlers.slice();
-        l = handlers.length;
-        while ( l-- ) {
-            obj = handlers[l];
+        while (handlers.length > 0 ) {
+            obj = handlers.shift();
             try {
                 if ( obj.handleEvent ) {
                     obj.handleEvent( event );
@@ -701,7 +700,7 @@ proto._keyUpDetectChange = function ( event ) {
     // 1. A modifier key (other than shift) wasn't held down
     // 2. The key pressed is not in range 16<=x<=20 (control keys)
     // 3. The key pressed is not in range 33<=x<=45 (navigation keys)
-    if ( !event.ctrlKey && !event.metaKey && !event.altKey &&
+    if ( !event.metaKey && ((!event.altKey && !event.ctrlKey) || (event.altKey && event.ctrlKey)) &&
             ( code < 16 || code > 20 ) &&
             ( code < 33 || code > 45 ) ) {
         this._docWasChanged();
@@ -722,6 +721,7 @@ proto._docWasChanged = function () {
     }
     if (this._undoIndex === -1) {
         this.saveUndoState();
+        this._isInUndoState = false;
     }
     this.fireEvent( 'input' );
 };
@@ -755,6 +755,10 @@ proto._recordUndoState = function ( range, replace ) {
         }
         this._undoStackLength += 1;
         this._isInUndoState = true;
+        this.fireEvent( 'undoStateChange', {
+            canUndo: this._undoIndex > 0,
+            canRedo: false
+        });
     }
 };
 
@@ -771,7 +775,7 @@ proto.saveUndoState = function ( range ) {
 
 proto.undo = function () {
     // Sanity check: must not be at beginning of the history stack
-    if ( this._undoIndex > 0 || !this._isInUndoState ) {
+    if ( this._undoIndex > 0 || (!this._isInUndoState && this._undoIndex >= 0) ) {
         // Make sure any changes since last checkpoint are saved.
         this._recordUndoState( this.getSelection() );
 

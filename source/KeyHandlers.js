@@ -60,40 +60,45 @@ var onKey = function ( event ) {
     // However, on Windows, shift-delete is apparently "cut" (WTF right?), so
     // we want to let the browser handle shift-delete.
     //if ( event.shiftKey ) { modifiers += 'shift-'; }
-    key = modifiers + key;
+    var keyWithModifiers = modifiers + key;
 
     if (this._undoIndex === -1) {
         this.saveUndoState( range );
+        this._isInUndoState = false
     }
 
-    if ( this._keyHandlers[ key ] ) {
-        this._keyHandlers[ key ]( this, event, range );
-    } else if ( key.length === 1 && !range.collapsed ) {
-        if ( isRangeSelectingWidget(this._root, range)) {
-            event.preventDefault();
-        } else {
+    if ( this._keyHandlers[ keyWithModifiers ] ) {
+        this._keyHandlers[keyWithModifiers](this, event, range);
+    } else if (!event.ctrlKey && !event.metaKey && isRangeSelectingWidget(this._root, range)) {
+        event.preventDefault();
+    } else if (!range.collapsed) {
+        // Android
+        var widgetNode = findNodeInRange(range, function(node) {
+             return isWidget(node);
+        });
+        var self = this;
 
-            var widgetNode = findNodeInRange(range, function(node) {
-                return isWidget(node);
-            });
-            var self = this;
-
-            if (widgetNode) {
-                event.preventDefault();
-                this._blockKeyEvents = true;
-                this.confirmDeleteWidget(widgetNode.getAttribute('widget-id'), widgetNode.getAttribute('widget-type')).then(function() {
-                    replaceRangeWithInput(self, range)
-                }).finally(function() {
-                    self._blockKeyEvents = false;
-                    self.focus();
-                });
-            } else {
-                replaceRangeWithInput(self, range);
-            }
-
-
+        if (widgetNode && !event.metaKey && ((event.ctrlKey && event.altKey) || (!event.ctrlKey && !event.altKey))) {
+            self.saveUndoState(range);
         }
 
+        if (keyWithModifiers.length === 1 ) {
+            replaceRangeWithInput(self, range);
+        }
+
+        //
+        // if (widgetNode) {
+        //     event.preventDefault();
+        //     this._blockKeyEvents = true;
+        //     this.confirmDeleteWidget(widgetNode.getAttribute('widget-id'), widgetNode.getAttribute('widget-type')).then(function() {
+        //         replaceRangeWithInput(self, range)
+        //     }).finally(function() {
+        //         self._blockKeyEvents = false;
+        //         self.focus();
+        //     });
+        // } else {
+        // replaceRangeWithInput(self, range);
+        // }
     }
 };
 
