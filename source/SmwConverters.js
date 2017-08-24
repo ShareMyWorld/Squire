@@ -107,6 +107,14 @@ proto.converters = [
 			return '(( ' + content + ' ))\n'; 
 		}
 	},
+    {
+        filter: function (node) {
+            return node.nodeName === 'BLOCKQUOTE' && node.classList.contains('page-panel')
+        },
+        replacement: function(content) {
+            return '\n===\n ' + content + ' \n===\n';
+        }
+    },
 	{
 		filter: 'blockquote',
 		replacement: function(content) {

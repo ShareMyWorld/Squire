@@ -108,7 +108,7 @@ var stylesRewriters = {
         return li;
     },
     BLOCKQUOTE: function( node ) {
-        if ( node.className !== 'aside' ){
+        if ( node.className !== 'aside' && node.className !== 'page-panel' ){
             node.className = 'blockquote';
         }
         return node;

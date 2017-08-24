@@ -248,7 +248,7 @@ var keyHandlers = {
         var currentBlock = current.parentNode;
         var currentContainer, nodeAfterSplit, blockAfterSplit;
         
-        if (currentBlock === root || isAside(currentBlock)) {
+        if (currentBlock === root || isAside(currentBlock) || isPagePanel(currentBlock)) {
             currentContainer = currentBlock;
             currentBlock = current;
         } else {
@@ -398,7 +398,7 @@ var keyHandlers = {
 
                 var currentBlock = current.parentNode;
                 var currentContainer;
-                if (currentBlock === root || isAside(currentBlock)) {
+                if (currentBlock === root || isAside(currentBlock) || isPagePanel(currentBlock)) {
                     currentContainer = currentBlock;
                     currentBlock = current;
                 } else {
@@ -419,7 +419,7 @@ var keyHandlers = {
                     // The rest of the actions we need to merge with previous node or delete previous node
 
                     var previousBlock;
-                    if (previous.parentNode === root || isAside(previous.parentNode)) {
+                    if (previous.parentNode === root || isAside(previous.parentNode) || isPagePanel(previous.parentNode)) {
                         previousBlock = previous;
                     } else {
                         previousBlock = previous.parentNode;
@@ -481,7 +481,7 @@ var keyHandlers = {
             next = getNextBlock( current, root );
             
             var currentBlock, currentContainer;
-            if (current.parentNode === root || isAside(current.parentNode)) {
+            if (current.parentNode === root || isAside(current.parentNode) || isPagePanel(current.parentNode)) {
                 currentBlock = current;
                 currentContainer = current.parentNode;
             } else {
@@ -490,11 +490,12 @@ var keyHandlers = {
             }
 
             if ( isAside(currentBlock.nextElementSibling ) ||
-                    ( currentContainer.lastElementChild === currentBlock && ( !isList(currentContainer) || isAside(currentContainer.nextElementSibling)) )) {
+                isPagePanel(currentBlock.nextElementSibling) ||
+                ( currentContainer.lastElementChild === currentBlock && ( !isList(currentContainer) || isAside(currentContainer.nextElementSibling) || isPagePanel(currentContainer.nextElementSibling)) )) {
                 // Do not merge if last element of container
             } else if ( next ) {
                 var nextBlock;
-                if (next.parentNode === root || isAside(next.parentNode)) {
+                if (next.parentNode === root || isAside(next.parentNode) || isPagePanel(current.parentNode)) {
                     nextBlock = next;
                 } else {
                     nextBlock = next.parentNode;

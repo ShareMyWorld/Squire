@@ -1313,7 +1313,9 @@ proto.modifyBlocks = function ( modify, range, expandToPattern, expandToAttrs, f
         blockContainer = root;
     } else {
         // Get Neareast parent container that can contain other blocks
-        blockContainer = getNearest(range.commonAncestorContainer, root, 'BLOCKQUOTE', { class: 'aside' }) || root;
+        blockContainer = getNearest(range.commonAncestorContainer, root, 'BLOCKQUOTE', { class: 'aside' }) ||
+            getNearest(range.commonAncestorContainer, root, 'BLOCKQUOTE', { class: 'page-panel' }) ||
+            root;
     }
     moveRangeBoundariesUpTree( range, blockContainer ); 
     frag = extractContentsOfRange( range, blockContainer, root );
@@ -2099,6 +2101,7 @@ return Object.keys(classifications).reduce( function( acc, classification ) {
 var createTranslationMap = function ( ta, allowedSmwTags ) {
     var blockquote = ta.blockquote != undefined ? 'BLOCKQUOTE.' + ta.blockquote.class : 'BLOCKQUOTE';
     var aside = 'BLOCKQUOTE.' + ta.aside.class;
+    var pagePanel = 'BLOCKQUOTE.' + ta.pagePanel.class;
     //var aside = 'ASIDE';
     var bulleted = ta.ul != undefined ? 'UL.' + ta.ul.class : 'UL';
     var noLabels = 'UL.' + ta.noLabels.class;
@@ -2117,6 +2120,7 @@ var createTranslationMap = function ( ta, allowedSmwTags ) {
     };
     translations[blockquote] = 'blockquote';
     translations[aside] = 'aside';
+    translations[pagePanel] = 'pagePanel';
     translations[bulleted] = 'list';
     translations[noLabels] = 'list';
     translations[hr] = 'hr';
@@ -2155,6 +2159,10 @@ var createBlockQuote = function ( frag ) {
 
 var createAside = function ( frag ) {
     return createOnce( this, frag, 'BLOCKQUOTE', 'aside' );
+};
+
+var createPagePanel = function ( frag ) {
+    return createOnce( this, frag, 'BLOCKQUOTE', 'pagePanel' );
 };
 
 var createOnce = function ( self, frag, tag, attributeKey ) {
@@ -2218,6 +2226,13 @@ var removeAllAsides = function ( frag ) {
     return frag;
 };
 
+var removeAllPagePanels = function ( frag ) {
+    var pagePanels = frag.querySelectorAll( 'blockquote' );
+    var attributes = this._config.tagAttributes.pagePanel;
+    removeAllBlockquotesHelper( pagePanels, attributes.class );
+    return frag;
+};
+
 var removeAllBlockquotesHelper = function( blockquotes, blockquoteClass ) {
     //Side effect (modifies frag)
     Array.prototype.filter.call( blockquotes, function ( blockquote ) {
@@ -2239,7 +2254,12 @@ proto.removeAsides = function ( ) {
     this.modifyBlocks( removeAllAsides, range, pattern, {class: 'aside'}, true );
     return this.focus();
 };
-
+proto.removePagePanels = function ( ) {
+    var range = this.getSelection();
+    var pattern = 'BLOCKQUOTE';
+    this.modifyBlocks( removeAllPagePanels, range, pattern, {class: 'page-panel'}, true );
+    return this.focus();
+};
 proto.insertSoftBreak = function ( ) {
     var self = this;
 
@@ -2521,10 +2541,32 @@ proto.createAside = function() {
         expanded = true;
     }
 
-    this.modifyBlocks(createAside, range, null, null, true, expanded && orgRange);
+    this.modifyBlocks(createAside, range, null, null, false, expanded && orgRange);
     this.focus();
 }
 //proto.createAside = command( 'modifyBlocks', createAside );
+
+proto.createPagePanel = function() {
+    // Ensure we capture the complete list
+    var orgRange = this.getSelection();
+    var range = orgRange.cloneRange();
+    var listNode, expanded = false;
+
+    listNode = getNearestCallback(range.startContainer, this._root, isList);
+    if (listNode) {
+        range.setStartBefore(listNode);
+        expanded = true;
+    }
+
+    listNode = getNearestCallback(range.endContainer, this._root, isList);
+    if (listNode) {
+        range.setEndAfter(listNode);
+        expanded = true;
+    }
+
+    this.modifyBlocks(createPagePanel, range, null, null, true, expanded && orgRange);
+    this.focus();
+}
 
 proto.addDefaultBlock = function () {
     this._ensureBottomLine();
@@ -2574,6 +2616,15 @@ proto.toggleAside = function () {
     var asideAttributes = self._config.tagAttributes.aside;
     var addCallback = function(){ return self.createAside(); };
     var removeCallback = function(){ return self.removeAsides(); };
+    toggleTag( self, 'BLOCKQUOTE', asideAttributes, addCallback, removeCallback );
+    return this.focus();
+};
+
+proto.togglePagePanel = function () {
+    var self = this;
+    var asideAttributes = self._config.tagAttributes.pagePanel;
+    var addCallback = function(){ return self.createPagePanel(); };
+    var removeCallback = function(){ return self.removePagePanels(); };
     toggleTag( self, 'BLOCKQUOTE', asideAttributes, addCallback, removeCallback );
     return this.focus();
 };
@@ -2750,7 +2801,8 @@ proto.getFormattingInfoFromCurrentSelection = function () {
     var commonAncestor = selection.commonAncestorContainer;
     var ancestorIsBody = hasTagAttributes(commonAncestor, 'BODY');
     var ancestorIsAside = hasTagAttributes(commonAncestor, 'BLOCKQUOTE', self._config.tagAttributes.aside);
-    
+    var ancestorIsPagePanel = hasTagAttributes(commonAncestor, 'BLOCKQUOTE', self._config.tagAttributes.pagePanel);
+
     var formattingInfoMap = {};
     var usedSmwTagToElementsMap = {};
 
@@ -2794,6 +2846,7 @@ proto.getFormattingInfoFromCurrentSelection = function () {
             // This can almost be checked with isSmwInline, but links are the exception
             case 'blockquote':
             case 'aside':
+            case 'pagePanel':
             case 'heading':
             case 'list':
             case 'link':
@@ -2817,14 +2870,17 @@ proto.getFormattingInfoFromCurrentSelection = function () {
                 case 'aside':
                     allowed = (obj.elements.length === 1 && !ancestorIsBody) || obj.elements.length === 0;
                     break;
+                case 'pagePanel':
+                    allowed = (obj.elements.length === 1 && !ancestorIsBody) || obj.elements.length === 0;
+                    break;
 
                 case 'hr':
-                    allowed = !usedSmwTagToElementsMap.aside && selection.collapsed;
+                    allowed = !usedSmwTagToElementsMap.aside && !usedSmwTagToElementsMap.pagePanel && selection.collapsed;
                     break;
 
                 case 'link':
                     allowed = false;
-                    if (!ancestorIsBody && !ancestorIsAside && obj.elements.length <= 1 ) {
+                    if (!ancestorIsBody && !ancestorIsAside && !ancestorIsPagePanel && obj.elements.length <= 1 ) {
                         if (info.enabled || !selection.collapsed) {
                             allowed = true;
                         } else if (selection.collapsed) {
@@ -2844,7 +2900,7 @@ proto.getFormattingInfoFromCurrentSelection = function () {
 
                 default:
                     // As all text is wrapped in some tag, like p, blockquote, ol, etc. if the ancesor is aside or body, we are selecting more than 1 block
-                    allowed = !ancestorIsBody && !ancestorIsAside;
+                    allowed = !ancestorIsBody && !ancestorIsAside && !ancestorIsPagePanel;
 
             }
         }

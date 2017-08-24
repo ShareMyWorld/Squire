@@ -126,6 +126,14 @@ function isAside (node) {
     return node && getFullNodeName(node) === 'BLOCKQUOTE.aside';
 }
 
+function isPagePanel (node) {
+    return node && getFullNodeName(node) === 'BLOCKQUOTE.page-panel';
+}
+
+function isExpandableContainer (node) {
+    return isAside(node) || isPagePanel(node);
+}
+
 function isList (node) {
     return node && /^[OU]L$/.test(node.nodeName);
 }
